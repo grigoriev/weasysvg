@@ -82,3 +82,11 @@ def test_a_later_install_turns_on_fonts_for_svg_text(monkeypatch: pytest.MonkeyP
     assert weasysvg.text.FEATURES["fonts"] is False
     assert "fonts" in weasysvg.install(fonts=True)
     assert weasysvg.text.FEATURES["fonts"] is True
+
+
+def test_a_later_install_never_turns_fonts_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    # fonts installed first, text later with fonts=False: the installed fonts feature stays on
+    monkeypatch.setattr(weasysvg, "_INSTALLED", set(ALL - {"text"}))
+    monkeypatch.setitem(weasysvg.text.FEATURES, "fonts", True)
+    assert "fonts" in weasysvg.install(fonts=False)
+    assert weasysvg.text.FEATURES["fonts"] is True

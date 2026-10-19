@@ -81,7 +81,8 @@ def install(
         "conditional": _conditional.install,
         "paint": lambda: _paint.install(blend=False),
         "blend": lambda: _paint.install(blend=True),
-        "text": lambda: _text.install(fonts=fonts),
+        # fonts installed by an earlier call stays on: a later call only adds
+        "text": lambda: _text.install(fonts=fonts or "fonts" in _INSTALLED),
         "fonts": _install_fonts,
         "fetch": _fetch.install,
         "filters": _install_filters,
