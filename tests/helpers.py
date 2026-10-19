@@ -114,3 +114,27 @@ def pixel(pdf: bytes, x: int, y: int) -> tuple[int, int, int]:
     image = rasterize(pdf, 1)
     # An RGB image yields a tuple of three channels
     return cast("tuple[int, int, int]", image.getpixel((x, y)))
+
+
+class RecordingStream:
+    """A stand-in for the PDF stream: counts state pushes and pops, hands out child streams."""
+
+    def __init__(self) -> None:
+        self.depth = 0
+        self.id = "x0"
+
+    def push_state(self) -> None:
+        self.depth += 1
+
+    def pop_state(self) -> None:
+        self.depth -= 1
+
+    def set_alpha_state(self, *_args: Any, **_kwargs: Any) -> RecordingStream:
+        return RecordingStream()
+
+    def add_group(self, *_args: Any) -> RecordingStream:
+        return RecordingStream()
+
+    def __getattr__(self, _name: str) -> Any:
+        # transform, rectangle, clip, end, set_color, fill, set_alpha, draw_x_object
+        return lambda *_args, **_kwargs: None

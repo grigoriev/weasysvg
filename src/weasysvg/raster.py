@@ -309,7 +309,8 @@ def _fetched_image(svg: Any, href: str) -> str | None:
             body = response.read()
         with Image.open(io.BytesIO(body)) as image:
             kind = _IMAGE_FORMATS.get(image.format or "")
-    except Exception as error:  # noqa: BLE001  a refused, missing or broken image is left out
+    # A refused, missing or broken image is left out
+    except Exception as error:  # noqa: BLE001
         LOGGER.debug("Left an image out of the resvg document: %s", repr(error)[:200])
         return None
     return f"data:image/{kind};base64,{base64.b64encode(body).decode('ascii')}" if kind else None
@@ -392,9 +393,11 @@ def draw(svg: Any, image: Any, region: tuple[float, float, float, float]) -> Non
     x, y, width, height = region
     stream = svg.stream
     stream.push_state()
-    stream.transform(e=x, f=y)
-    image.draw(stream, width, height, {"image_rendering": "auto"})
-    stream.pop_state()
+    try:
+        stream.transform(e=x, f=y)
+        image.draw(stream, width, height, {"image_rendering": "auto"})
+    finally:
+        stream.pop_state()
 
 
 def install(*, scale: float = 2.0, enabled: bool = True) -> None:

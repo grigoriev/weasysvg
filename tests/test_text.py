@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import re
+from types import SimpleNamespace
+from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
-from helpers import SVG_NS, content, render, svg, text_of
+from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 
 from weasysvg import text
@@ -142,3 +144,15 @@ def test_install_again_keeps_the_replacement() -> None:
     text.install()
     assert wp_svg.TAGS["tspan"] is text.draw_text
     assert wp_svg.text is text.draw_text
+
+
+def test_failing_decoration_lines_restore_the_state() -> None:
+    stream = RecordingStream()
+
+    def failing(*_args: Any) -> Any:
+        raise RuntimeError("paint failed")
+
+    fake = SimpleNamespace(stream=stream, set_graphical_state=failing, fill_stroke=failing)
+    with pytest.raises(RuntimeError):
+        text._draw_lines(fake, SimpleNamespace(), 12, 0, 10, [(5, 1)])
+    assert stream.depth == 0

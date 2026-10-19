@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import io
 import sys
+from types import SimpleNamespace
 from typing import Any, cast
 from xml.etree import ElementTree as ET
 
 import helpers
 import pytest
 import weasyprint
-from helpers import render, svg
+from helpers import RecordingStream, render, svg
 from PIL import Image
 from weasyprint.urls import URLFetcher
 
@@ -302,3 +303,15 @@ def test_resvg_gets_images_through_the_fetcher(tmp_path: Any, spy: Spy) -> None:
     assert spy.documents
     assert all("secret.png" not in document for document in spy.documents)
     assert (0, 1, 0) in colors_of(pdf)
+
+
+def test_a_failing_image_draw_restores_the_state() -> None:
+    stream = RecordingStream()
+
+    class FailingImage:
+        def draw(self, *_args: Any) -> None:
+            raise RuntimeError("draw failed")
+
+    with pytest.raises(RuntimeError):
+        raster.draw(SimpleNamespace(stream=stream), FailingImage(), (0, 0, 10, 10))
+    assert stream.depth == 0

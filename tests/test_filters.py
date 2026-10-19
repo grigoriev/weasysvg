@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 import pytest
-from helpers import content, pixel, render, svg
+from helpers import RecordingStream, content, pixel, render, svg
 
 from weasysvg import filters, raster
 from weasysvg.filters import Layer, Unsupported
@@ -251,30 +251,6 @@ def test_drop_shadow_of_a_flood(no_resvg: None) -> None:
 
 
 # ---------------- exceptions ----------------
-
-
-class RecordingStream:
-    """A stand-in for the PDF stream: counts state pushes and pops, hands out child streams."""
-
-    def __init__(self) -> None:
-        self.depth = 0
-        self.id = "x0"
-
-    def push_state(self) -> None:
-        self.depth += 1
-
-    def pop_state(self) -> None:
-        self.depth -= 1
-
-    def set_alpha_state(self, *_args: Any, **_kwargs: Any) -> RecordingStream:
-        return RecordingStream()
-
-    def add_group(self, *_args: Any) -> RecordingStream:
-        return RecordingStream()
-
-    def __getattr__(self, _name: str) -> Any:
-        # transform, rectangle, clip, end, set_color, fill, set_alpha, draw_x_object
-        return lambda *_args, **_kwargs: None
 
 
 class FakeSvg:

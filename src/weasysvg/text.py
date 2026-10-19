@@ -156,12 +156,19 @@ def _decorate(svg: Any, node: Any, font_size: float) -> None:
     if "line-through" in lines:
         rects.append((baseline - layout.strikethrough_position, layout.strikethrough_thickness))
     layout.deactivate()
+    _draw_lines(svg, node, font_size, x, width, rects)
+
+
+def _draw_lines(svg: Any, node: Any, font_size: float, x: float, width: float, rects: list[tuple[float, float]]) -> None:
+    """Fill one rectangle per line, top and thickness each, in the paint of the node."""
     svg.stream.push_state()
-    fill, stroke = svg.set_graphical_state(node, font_size)
-    for top, thickness in rects:
-        svg.stream.rectangle(x, top, width, thickness)
-    svg.fill_stroke(fill, stroke)
-    svg.stream.pop_state()
+    try:
+        fill, stroke = svg.set_graphical_state(node, font_size)
+        for top, thickness in rects:
+            svg.stream.rectangle(x, top, width, thickness)
+        svg.fill_stroke(fill, stroke)
+    finally:
+        svg.stream.pop_state()
 
 
 # ---------------- the text() replacement ----------------

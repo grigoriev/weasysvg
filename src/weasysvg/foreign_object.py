@@ -206,13 +206,16 @@ def foreign_object(svg: wp_svg.SVG, node: wp_svg.Node, font_size: float) -> None
 
     stream = svg.stream
     stream.push_state()
-    stream.transform(e=x, f=y)
-    if not visible:
-        stream.rectangle(0, 0, width, height)
-        stream.clip()
-        stream.end()
-    draw_page(page._page_box, stream)
-    stream.pop_state()
+    # A failure must not leave the shift and the clip of the object on the rest of the page
+    try:
+        stream.transform(e=x, f=y)
+        if not visible:
+            stream.rectangle(0, 0, width, height)
+            stream.clip()
+            stream.end()
+        draw_page(page._page_box, stream)
+    finally:
+        stream.pop_state()
 
 
 # ---------------- table height distribution ----------------
