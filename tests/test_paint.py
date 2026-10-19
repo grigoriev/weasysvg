@@ -309,3 +309,12 @@ def test_groups_reach_far_coordinates(attribute: str) -> None:
     assert red > 200
     assert green < 200
     assert blue < 200
+
+
+def test_a_mask_on_an_empty_group_is_skipped(caplog: pytest.LogCaptureFixture) -> None:
+    # An empty group has the box (inf, inf, 0, 0): an objectBoundingBox mask has no region there
+    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="white"/></mask>'
+    pdf = render(svg(f'<defs>{mask}</defs><g mask="url(#m)"/><rect x="10" y="10" width="40" height="40" fill="red"/>'))
+    assert "Failed to render SVG image" not in caplog.text
+    assert b"inf" not in pdf.lower().replace(b"/info", b"")
+    assert near(pixel(pdf, 20, 20), RED)
