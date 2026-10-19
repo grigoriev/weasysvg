@@ -21,11 +21,15 @@ def raster(pdf: Path, dpi: int = METRIC_DPI) -> Image.Image | None:
     if not pdf.exists():
         return None
     document = pdfium.PdfDocument(str(pdf))
+    page = document[0]
+    bitmap = page.render(scale=dpi / 72, fill_color=(255, 255, 255, 255))
     try:
-        image: Image.Image = document[0].render(scale=dpi / 72, fill_color=(255, 255, 255, 255)).to_pil().convert("RGB")
+        image: Image.Image = bitmap.to_pil().convert("RGB")
         return image
     finally:
-        document.close()
+        # Children first: on PyPy a page finalized after its document fails an assertion
+        for item in (bitmap, page, document):
+            item.close()
 
 
 def ink_box(images: list[Image.Image]) -> tuple[int, int, int, int] | None:

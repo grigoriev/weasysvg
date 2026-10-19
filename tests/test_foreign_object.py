@@ -8,7 +8,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 import weasyprint
-from helpers import SVG_NS, XHTML_NS, content, page_html, render, svg, text_of
+from helpers import SVG_NS, XHTML_NS, close, content, page_html, render, svg, text_of
 from PIL import Image
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
@@ -162,16 +162,16 @@ def text_y(pdf: bytes, word: str) -> float:
     import pypdfium2 as pdfium
 
     document = pdfium.PdfDocument(pdf)
+    page = document[0]
+    textpage = page.get_textpage()
+    searcher = textpage.search(word)
     try:
-        page = document[0]
-        textpage = page.get_textpage()
-        searcher = textpage.search(word)
         found = searcher.get_next()
         assert found is not None, word
         left, bottom, right, top = textpage.get_charbox(found[0])
         return float(page.get_height() - top)
     finally:
-        document.close()
+        close(searcher, textpage, page, document)
 
 
 def test_table_rows_share_the_extra_height() -> None:

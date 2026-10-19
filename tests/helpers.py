@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import base64
 import re
-from typing import Any
+from typing import Any, cast
 
 import pypdfium2 as pdfium
 import weasyprint
+from PIL import Image
 
 import weasysvg
 
@@ -42,11 +43,35 @@ def render(document: str, width: float | None = None, **options: Any) -> bytes:
 def text_of(pdf: bytes) -> str:
     """The text PDFium extracts from the first page."""
     document = pdfium.PdfDocument(pdf)
+    page = document[0]
+    textpage = page.get_textpage()
     try:
-        text: str = document[0].get_textpage().get_text_range()
+        text: str = textpage.get_text_range()
         return text
     finally:
-        document.close()
+        close(textpage, page, document)
+
+
+def close(*objects: Any) -> None:
+    """Close PDFium objects, children first.
+
+    On PyPy the garbage collector finalizes a page later than CPython does: a document closed while its
+    page is still open then fails an assertion in the page finalizer.
+    """
+    for item in objects:
+        item.close()
+
+
+def rasterize(pdf: bytes, scale: float) -> Image.Image:
+    """The first page rasterized by PDFium on white, in RGB."""
+    document = pdfium.PdfDocument(pdf)
+    page = document[0]
+    bitmap = page.render(scale=scale, fill_color=(255, 255, 255, 255))
+    try:
+        image: Image.Image = bitmap.to_pil().convert("RGB")
+        return image
+    finally:
+        close(bitmap, page, document)
 
 
 def streams(pdf: bytes) -> list[str]:
@@ -74,11 +99,7 @@ def assert_no_state_inside_path(stream: str) -> None:
 
 def ink(pdf: bytes, scale: float = 1.0) -> tuple[int, int, int] | None:
     """The darkest pixel of the first page, rasterized by PDFium, or None for a blank page."""
-    document = pdfium.PdfDocument(pdf)
-    try:
-        image = document[0].render(scale=scale, fill_color=(255, 255, 255, 255)).to_pil().convert("RGB")
-    finally:
-        document.close()
+    image = rasterize(pdf, scale)
     box = image.point(lambda value: 255 if value < 250 else 0).getbbox()
     if box is None:
         return None
@@ -89,10 +110,6 @@ def ink(pdf: bytes, scale: float = 1.0) -> tuple[int, int, int] | None:
 
 def pixel(pdf: bytes, x: int, y: int) -> tuple[int, int, int]:
     """One pixel of the first page at 72 dpi, in CSS px times 0.75."""
-    document = pdfium.PdfDocument(pdf)
-    try:
-        image = document[0].render(scale=1, fill_color=(255, 255, 255, 255)).to_pil().convert("RGB")
-    finally:
-        document.close()
-    value: tuple[int, int, int] = image.getpixel((x, y))
-    return value
+    image = rasterize(pdf, 1)
+    # An RGB image yields a tuple of three channels
+    return cast("tuple[int, int, int]", image.getpixel((x, y)))
