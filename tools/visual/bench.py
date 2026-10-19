@@ -107,6 +107,15 @@ figure{margin:0}figcaption{color:var(--muted);font-size:12px}img{background:#fff
 """
 
 
+def _status(row: dict[str, Any], verdict: dict[str, Any]) -> str:
+    """The CSS class of the verdict: bad for an error or a broken rendering, ok for the same one."""
+    if row["error"] or verdict.get("verdict") == "broken":
+        return "bad"
+    if verdict.get("verdict") == "same":
+        return "ok"
+    return ""
+
+
 def report(rows: list[dict[str, Any]], verdicts: dict[str, dict[str, Any]], out: Path) -> None:
     rows = sorted(rows, key=lambda row: -(row["mismatch"] if row["mismatch"] is not None else 101))
     labels = ("Chromium", "weasysvg", "resvg reference")
@@ -115,7 +124,7 @@ def report(rows: list[dict[str, Any]], verdicts: dict[str, dict[str, Any]], out:
         verdict = verdicts.get(row["name"], {})
         figures = "".join(f'<figure><img src="{src}" alt=""><figcaption>{label}</figcaption></figure>' for src, label in zip(row.get("panels", []), labels, strict=False))
         value = "n/a" if row["mismatch"] is None else f"{row['mismatch']}%"
-        status = "bad" if row["error"] or verdict.get("verdict") == "broken" else "ok" if verdict.get("verdict") == "same" else ""
+        status = _status(row, verdict)
         details = html.escape(row["error"] or verdict.get("what") or "")
         sections.append(
             f'<section><h2>{html.escape(row["name"])}</h2><p class="meta">mismatch {value} · {row["ms"]} ms · verdict '
