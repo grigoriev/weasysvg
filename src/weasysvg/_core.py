@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -75,64 +76,94 @@ def _group_opacity(node: Any) -> float | None:
     return opacity if 0 <= opacity < 1 else None
 
 
-def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True, context: Any = None) -> None:
-    original: Callable[..., None] = _ORIGINAL_DRAW_NODE
-    if not fill_stroke or node.tag == "defs":
-        return original(self, node, font_size, fill_stroke, context)
+@dataclass(frozen=True)
+class _Effects:
+    """What this wrapper applies itself around the original draw_node; None where it applies nothing."""
 
+    font_size: float  # the font size of the node, for its transform, mask and filter
+    blend: str | None
+    mask: Any
+    plan: Any
+    opacity: float | None
+
+    def empty(self) -> bool:
+        return self.blend is None and self.mask is None and self.plan is None and self.opacity is None
+
+    def applied_keys(self) -> list[str]:
+        """What this wrapper applies itself leaves the node, so the original does not apply it twice."""
+        keys = ["transform"]
+        if self.mask is not None:
+            keys.append("mask")
+        if self.plan is not None:
+            keys += ["filter", "opacity"]
+        if self.opacity is not None:
+            keys.append("opacity")
+        return keys
+
+
+def _effects(svg: Any, node: Any, font_size: float) -> _Effects:
     # Imported here: paint and filters import this module
     from . import filters, paint
 
     blend = paint.blend_mode(node) if DRAW_FEATURES["blend"] else None
-    mask = paint.early_mask(self, node) if DRAW_FEATURES["masks"] else None
+    mask = paint.early_mask(svg, node) if DRAW_FEATURES["masks"] else None
     local_font_size = size(node.get("font-size", "1em"), font_size, font_size)
-    plan = filters.plan(self, node, local_font_size) if DRAW_FEATURES["filters"] else None
+    plan = filters.plan(svg, node, local_font_size) if DRAW_FEATURES["filters"] else None
     opacity = _group_opacity(node) if plan is None else None
-    if blend is None and mask is None and plan is None and opacity is None:
+    return _Effects(local_font_size, blend, mask, plan, opacity)
+
+
+def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True, context: Any = None) -> None:
+    original: Callable[..., None] = _ORIGINAL_DRAW_NODE
+    if not fill_stroke or node.tag == "defs":
+        return original(self, node, font_size, fill_stroke, context)
+    effects = _effects(self, node, font_size)
+    if effects.empty():
         return original(self, node, font_size, fill_stroke, context)
 
-    # What this wrapper applies itself leaves the node, so the original does not apply it twice
-    keys = ["transform"]
-    if mask is not None:
-        keys.append("mask")
-    if plan is not None:
-        keys += ["filter", "opacity"]
-    if opacity is not None:
-        keys.append("opacity")
-    saved = {key: node.attrib.pop(key) for key in keys if key in node.attrib}
+    from . import paint
+
+    saved = {key: node.attrib.pop(key) for key in effects.applied_keys() if key in node.attrib}
     self.stream.push_state()
     try:
         if "transform" in saved:
             node.attrib["transform"] = saved["transform"]
-            self.transform(node, local_font_size)
+            self.transform(node, effects.font_size)
             del node.attrib["transform"]
-        if mask is not None:
-            paint.paint_mask(self, node, mask, local_font_size)
-        outer = self.stream
-        if blend is not None:
-            # The element blends as one isolated group: its own parts must not blend with each other
-            self.stream = outer.add_group(*BLEND_GROUP_BOX)
-        blended = self.stream
-        if opacity is not None:
-            # WeasyPrint bounds its opacity group by the bounding box of the element, which misses the shift
-            # of text-anchor, markers and wide strokes: the Mermaid gantt dates lost their first half
-            self.stream = blended.add_group(*BLEND_GROUP_BOX)
-        try:
-            if plan is not None:
-                filters.draw(self, original, node, font_size, context, plan, saved.get("opacity", 1), strip_mask=mask is not None)
-            else:
-                original(self, node, font_size, fill_stroke, context)
-        finally:
-            if opacity is not None:
-                group, self.stream = self.stream, blended
-                blended.push_state()
-                blended.set_alpha(opacity, stroke=True, fill=True)
-                blended.draw_x_object(group.id)
-                blended.pop_state()
-            if blend is not None:
-                group, self.stream = self.stream, outer
-                outer.set_blend_mode(blend)
-                outer.draw_x_object(group.id)
+        if effects.mask is not None:
+            paint.paint_mask(self, node, effects.mask, effects.font_size)
+        _draw_grouped(self, original, node, font_size, fill_stroke, context, effects, saved.get("opacity", 1))
     finally:
         self.stream.pop_state()
         node.attrib.update(saved)
+
+
+def _draw_grouped(self: Any, original: Callable[..., None], node: Any, font_size: float, fill_stroke: bool, context: Any, effects: _Effects, filter_opacity: Any) -> None:
+    """The node inside its blend group and its opacity group, through its filter plan if it has one."""
+    from . import filters
+
+    outer = self.stream
+    if effects.blend is not None:
+        # The element blends as one isolated group: its own parts must not blend with each other
+        self.stream = outer.add_group(*BLEND_GROUP_BOX)
+    blended = self.stream
+    if effects.opacity is not None:
+        # WeasyPrint bounds its opacity group by the bounding box of the element, which misses the shift
+        # of text-anchor, markers and wide strokes: the Mermaid gantt dates lost their first half
+        self.stream = blended.add_group(*BLEND_GROUP_BOX)
+    try:
+        if effects.plan is not None:
+            filters.draw(self, original, node, font_size, context, effects.plan, filter_opacity, strip_mask=effects.mask is not None)
+        else:
+            original(self, node, font_size, fill_stroke, context)
+    finally:
+        if effects.opacity is not None:
+            group, self.stream = self.stream, blended
+            blended.push_state()
+            blended.set_alpha(effects.opacity, stroke=True, fill=True)
+            blended.draw_x_object(group.id)
+            blended.pop_state()
+        if effects.blend is not None:
+            group, self.stream = self.stream, outer
+            outer.set_blend_mode(effects.blend)
+            outer.draw_x_object(group.id)

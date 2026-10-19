@@ -16,7 +16,7 @@ from __future__ import annotations
 import math
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Any, cast
 
 from weasyprint import svg as wp_svg
@@ -91,89 +91,132 @@ def _silhouette(layers: list[Layer], rgba: Any, opacity: float) -> list[Layer]:
     return out
 
 
-def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, float], font_size: float) -> list[Layer]:  # noqa: C901
-    results: dict[str, list[Layer]] = {}
-    last = [Layer("source")]
+@dataclass
+class _Chain:
+    """One filter chain while it is evaluated: its named results, the output of the last primitive and the input of the current one."""
 
-    def get(name: str | None) -> list[Layer]:
+    svg: Any
+    filter_node: Any
+    region: Region
+    font_size: float
+    results: dict[str, list[Layer]] = field(default_factory=dict)
+    last: list[Layer] = field(default_factory=lambda: [Layer("source")])
+    source: list[Layer] = field(default_factory=list)
+
+    def get(self, name: str | None) -> list[Layer]:
         if name in (None, ""):
-            return last
+            return self.last
         if name == "SourceGraphic":
             return [Layer("source")]
         if name == "SourceAlpha":
             return [Layer("alpha", rgba=color("black"))]
-        if name in results:
-            return results[name]
+        if name in self.results:
+            return self.results[name]
         raise Unsupported(f"input {name}")
 
+
+def _fe_offset(chain: _Chain, child: Any) -> list[Layer]:
+    dx, dy = _num(child.get("dx")), _num(child.get("dy"))
+    return [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy) for layer in chain.source]
+
+
+def _fe_gaussian_blur(chain: _Chain, child: Any) -> list[Layer]:
+    std = _std(child.get("stdDeviation"), "0")
+    return [replace(layer, blur=_add_blur(layer.blur, std)) for layer in chain.source]
+
+
+def _fe_flood(chain: _Chain, child: Any) -> list[Layer]:
+    rgba, opacity = _flood(child)
+    sub = chain.region
+    if any(child.get(key) is not None for key in ("x", "y", "width", "height")):
+        svg, font_size = chain.svg, chain.font_size
+        rx, ry, rw, rh = chain.region
+        sub = (
+            size(child.get("x", rx), font_size, svg.inner_width),
+            size(child.get("y", ry), font_size, svg.inner_height),
+            size(child.get("width", rw), font_size, svg.inner_width),
+            size(child.get("height", rh), font_size, svg.inner_height),
+        )
+    return [Layer("flood", rgba=rgba, opacity=opacity, region=sub)]
+
+
+def _fe_drop_shadow(chain: _Chain, child: Any) -> list[Layer]:
+    rgba, opacity = _flood(child)
+    dx, dy = _num(child.get("dx"), 2), _num(child.get("dy"), 2)
+    std = _std(child.get("stdDeviation"), "2")
+    shadow = [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy, blur=_add_blur(layer.blur, std)) for layer in _silhouette(chain.source, rgba, opacity)]
+    return shadow + list(chain.source)
+
+
+def _fe_merge(chain: _Chain, child: Any) -> list[Layer]:
+    out: list[Layer] = []
+    for merge_node in child:
+        if merge_node.tag == "feMergeNode":
+            out += chain.get(merge_node.get("in"))
+    return out
+
+
+def _fe_blend(chain: _Chain, child: Any) -> list[Layer]:
+    if child.get("mode", "normal") != "normal":
+        raise Unsupported("feBlend mode")
+    return list(chain.get(child.get("in2"))) + list(chain.source)
+
+
+def _fe_composite(chain: _Chain, child: Any) -> list[Layer]:
+    operator = child.get("operator", "over")
+    backdrop = chain.get(child.get("in2"))
+    if operator == "over":
+        return list(backdrop) + list(chain.source)
+    if operator == "in" and len(chain.source) == 1 and chain.source[0].kind == "flood":
+        # Colorize a silhouette: the common shadow idiom
+        return _silhouette(backdrop, chain.source[0].rgba, chain.source[0].opacity)
+    raise Unsupported(f"feComposite {operator}")
+
+
+def _fe_component_transfer(chain: _Chain, child: Any) -> list[Layer]:
+    funcs = list(child)
+    if not all(f.tag == "feFuncA" and f.get("type") == "linear" and _num(f.get("intercept")) == 0 for f in funcs):
+        raise Unsupported("feComponentTransfer")
+    slope = _num(funcs[0].get("slope"), 1) if funcs else 1
+    return [replace(layer, opacity=layer.opacity * slope) for layer in chain.source]
+
+
+def _fe_color_matrix(chain: _Chain, child: Any) -> list[Layer]:
+    kind = child.get("type", "matrix")
+    # A soft mask computes luminance in sRGB: exact only when the filter works in sRGB too
+    srgb = (child.get("color-interpolation-filters") or chain.filter_node.get("color-interpolation-filters") or "").lower() == "srgb"
+    if kind == "luminanceToAlpha" and srgb and all(layer.kind == "source" for layer in chain.source):
+        return [replace(layer, kind="lum") for layer in chain.source]
+    if kind == "saturate" and _num(child.get("values"), 1) == 1:
+        return chain.source
+    raise Unsupported(f"feColorMatrix {kind}")
+
+
+_PRIMITIVES: dict[str, Callable[[_Chain, Any], list[Layer]]] = {
+    "feOffset": _fe_offset,
+    "feGaussianBlur": _fe_gaussian_blur,
+    "feFlood": _fe_flood,
+    "feDropShadow": _fe_drop_shadow,
+    "feMerge": _fe_merge,
+    "feBlend": _fe_blend,
+    "feComposite": _fe_composite,
+    "feComponentTransfer": _fe_component_transfer,
+    "feColorMatrix": _fe_color_matrix,
+}
+
+
+def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, float], font_size: float) -> list[Layer]:
+    chain = _Chain(svg, filter_node, region, font_size)
     for child in filter_node:
-        tag = child.tag
-        source = get(child.get("in"))
-        if tag == "feOffset":
-            dx, dy = _num(child.get("dx")), _num(child.get("dy"))
-            out = [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy) for layer in source]
-        elif tag == "feGaussianBlur":
-            std = _std(child.get("stdDeviation"), "0")
-            out = [replace(layer, blur=_add_blur(layer.blur, std)) for layer in source]
-        elif tag == "feFlood":
-            rgba, opacity = _flood(child)
-            sub = region
-            if any(child.get(key) is not None for key in ("x", "y", "width", "height")):
-                rx, ry, rw, rh = region
-                sub = (
-                    size(child.get("x", rx), font_size, svg.inner_width),
-                    size(child.get("y", ry), font_size, svg.inner_height),
-                    size(child.get("width", rw), font_size, svg.inner_width),
-                    size(child.get("height", rh), font_size, svg.inner_height),
-                )
-            out = [Layer("flood", rgba=rgba, opacity=opacity, region=sub)]
-        elif tag == "feDropShadow":
-            rgba, opacity = _flood(child)
-            dx, dy = _num(child.get("dx"), 2), _num(child.get("dy"), 2)
-            std = _std(child.get("stdDeviation"), "2")
-            shadow = [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy, blur=_add_blur(layer.blur, std)) for layer in _silhouette(source, rgba, opacity)]
-            out = shadow + list(source)
-        elif tag == "feMerge":
-            out = []
-            for merge_node in child:
-                if merge_node.tag == "feMergeNode":
-                    out += get(merge_node.get("in"))
-        elif tag == "feBlend":
-            if child.get("mode", "normal") != "normal":
-                raise Unsupported("feBlend mode")
-            out = list(get(child.get("in2"))) + list(source)
-        elif tag == "feComposite":
-            operator = child.get("operator", "over")
-            backdrop = get(child.get("in2"))
-            if operator == "over":
-                out = list(backdrop) + list(source)
-            elif operator == "in" and len(source) == 1 and source[0].kind == "flood":
-                # Colorize a silhouette: the common shadow idiom
-                out = _silhouette(backdrop, source[0].rgba, source[0].opacity)
-            else:
-                raise Unsupported(f"feComposite {operator}")
-        elif tag == "feComponentTransfer":
-            funcs = list(child)
-            if not all(f.tag == "feFuncA" and f.get("type") == "linear" and _num(f.get("intercept")) == 0 for f in funcs):
-                raise Unsupported("feComponentTransfer")
-            slope = _num(funcs[0].get("slope"), 1) if funcs else 1
-            out = [replace(layer, opacity=layer.opacity * slope) for layer in source]
-        elif tag == "feColorMatrix":
-            kind = child.get("type", "matrix")
-            # A soft mask computes luminance in sRGB: exact only when the filter works in sRGB too
-            srgb = (child.get("color-interpolation-filters") or filter_node.get("color-interpolation-filters") or "").lower() == "srgb"
-            if kind == "luminanceToAlpha" and srgb and all(layer.kind == "source" for layer in source):
-                out = [replace(layer, kind="lum") for layer in source]
-            elif kind == "saturate" and _num(child.get("values"), 1) == 1:
-                out = source
-            else:
-                raise Unsupported(f"feColorMatrix {kind}")
-        else:
-            raise Unsupported(tag)
-        last = out
+        chain.source = chain.get(child.get("in"))
+        primitive = _PRIMITIVES.get(child.tag)
+        if primitive is None:
+            raise Unsupported(child.tag)
+        out = primitive(chain, child)
+        chain.last = out
         if child.get("result"):
-            results[child.get("result")] = out
-    return last
+            chain.results[child.get("result")] = out
+    return chain.last
 
 
 def _region(svg: Any, node: Any, filter_node: Any, font_size: float) -> tuple[float, float, float, float]:
@@ -224,19 +267,18 @@ def _function_layers(value: str) -> list[Layer]:
     return [Layer("alpha", dx=_px(match["dx"]), dy=_px(match["dy"]), blur=(std, std), rgba=rgba), Layer("source")]
 
 
-def plan(svg: Any, node: Any, font_size: float) -> Plan | None:
-    """The layers for the filter of node, or None when the node keeps the behavior of WeasyPrint."""
-    value = node.get("filter")
-    if not value or value == "none" or (node.tag == "svg" and node is not svg.tree):
+def _function_plan(svg: Any, node: Any, value: str) -> Plan | None:
+    """The plan of a CSS filter function list. The root keeps the behavior of WeasyPrint."""
+    if node is svg.tree:
         return None
-    fragment = parse_url(value).fragment if value.startswith("url(") else None
-    if not fragment:
-        if node is svg.tree:
-            return None
-        try:
-            return Plan(_function_layers(value), None)
-        except Unsupported:
-            return UNFILTERED  # an invalid function list: browsers draw the element unfiltered
+    try:
+        return Plan(_function_layers(value), None)
+    except Unsupported:
+        return UNFILTERED  # an invalid function list: browsers draw the element unfiltered
+
+
+def _reference_plan(svg: Any, node: Any, font_size: float, fragment: str) -> Plan | None:
+    """The plan of a filter element: vector layers, or a whole raster when the chain needs one."""
     filter_node = svg.filters.get(fragment)
     if filter_node is None:
         return UNFILTERED
@@ -255,6 +297,17 @@ def plan(svg: Any, node: Any, font_size: float) -> Plan | None:
         if raster.available():
             return Plan([], region, whole=True, filter_node=filter_node)
         return UNFILTERED
+
+
+def plan(svg: Any, node: Any, font_size: float) -> Plan | None:
+    """The layers for the filter of node, or None when the node keeps the behavior of WeasyPrint."""
+    value = node.get("filter")
+    if not value or value == "none" or (node.tag == "svg" and node is not svg.tree):
+        return None
+    fragment = parse_url(value).fragment if value.startswith("url(") else None
+    if not fragment:
+        return _function_plan(svg, node, value)
+    return _reference_plan(svg, node, font_size, fragment)
 
 
 # ---------------- raster layers ----------------

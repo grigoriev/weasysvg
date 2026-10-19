@@ -83,27 +83,36 @@ def _wrapper_tag(element: ET.Element) -> str:
     return "div" if tag in ("svg", "a", "title", "style", "script", "image", "font", "switch") else tag
 
 
+def _ancestors(element: ET.Element, parents: dict[ET.Element, ET.Element]) -> list[ET.Element]:
+    """The ancestors of element, the outermost first."""
+    chain = []
+    ancestor = parents.get(element)
+    while ancestor is not None:
+        chain.append(ancestor)
+        ancestor = parents.get(ancestor)
+    chain.reverse()
+    return chain
+
+
+def _stash(element: ET.Element, chain: list[ET.Element], styles: str) -> None:
+    """Move the XHTML of one foreignObject into an attribute, inside wrappers for its SVG ancestors."""
+    opening = [_wrapper(a, _wrapper_tag(a)) for a in chain]
+    closing = [f"</{_wrapper_tag(a)}>" for a in reversed(chain)]
+    content = html.escape(element.text or "") + "".join(_serialize(child) for child in element)
+    body = "".join(opening) + _wrapper(element, "foreignobject").replace(">", FO_STYLE_SLOT + ">", 1) + content + "</foreignobject>" + "".join(closing)
+    element.set(STASH, body)
+    element.set(STASH + "-css", styles)
+    for child in list(element):
+        element.remove(child)
+    element.text = None
+
+
 def stash_foreign_objects(root: ET.Element) -> None:
     parents = {child: parent for parent in root.iter() for child in parent}
     styles = "\n".join(el.text or "" for el in root.iter() if local_name(el.tag) == "style")
     for element in list(root.iter()):
-        if local_name(element.tag) != "foreignObject":
-            continue
-        chain = []
-        ancestor = parents.get(element)
-        while ancestor is not None:
-            chain.append(ancestor)
-            ancestor = parents.get(ancestor)
-        chain.reverse()
-        opening = [_wrapper(a, _wrapper_tag(a)) for a in chain]
-        closing = [f"</{_wrapper_tag(a)}>" for a in reversed(chain)]
-        content = html.escape(element.text or "") + "".join(_serialize(child) for child in element)
-        body = "".join(opening) + _wrapper(element, "foreignobject").replace(">", FO_STYLE_SLOT + ">", 1) + content + "</foreignobject>" + "".join(closing)
-        element.set(STASH, body)
-        element.set(STASH + "-css", styles)
-        for child in list(element):
-            element.remove(child)
-        element.text = None
+        if local_name(element.tag) == "foreignObject":
+            _stash(element, _ancestors(element, parents), styles)
 
 
 # ---------------- lay out and draw ----------------
@@ -210,6 +219,33 @@ def foreign_object(svg: wp_svg.SVG, node: wp_svg.Node, font_size: float) -> None
 # WeasyPrint keeps the extra height of a table below its last row (layout.table.table_layout).
 
 
+def _pad_cell(cell: Any, add: float) -> None:
+    """The extra height of a row goes into the padding of a cell, on the side its vertical-align leaves free."""
+    if cell.vertical_align == "middle":
+        add_top_padding(cell, add / 2)
+        cell.padding_bottom += add / 2
+    elif cell.vertical_align == "bottom":
+        add_top_padding(cell, add)
+    else:
+        cell.padding_bottom += add
+
+
+def _grow_row(row: Any, add: float, shift: float) -> None:
+    if shift:
+        row.translate(dy=shift)
+    row.height += add
+    for cell in row.children:
+        if cell.rowspan == 1:
+            _pad_cell(cell, add)
+
+
+def _grow_columns(table: Any, extra: float) -> None:
+    for column_group in table.column_groups:
+        column_group.height += extra
+        for column in column_group.children:
+            column.height += extra
+
+
 def _distribute_table_height(table: Any) -> None:
     groups = [group for group in table.children if getattr(group, "is_header", False) is False and getattr(group, "is_footer", False) is False]
     rows = [row for group in groups for row in group.children]
@@ -226,25 +262,10 @@ def _distribute_table_height(table: Any) -> None:
         group_shift = shift
         for row in group.children:
             add = extra * (row.height / total if total else 1 / len(rows))
-            if shift:
-                row.translate(dy=shift)
-            row.height += add
-            for cell in row.children:
-                if cell.rowspan != 1:
-                    continue
-                if cell.vertical_align == "middle":
-                    add_top_padding(cell, add / 2)
-                    cell.padding_bottom += add / 2
-                elif cell.vertical_align == "bottom":
-                    add_top_padding(cell, add)
-                else:
-                    cell.padding_bottom += add
+            _grow_row(row, add, shift)
             shift += add
         group.height += shift - group_shift
-    for column_group in table.column_groups:
-        column_group.height += extra
-        for column in column_group.children:
-            column.height += extra
+    _grow_columns(table, extra)
 
 
 _ORIGINAL_TABLE_LAYOUT = wp_table.table_layout

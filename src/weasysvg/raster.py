@@ -172,7 +172,7 @@ def _shallow(element: ET.Element, drop: Collection[str] = (), extra_style: str =
     return ET.Element(element.tag, attrib)
 
 
-def _target_copy(node: Any, element: ET.Element, filter_value: str, strip_mask: bool) -> ET.Element:
+def _target_copy(element: ET.Element, filter_value: str, strip_mask: bool) -> ET.Element:
     drop = {"transform", "opacity", "mix-blend-mode", "filter"} | ({"mask"} if strip_mask else set())
     target = copy.deepcopy(element)
     style = _strip_style(target.attrib.pop("style", ""), drop)
@@ -183,26 +183,30 @@ def _target_copy(node: Any, element: ET.Element, filter_value: str, strip_mask: 
     return target
 
 
-def build_document(svg: Any, node: Any, region: tuple[float, float, float, float], pixel_size: tuple[int, int], filter_value: str, extra_defs: str = "", strip_mask: bool = False) -> str:
-    """The standalone SVG for node, in the user space of node after its own transform."""
-    root, parents, ids, styles = _index(svg)
-    element = node._etree_node
+def _ancestors(element: ET.Element, parents: dict[ET.Element, ET.Element]) -> list[ET.Element]:
+    """The ancestors of element, the outermost first."""
     chain = []
     ancestor = parents.get(element)
     while ancestor is not None:
         chain.append(ancestor)
         ancestor = parents.get(ancestor)
-    reachable = element is root or (chain and chain[-1] is root)
     chain.reverse()
+    return chain
 
-    referenced = _referenced(_references(element) | {name for style in styles for name in _REFERENCE.findall(style.text or "")}, ids)
+
+def _needed(referenced: list[ET.Element], parents: dict[ET.Element, ET.Element]) -> set[ET.Element]:
+    """The referenced elements and all their ancestors."""
     needed = set()
     item: ET.Element | None
     for item in referenced:
         while item is not None and item not in needed:
             needed.add(item)
             item = parents.get(item)
+    return needed
 
+
+def _skeleton(root: ET.Element, styles: list[ET.Element], region: tuple[float, float, float, float], pixel_size: tuple[int, int], extra_defs: str) -> tuple[ET.Element, ET.Element]:
+    """The root of the standalone SVG over region, and its defs with the styles of the document."""
     x, y, width, height = region
     pw, ph = pixel_size
     document = ET.Element(
@@ -223,53 +227,85 @@ def build_document(svg: Any, node: Any, region: tuple[float, float, float, float
         defs.append(copy.deepcopy(style))
     if extra_defs:
         defs.extend(ET.fromstring(f'<defs xmlns="{SVG_NS}">{extra_defs}</defs>'))
+    return document, defs
 
-    if element is root:
-        # The root keeps class, id and style for the selectors; its content moves into a group with the filter
-        wrapper = _shallow(root, drop=VIEWPORT + OUTER_EFFECTS, extra_style=_effects_off())
-        wrapper.tag = f"{{{SVG_NS}}}g"
-        group = ET.SubElement(wrapper, f"{{{SVG_NS}}}g", {"style": f"filter:{filter_value}"})
-        for child in root:
-            if _local(child.tag) != "style":
-                group.append(copy.deepcopy(child))
-        document.append(wrapper)
-        return ET.tostring(document, encoding="unicode")
 
-    target = _target_copy(node, element, filter_value, strip_mask)
-    if not reachable:
-        # Drawn through <use> or from another document: no ancestors, the cascade of WeasyPrint stands in for them
-        for key in INHERITED:
-            if key not in target.attrib and node.get(key) is not None:
-                target.set(key, str(node.get(key)))
-        for item in referenced:
-            defs.append(copy.deepcopy(item))
-        document.append(target)
-        return ET.tostring(document, encoding="unicode")
+def _root_group(root: ET.Element) -> ET.Element:
+    """The root as a group: it keeps class, id and style for the selectors, without viewport and effects."""
+    group = _shallow(root, drop=VIEWPORT + OUTER_EFFECTS, extra_style=_effects_off())
+    group.tag = f"{{{SVG_NS}}}g"
+    return group
 
+
+def _append_root(document: ET.Element, root: ET.Element, filter_value: str) -> None:
+    """The root as the filtered element: its content moves into a group with the filter."""
+    wrapper = _root_group(root)
+    group = ET.SubElement(wrapper, f"{{{SVG_NS}}}g", {"style": f"filter:{filter_value}"})
+    for child in root:
+        if _local(child.tag) != "style":
+            group.append(copy.deepcopy(child))
+    document.append(wrapper)
+
+
+def _append_detached(document: ET.Element, defs: ET.Element, node: Any, target: ET.Element, referenced: list[ET.Element]) -> None:
+    """Drawn through <use> or from another document: no ancestors, the cascade of WeasyPrint stands in for them."""
+    for key in INHERITED:
+        if key not in target.attrib and node.get(key) is not None:
+            target.set(key, str(node.get(key)))
+    for item in referenced:
+        defs.append(copy.deepcopy(item))
+    document.append(target)
+
+
+def _ancestor_copy(ancestor: ET.Element, root: ET.Element) -> ET.Element:
+    if ancestor is root:
+        return _root_group(root)
+    drop = OUTER_EFFECTS + (VIEWPORT if _local(ancestor.tag) == "svg" else ())
+    current = _shallow(ancestor, drop=drop, extra_style=_effects_off())
+    if _local(ancestor.tag) == "svg":
+        current.tag = f"{{{SVG_NS}}}g"
+    return current
+
+
+def _copy_children(ancestor: ET.Element, current: ET.Element, on_path: ET.Element, target: ET.Element, element: ET.Element, needed: set[ET.Element]) -> None:
+    """The children of an ancestor the copy keeps: the path to the element, non-rendering ones and what it references."""
+    for child in ancestor:
+        if child is on_path:
+            if child is element:
+                current.append(target)
+        elif _local(child.tag) == "style":
+            continue
+        elif _local(child.tag) in NON_RENDERING:
+            current.append(copy.deepcopy(child))
+        elif child in needed:
+            holder = ET.SubElement(current, f"{{{SVG_NS}}}defs")
+            holder.append(copy.deepcopy(child))
+
+
+def _append_chain(document: ET.Element, root: ET.Element, chain: list[ET.Element], element: ET.Element, target: ET.Element, needed: set[ET.Element]) -> None:
+    """The ancestors of the element, each with the children it keeps, down to the target."""
     parent_copy = document
     for index, ancestor in enumerate(chain):
         on_path = chain[index + 1] if index + 1 < len(chain) else element
-        if ancestor is root:
-            current = _shallow(root, drop=VIEWPORT + OUTER_EFFECTS, extra_style=_effects_off())
-            current.tag = f"{{{SVG_NS}}}g"
-        else:
-            drop = OUTER_EFFECTS + (VIEWPORT if _local(ancestor.tag) == "svg" else ())
-            current = _shallow(ancestor, drop=drop, extra_style=_effects_off())
-            if _local(ancestor.tag) == "svg":
-                current.tag = f"{{{SVG_NS}}}g"
+        current = _ancestor_copy(ancestor, root)
         parent_copy.append(current)
-        for child in ancestor:
-            if child is on_path:
-                if child is element:
-                    current.append(target)
-            elif _local(child.tag) == "style":
-                continue
-            elif _local(child.tag) in NON_RENDERING:
-                current.append(copy.deepcopy(child))
-            elif child in needed:
-                holder = ET.SubElement(current, f"{{{SVG_NS}}}defs")
-                holder.append(copy.deepcopy(child))
+        _copy_children(ancestor, current, on_path, target, element, needed)
         parent_copy = current
+
+
+def build_document(svg: Any, node: Any, region: tuple[float, float, float, float], pixel_size: tuple[int, int], filter_value: str, extra_defs: str = "", strip_mask: bool = False) -> str:
+    """The standalone SVG for node, in the user space of node after its own transform."""
+    root, parents, ids, styles = _index(svg)
+    element = node._etree_node
+    chain = _ancestors(element, parents)
+    referenced = _referenced(_references(element) | {name for style in styles for name in _REFERENCE.findall(style.text or "")}, ids)
+    document, defs = _skeleton(root, styles, region, pixel_size, extra_defs)
+    if element is root:
+        _append_root(document, root, filter_value)
+    elif chain and chain[0] is root:
+        _append_chain(document, root, chain, element, _target_copy(element, filter_value, strip_mask), _needed(referenced, parents))
+    else:
+        _append_detached(document, defs, node, _target_copy(element, filter_value, strip_mask), referenced)
     return ET.tostring(document, encoding="unicode")
 
 

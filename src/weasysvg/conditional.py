@@ -37,21 +37,30 @@ def passes(element: ET.Element) -> bool:
     return True
 
 
+def _choose(switch: ET.Element) -> None:
+    """A <switch> keeps its first element that passes and drops the other elements."""
+    chosen = None
+    for child in list(switch):
+        if not isinstance(child.tag, str):
+            continue
+        if chosen is None and passes(child):
+            chosen = child
+        else:
+            switch.remove(child)
+
+
+def _hidden(element: ET.Element, root: ET.Element) -> bool:
+    """Outside a switch the attributes hide what is rendered."""
+    return element is not root and isinstance(element.tag, str) and local_name(element.tag) not in REFERENCED and not passes(element)
+
+
 def apply_conditionals(root: ET.Element) -> None:
     parents = {child: parent for parent in root.iter() for child in parent}
     for element in list(root.iter()):
         if element is not root and local_name(element.tag) == "switch":
-            chosen = None
-            for child in list(element):
-                if not isinstance(child.tag, str):
-                    continue
-                if chosen is None and passes(child):
-                    chosen = child
-                else:
-                    element.remove(child)
-    # Outside a switch the attributes hide what is rendered
+            _choose(element)
     for element in list(root.iter()):
-        if element is not root and isinstance(element.tag, str) and local_name(element.tag) not in REFERENCED and not passes(element):
+        if _hidden(element, root):
             parent = parents.get(element)
             if parent is not None and element in list(parent):
                 parent.remove(element)
