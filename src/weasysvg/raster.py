@@ -13,6 +13,7 @@ resvg (the resvg-py binding) is optional. Without it, filters.py keeps the vecto
 
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import io
@@ -21,10 +22,12 @@ import math
 import re
 from collections.abc import Collection
 from typing import Any
+from urllib.parse import urljoin
 from xml.etree import ElementTree as ET
 
 from weasyprint import svg as wp_svg
 from weasyprint.images import RasterImage
+from weasyprint.urls import fetch
 
 LOGGER = logging.getLogger("weasysvg")
 SVG_NS = "http://www.w3.org/2000/svg"
@@ -62,6 +65,9 @@ INHERITED = (
     "dominant-baseline",
 )
 _REFERENCE = re.compile(r"url\(\s*['\"]?#([^'\")\s]+)")
+# resvg reads any other href as a local path, past the URL fetcher of the caller
+_RASTER_DATA = re.compile(r"data:image/(?:png|jpeg|gif|webp)[;,]", re.IGNORECASE)
+_IMAGE_FORMATS = {"PNG": "png", "JPEG": "jpeg", "GIF": "gif", "WEBP": "webp"}
 
 _RESVG: Any = None  # None: not tried yet, False: missing
 _ORIGINAL_SVG_DRAW = wp_svg.SVG.draw
@@ -293,6 +299,41 @@ def _append_chain(document: ET.Element, root: ET.Element, chain: list[ET.Element
         parent_copy = current
 
 
+def _fetched_image(svg: Any, href: str) -> str | None:
+    """The image an href names, loaded through the URL fetcher of the caller, as a raster data URL."""
+    from PIL import Image  # noqa: PLC0415
+
+    url = urljoin(svg.url, href) if svg.url else href
+    try:
+        with fetch(svg.url_fetcher, url) as response:
+            body = response.read()
+        with Image.open(io.BytesIO(body)) as image:
+            kind = _IMAGE_FORMATS.get(image.format or "")
+    except Exception as error:  # noqa: BLE001  a refused, missing or broken image is left out
+        LOGGER.debug("Left an image out of the resvg document: %s", repr(error)[:200])
+        return None
+    return f"data:image/{kind};base64,{base64.b64encode(body).decode('ascii')}" if kind else None
+
+
+def _resolve_resources(document: ET.Element, svg: Any) -> None:
+    """Keep only references resvg resolves inside the document; bring images in through the caller's fetcher.
+
+    resvg reads an href that is no fragment and no data URL as a local file. weasyprint-service refuses
+    such files in its URL fetcher, so without this an SVG filter would read them past that policy.
+    An SVG data URL is dropped too: it may carry hrefs of its own.
+    """
+    for element in document.iter():
+        for attribute in ("href", XLINK_HREF):
+            value = (element.get(attribute) or "").strip()
+            if not value or value.startswith("#") or _RASTER_DATA.match(value):
+                continue
+            image = _fetched_image(svg, value) if _local(element.tag) in ("image", "feImage") else None
+            if image is None:
+                del element.attrib[attribute]
+            else:
+                element.set(attribute, image)
+
+
 def build_document(svg: Any, node: Any, region: tuple[float, float, float, float], pixel_size: tuple[int, int], filter_value: str, extra_defs: str = "", strip_mask: bool = False) -> str:
     """The standalone SVG for node, in the user space of node after its own transform."""
     root, parents, ids, styles = _index(svg)
@@ -307,6 +348,7 @@ def build_document(svg: Any, node: Any, region: tuple[float, float, float, float
         _append_chain(document, root, chain, element, _target_copy(element, filter_value, strip_mask), _needed(referenced, parents))
     else:
         _append_detached(document, defs, node, _target_copy(element, filter_value, strip_mask), referenced)
+    _resolve_resources(document, svg)
     return ET.tostring(document, encoding="unicode")
 
 

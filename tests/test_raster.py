@@ -9,8 +9,10 @@ from xml.etree import ElementTree as ET
 
 import helpers
 import pytest
+import weasyprint
 from helpers import render, svg
 from PIL import Image
+from weasyprint.urls import URLFetcher
 
 from weasysvg import raster
 
@@ -230,3 +232,73 @@ def test_an_infinite_filter_region_keeps_the_element(caplog: pytest.LogCaptureFi
     pdf = render(svg(f'<defs>{infinite}</defs><rect x="20" y="20" width="60" height="40" fill="red" filter="url(#i)"/>', height=100))
     assert "Failed to render SVG image" not in caplog.text
     assert (1, 0, 0) in colors_of(pdf)
+
+
+# ---------------- resources of the resvg document ----------------
+
+# A region in user space: the group of an <image> has no bounding box WeasyPrint computes
+SPACE_BLUR = '<filter id="u" filterUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><feGaussianBlur stdDeviation="1"/></filter>'
+
+
+class RefusingFetcher:
+    """A caller's policy that refuses local files, as weasyprint-service does."""
+
+    # Read by weasyprint.urls.fetch when a fetch fails
+    _fail_on_errors = False
+
+    def __init__(self) -> None:
+        self.default = URLFetcher()
+
+    def __call__(self, url: str) -> Any:
+        if not url.startswith("data:"):
+            raise ValueError(f"refused {url}")
+        return self.default(url)
+
+
+class Spy:
+    """The real resvg, recording each document it gets."""
+
+    def __init__(self, real: Any) -> None:
+        self.real = real
+        self.documents: list[str] = []
+
+    def svg_to_bytes(self, svg_string: str, **options: Any) -> Any:
+        self.documents.append(svg_string)
+        return self.real.svg_to_bytes(svg_string=svg_string, **options)
+
+
+@pytest.fixture
+def spy(monkeypatch: pytest.MonkeyPatch) -> Spy:
+    recording = Spy(raster._resvg())
+    monkeypatch.setattr(raster, "_RESVG", recording)
+    return recording
+
+
+def secret_png(tmp_path: Any) -> Any:
+    path = tmp_path / "secret.png"
+    Image.new("RGB", (8, 8), (0, 255, 0)).save(path)
+    return path
+
+
+def blurred_image(href: str) -> str:
+    image = f'<image href="{href}" x="10" y="10" width="80" height="60" preserveAspectRatio="none"/>'
+    return svg(f'<defs>{SPACE_BLUR}</defs><g filter="url(#u)">{image}</g>', height=100)
+
+
+@pytest.mark.parametrize("as_url", [True, False])
+def test_resvg_reads_no_file_the_fetcher_refuses(tmp_path: Any, spy: Spy, as_url: bool) -> None:
+    # resvg reads an href as a local path on its own: the document must not carry one past the caller's fetcher
+    path = secret_png(tmp_path)
+    href = path.as_uri() if as_url else str(path)
+    pdf = weasyprint.HTML(string=helpers.page_html(blurred_image(href)), url_fetcher=RefusingFetcher()).write_pdf()
+    assert spy.documents, "the blur went through resvg"
+    assert all("secret.png" not in document for document in spy.documents)
+    assert (0, 1, 0) not in colors_of(pdf)
+
+
+def test_resvg_gets_images_through_the_fetcher(tmp_path: Any, spy: Spy) -> None:
+    # A fetcher that allows the file hands the image over as data, so the raster still shows it
+    pdf = render(blurred_image(secret_png(tmp_path).as_uri()))
+    assert spy.documents
+    assert all("secret.png" not in document for document in spy.documents)
+    assert (0, 1, 0) in colors_of(pdf)
