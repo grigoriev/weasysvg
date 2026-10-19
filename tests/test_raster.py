@@ -222,3 +222,11 @@ def test_each_use_keeps_the_paint_it_passes_down() -> None:
     defs = f'<defs>{WIDE_BLUR}<rect id="r" width="60" height="40" filter="url(#b)"/></defs>'
     document = svg(f'{defs}<use href="#r" x="10" y="20" fill="red"/><use href="#r" x="110" y="20" fill="blue"/>', height=100)
     assert {(1, 0, 0), (0, 0, 1)} <= colors_of(render(document))
+
+
+def test_an_infinite_filter_region_keeps_the_element(caplog: pytest.LogCaptureFixture) -> None:
+    # width="1e999" sizes to inf: the raster size must not turn it into nan and drop the whole SVG
+    infinite = '<filter id="i" filterUnits="userSpaceOnUse" x="0" y="0" width="1e999" height="100"><feGaussianBlur stdDeviation="2"/></filter>'
+    pdf = render(svg(f'<defs>{infinite}</defs><rect x="20" y="20" width="60" height="40" fill="red" filter="url(#i)"/>', height=100))
+    assert "Failed to render SVG image" not in caplog.text
+    assert (1, 0, 0) in colors_of(pdf)

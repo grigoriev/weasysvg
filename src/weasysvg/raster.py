@@ -320,7 +320,8 @@ def _effects_off() -> str:
 def render(svg: Any, node: Any, region: tuple[float, float, float, float], filter_value: str, extra_defs: str = "", strip_mask: bool = False) -> Any:
     """Return a RasterImage of node with the filter, over region in the current user space, or None."""
     resvg = _resvg()
-    if not resvg or region[2] <= 0 or region[3] <= 0:
+    # A region of width="1e999" is infinite: its pixel size would be nan, and the SVG would be dropped
+    if not resvg or not all(math.isfinite(value) for value in region) or region[2] <= 0 or region[3] <= 0:
         return None
     pixel_size = _pixel_size(svg, region[2], region[3])
     # Through <use> one element is drawn with the paint each <use> passes down

@@ -220,6 +220,14 @@ def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, flo
 
 
 def _region(svg: Any, node: Any, filter_node: Any, font_size: float) -> tuple[float, float, float, float]:
+    region = _region_values(svg, node, filter_node, font_size)
+    # width="1e999" sizes to inf: no clip and no raster can follow it, the element draws unfiltered
+    if not all(math.isfinite(value) for value in region):
+        raise Unsupported("infinite region")
+    return region
+
+
+def _region_values(svg: Any, node: Any, filter_node: Any, font_size: float) -> tuple[float, float, float, float]:
     if filter_node.get("filterUnits") == "userSpaceOnUse":
         return (
             size(filter_node.get("x", "-10%"), font_size, svg.inner_width),
