@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import re
+import threading
+from types import SimpleNamespace
+from typing import Any
 from xml.etree import ElementTree as ET
 
-from helpers import SVG_NS, content, pixel, render, streams, svg
+import pytest
+from helpers import SVG_NS, RecordingStream, content, pixel, render, streams, svg
 
 from weasysvg import paint
 from weasysvg.paint import GRADIENT_CELL, drop_empty_presentation
@@ -230,3 +234,67 @@ def test_pattern_override_nests() -> None:
         assert stream.add_pattern() == "outer"
     assert stream.add_pattern() == "class"
     assert "add_pattern" not in stream.__dict__
+
+
+# ---------------- state across threads and exceptions ----------------
+
+
+class FakeMask:
+    def __init__(self) -> None:
+        self.attrib = {"maskUnits": "userSpaceOnUse", "x": "0", "y": "0", "width": "10", "height": "10"}
+        self._etree_node = SimpleNamespace(tag="mask")
+
+    def get(self, name: str, default: Any = None) -> Any:
+        return self.attrib.get(name, default)
+
+
+def mask_svg(draw: Any) -> Any:
+    return SimpleNamespace(inner_width=10, inner_height=10, stream=RecordingStream(), draw_node=draw)
+
+
+def test_a_mask_drawn_in_another_thread_is_not_a_cycle() -> None:
+    # weasyprint-service renders in a thread pool: one rendering's open masks must not block another's
+    mask = FakeMask()
+    inner_draws: list[Any] = []
+
+    def outer_draw(*_args: Any) -> None:
+        worker = threading.Thread(target=paint.paint_mask, args=(mask_svg(lambda *a: inner_draws.append(a)), object(), mask, 1))
+        worker.start()
+        worker.join()
+
+    paint.paint_mask(mask_svg(outer_draw), object(), mask, 1)
+    assert len(inner_draws) == 1
+
+
+def test_a_failing_mask_draw_restores_the_mask() -> None:
+    mask = FakeMask()
+    mask.attrib["maskContentUnits"] = "objectBoundingBox"
+
+    def failing(*_args: Any) -> None:
+        raise RuntimeError("draw failed")
+
+    svg_failing = mask_svg(failing)
+    svg_failing.calculate_bounding_box = lambda *_args, **_kwargs: (0, 0, 10, 10)
+    with pytest.raises(RuntimeError):
+        paint.paint_mask(svg_failing, object(), mask, 1)
+    assert "transform" not in mask.attrib
+    assert mask._etree_node.tag == "mask"
+    drawn: list[Any] = []
+    svg_drawing = mask_svg(lambda *a: drawn.append(a))
+    svg_drawing.calculate_bounding_box = svg_failing.calculate_bounding_box
+    paint.paint_mask(svg_drawing, object(), mask, 1)
+    assert len(drawn) == 1
+
+
+def test_a_failing_pattern_keeps_its_origin() -> None:
+    # The shared pattern node must get x and y back even when its geometry raises
+    pattern = SimpleNamespace(attrib={"x": "5", "y": "5", "patternUnits": "userSpaceOnUse"}, _etree_node=SimpleNamespace(tag="pattern"))
+    pattern.get = pattern.attrib.get
+
+    def failing(*_args: Any) -> Any:
+        raise ValueError("bad length")
+
+    fake = SimpleNamespace(point=failing, stream=RecordingStream())
+    with pytest.raises(ValueError, match="bad length"):
+        paint.draw_pattern(fake, object(), pattern, 12, 1, False)
+    assert pattern.attrib == {"x": "5", "y": "5", "patternUnits": "userSpaceOnUse"}

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -162,20 +163,15 @@ def _materialized_override_iter(self: Any, iterator: Any) -> None:
 def draw_pattern(svg: Any, node: Any, pattern: Any, font_size: float, opacity: float, stroke: bool) -> Any:
     saved = dict(pattern.attrib)
     tag = pattern._etree_node.tag
-    px, py = pattern.attrib.pop("x", 0), pattern.attrib.pop("y", 0)
-    if pattern.get("patternUnits") == "userSpaceOnUse":
-        px, py = svg.point(px, py, font_size)
-    else:
-        box = svg.calculate_bounding_box(node, font_size, stroke)
-        px = wp_utils.size(px, font_size, 1) * (box[2] if box else 0)
-        py = wp_utils.size(py, font_size, 1) * (box[3] if box else 0)
-    stream = svg.stream
-    original_add_pattern = stream.add_pattern
-
-    def add_pattern(x: float, y: float, width: float, height: float, repeat_width: float, repeat_height: float, matrix: Any) -> Any:
-        return original_add_pattern(x, y, width, height, repeat_width, repeat_height, Matrix(e=px, f=py) @ matrix)
-
+    # The finally covers the pops of x and y too: the pattern node is shared by every element that uses it
     try:
+        px, py = _pattern_origin(svg, node, pattern, font_size, stroke)
+        stream = svg.stream
+        original_add_pattern = stream.add_pattern
+
+        def add_pattern(x: float, y: float, width: float, height: float, repeat_width: float, repeat_height: float, matrix: Any) -> Any:
+            return original_add_pattern(x, y, width, height, repeat_width, repeat_height, Matrix(e=px, f=py) @ matrix)
+
         with _add_pattern_override(stream, add_pattern):
             return _ORIGINAL_DRAW_PATTERN(svg, node, pattern, font_size, opacity, stroke)
     finally:
@@ -185,9 +181,20 @@ def draw_pattern(svg: Any, node: Any, pattern: Any, font_size: float, opacity: f
         pattern._etree_node.tag = tag
 
 
+def _pattern_origin(svg: Any, node: Any, pattern: Any, font_size: float, stroke: bool) -> tuple[float, float]:
+    """Take x and y off the pattern and return them in user space: they move the tile, not its content."""
+    px, py = pattern.attrib.pop("x", 0), pattern.attrib.pop("y", 0)
+    if pattern.get("patternUnits") == "userSpaceOnUse":
+        x, y = svg.point(px, py, font_size)
+        return x, y
+    box = svg.calculate_bounding_box(node, font_size, stroke)
+    return wp_utils.size(px, font_size, 1) * (box[2] if box else 0), wp_utils.size(py, font_size, 1) * (box[3] if box else 0)
+
+
 # ---------------- masks ----------------
 
-_ACTIVE_MASKS: list[Any] = []
+# The masks being drawn, per thread and task: weasyprint-service renders several documents at once
+_ACTIVE_MASKS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_masks", default=())
 
 
 def _mask_region(svg: Any, node: Any, mask: Any, font_size: float) -> tuple[float, float, float, float] | None:
@@ -214,27 +221,29 @@ def _mask_region(svg: Any, node: Any, mask: Any, font_size: float) -> tuple[floa
 def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
     """Set mask as the soft mask of the current state. draw_node of WeasyPrint passes the opacity as font_size."""
     # A mask that references itself: ignore the inner reference, as Chromium and resvg do
-    if any(mask is active for active in _ACTIVE_MASKS):
+    if any(mask is active for active in _ACTIVE_MASKS.get()):
         return
     region = _mask_region(svg, node, mask, font_size)
     if region is None:
         return
-    saved_transform = mask.attrib.get("transform")
+    box = None
     if mask.get("maskContentUnits") == "objectBoundingBox":
         box = svg.calculate_bounding_box(node, font_size, stroke=False)
         if not box:
             return
-        mask.attrib["transform"] = f"matrix({box[2]} 0 0 {box[3]} {box[0]} {box[1]})"
+    saved_transform = mask.attrib.get("transform")
     tag = mask._etree_node.tag
-    mask._etree_node.tag = "g"
-    _ACTIVE_MASKS.append(mask)
+    token = _ACTIVE_MASKS.set((*_ACTIVE_MASKS.get(), mask))
     svg_stream = svg.stream
-    svg.stream = svg.stream.set_alpha_state(*region)
     try:
+        if box is not None:
+            mask.attrib["transform"] = f"matrix({box[2]} 0 0 {box[3]} {box[0]} {box[1]})"
+        mask._etree_node.tag = "g"
+        svg.stream = svg.stream.set_alpha_state(*region)
         svg.draw_node(mask, font_size)
     finally:
         svg.stream = svg_stream
-        _ACTIVE_MASKS.pop()
+        _ACTIVE_MASKS.reset(token)
         # Without this the walk later meets a <g> where the <mask> was, and draws its content
         mask._etree_node.tag = tag
         if saved_transform is None:
