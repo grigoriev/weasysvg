@@ -20,7 +20,15 @@ license and the attribution of its SVG.
 
 Fonts embedded by the generators: the D2 diagrams (`kroki-d2*`) carry subsets of Source Sans Pro, and
 the Excalidraw diagram carries Virgil. Both fonts are under the SIL Open Font License 1.1, which allows
-bundling them with other files.
+bundling them with other files when the copyright notice and the license come along. Subsetting can drop
+both from the font, so they are here:
+
+- Source Sans Pro: Copyright 2010-2024 Adobe, with Reserved Font Name 'Source'. See
+  [licenses/SourceSansPro-OFL.txt](licenses/SourceSansPro-OFL.txt), from
+  [adobe-fonts/source-sans](https://github.com/adobe-fonts/source-sans) commit `87b37a2`.
+- Virgil: Copyright (c) 2021 - Present, Ellinor Rapp, with Reserved Font Name Virgil. See
+  [licenses/Virgil-OFL.txt](licenses/Virgil-OFL.txt), from
+  [excalidraw/virgil](https://github.com/excalidraw/virgil) commit `3d4c829`.
 
 ## Wikimedia Commons
 
