@@ -71,11 +71,14 @@ jobs:
         run: uv sync --all-extras
 
       - name: Lint with ruff
+        if: ${{ !startsWith(matrix.python-version, 'pypy') }}
         run: |
           uv run ruff check .
           uv run ruff format --check .
 
       - name: Type check with mypy
+        # mypy does not run on PyPy, and lint and types do not depend on the interpreter
+        if: ${{ !startsWith(matrix.python-version, 'pypy') }}
         run: uv run mypy src tests tools
 
       - name: Run tests with coverage
