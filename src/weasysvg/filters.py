@@ -219,11 +219,16 @@ def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, flo
     return chain.last
 
 
+# The largest filter region coordinate, in user units
+MAX_REGION = 1e7
+
+
 def _region(svg: Any, node: Any, filter_node: Any, font_size: float) -> tuple[float, float, float, float]:
     region = _region_values(svg, node, filter_node, font_size)
-    # width="1e999" sizes to inf: no clip and no raster can follow it, the element draws unfiltered
-    if not all(math.isfinite(value) for value in region):
-        raise Unsupported("infinite region")
+    # width="1e999" sizes to inf, 1e308 overflows once scaled: no clip and no raster can follow such a
+    # region, the element draws unfiltered
+    if not all(math.isfinite(value) and abs(value) <= MAX_REGION for value in region):
+        raise Unsupported("region out of range")
     return region
 
 

@@ -110,9 +110,12 @@ def _css_px_per_unit(svg: Any) -> float:
     return local * root
 
 
-def _pixel_size(svg: Any, width: float, height: float) -> tuple[int, int]:
+def _pixel_size(svg: Any, width: float, height: float) -> tuple[int, int] | None:
+    """The pixel size of a raster of width x height user units, capped; None when it overflows."""
     scale = SETTINGS["scale"] * _css_px_per_unit(svg)
     pw, ph = width * scale, height * scale
+    if not (math.isfinite(pw) and math.isfinite(ph)):
+        return None
     limit = min(SETTINGS["max_side"] / max(pw, ph, 1), math.sqrt(SETTINGS["max_pixels"] / max(pw * ph, 1)))
     if limit < 1:
         LOGGER.warning("SVG filter raster of %d x %d px exceeds the cap, reduced by %.2f", pw, ph, limit)
@@ -367,6 +370,8 @@ def render(svg: Any, node: Any, region: tuple[float, float, float, float], filte
     if not resvg or not all(math.isfinite(value) for value in region) or region[2] <= 0 or region[3] <= 0:
         return None
     pixel_size = _pixel_size(svg, region[2], region[3])
+    if pixel_size is None:
+        return None
     # Through <use> one element is drawn with the paint each <use> passes down
     inherited = tuple((name, str(node.get(name))) for name in INHERITED if node.get(name) is not None)
     key = (id(node._etree_node), tuple(round(v, 3) for v in region), pixel_size, filter_value, extra_defs, strip_mask, inherited)

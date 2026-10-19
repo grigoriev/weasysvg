@@ -316,3 +316,20 @@ def test_a_failing_image_draw_restores_the_state() -> None:
     with pytest.raises(RuntimeError):
         raster.draw(fake, image, (0, 0, 10, 10))
     assert stream.depth == 0
+
+
+def test_a_huge_filter_region_keeps_the_element(caplog: pytest.LogCaptureFixture) -> None:
+    # 1e308 is finite, but scaled to pixels it overflows: the element must still draw, unfiltered
+    huge = '<filter id="h" filterUnits="userSpaceOnUse" x="0" y="0" width="1e308" height="100"><feGaussianBlur stdDeviation="2"/></filter>'
+    pdf = render(svg(f'<defs>{huge}</defs><rect x="20" y="20" width="60" height="40" fill="red" filter="url(#h)"/>', height=100))
+    assert "Failed to render SVG image" not in caplog.text
+    assert (1, 0, 0) in colors_of(pdf)
+
+
+def test_an_overflowing_raster_size_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The second line of defense, for regions that do not come from a filter element, such as blur()
+    monkeypatch.setattr(raster, "_css_px_per_unit", lambda _svg: 1e300)
+    assert raster._pixel_size(object(), 1e10, 10) is None
+    monkeypatch.setattr(raster, "_RESVG", Recorder())
+    node = SimpleNamespace(_etree_node=object(), get=lambda _name: None)
+    assert raster.render(SimpleNamespace(), node, (0, 0, 1e10, 10), "url(#f)") is None
