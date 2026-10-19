@@ -134,12 +134,12 @@ enum Color { RED\\n GREEN }
         "plantuml",
         """@startuml
 start
-:Hello world;
-if (Graphviz installed?) then (yes)
-  :process all\\ndiagrams;
+:Read the order;
+if (All items in stock?) then (yes)
+  :pack the items\\nand print the label;
 else (no)
-  :process only
-  __sequence__ and __activity__ diagrams;
+  :order from the supplier
+  and mark the order as __waiting__;
 endif
 stop
 @enduml""",
@@ -159,10 +159,10 @@ Rel(web, db, "Reads/Writes")""",
         "graphviz",
         """digraph G {
   rankdir=LR; node [shape=record];
-  a [label="<f0> left|<f1> mid\\ dle|<f2> right"];
+  a [label="<in> input|<run> pro\\ cess|<out> output"];
   b [shape=ellipse, style=filled, fillcolor="#ffcc00", label="filled"];
   c [shape=box, style="rounded,dashed", label=<<b>HTML</b> <i>label</i>>];
-  a:f1 -> b; a:f2 -> c; b -> c [color=red, penwidth=2];
+  a:run -> b; a:out -> c; b -> c [color=red, penwidth=2];
 }""",
     ),
     "bpmn": ("bpmn", None),
@@ -229,8 +229,8 @@ api.b -> db""",
     "blockdiag": (
         "blockdiag",
         """blockdiag {
-  A -> B -> C -> D;
-  A -> E -> F -> G;
+  Order -> Pack -> Ship -> Deliver;
+  Order -> Invoice -> Pay;
 }""",
     ),
     "erd": (
@@ -250,22 +250,24 @@ Person *--1 Location""",
     ),
     "pikchr": (
         "pikchr",
-        """arrow right 200% "Markdown" "Source"
-box rad 10px "Markdown" "Formatter" "(markdown.c)" fit
-arrow right 200% "HTML+SVG" "Output"
-arrow <-> down 70% from last box.s
-box same "Pikchr" "Formatter" "(pikchr.c)" fit""",
+        """arrow right 150% "Plain" "Text"
+box rad 8px "Text" "Parser" "(parse.c)" fit
+arrow right 150% "Page" "Layout"
+arrow <-> down 80% from last box.s
+box same "Font" "Loader" "(fonts.c)" fit""",
     ),
     "structurizr": (
         "structurizr",
         """workspace {
   model {
-    user = person "User"
-    softwareSystem = softwareSystem "Software System"
-    user -> softwareSystem "Uses"
+    customer = person "Customer"
+    shop = softwareSystem "Online Shop"
+    payments = softwareSystem "Payment Provider"
+    customer -> shop "Places orders"
+    shop -> payments "Charges cards"
   }
   views {
-    systemContext softwareSystem {
+    systemContext shop {
       include *
       autolayout lr
     }

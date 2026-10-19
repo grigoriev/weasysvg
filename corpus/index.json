@@ -115,11 +115,11 @@
   "name": "diagrams__kroki-graphviz",
   "source": "diagrams/kroki-graphviz.svg",
   "group": "diagrams",
-  "width": 435,
+  "width": 443,
   "reference_box": [
    0,
    1,
-   434,
+   442,
    112
   ],
   "page_size": [
@@ -195,12 +195,12 @@
   "name": "diagrams__kroki-pikchr",
   "source": "diagrams/kroki-pikchr.svg",
   "group": "diagrams",
-  "width": 424,
+  "width": 311,
   "reference_box": [
    0,
    0,
-   422,
-   199
+   309,
+   207
   ],
   "page_size": [
    2000,
@@ -211,11 +211,11 @@
   "name": "diagrams__kroki-plantuml-activity",
   "source": "diagrams/kroki-plantuml-activity.svg",
   "group": "diagrams",
-  "width": 352,
+  "width": 388,
   "reference_box": [
    11,
    10,
-   337,
+   374,
    268
   ],
   "page_size": [
@@ -243,11 +243,11 @@
   "name": "diagrams__kroki-structurizr",
   "source": "diagrams/kroki-structurizr.svg",
   "group": "diagrams",
-  "width": 563,
+  "width": 1038,
   "reference_box": [
-   6,
+   2,
    10,
-   549,
+   1030,
    130
   ],
   "page_size": [
