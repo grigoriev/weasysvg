@@ -24,19 +24,23 @@ from weasyprint.text.ffi import ffi, fontconfig
 
 # ---------------- the resolver ----------------
 
+# Chromium draws with it when no family of a list matches
+STANDARD = "Times New Roman"
+# Lowercase keys of the equivalence and alternate tables
+COURIER_NEW = "courier new"
+TIMES_NEW_ROMAN = "times new roman"
 # Chromium default font settings on Linux (the names it looks up through fontconfig)
 GENERIC = {
-    "serif": "Times New Roman",
+    "serif": STANDARD,
     "sans-serif": "Arial",
     "monospace": "Monospace",
     "cursive": "Comic Sans MS",
     "fantasy": "Impact",
     "system-ui": "sans",
     "ui-sans-serif": "Arial",
-    "ui-serif": "Times New Roman",
+    "ui-serif": STANDARD,
     "ui-monospace": "Monospace",
 }
-STANDARD = "Times New Roman"
 # Skia accepts these fontconfig matches without a family name match (IsFallbackFontAllowed)
 FALLBACK_ALLOWED = frozenset(("sans", "serif", "monospace"))
 # Skia kFontEquivMap (Latin part): metric-compatible replacements Chromium accepts
@@ -45,12 +49,12 @@ EQUIVALENT = (
     ("arial narrow", "liberation sans narrow"),
     ("calibri", "carlito"),
     ("cambria", "caladea"),
-    ("courier new", "cousine", "liberation mono"),
+    (COURIER_NEW, "cousine", "liberation mono"),
     ("georgia", "gelasio"),
-    ("times new roman", "tinos", "liberation serif"),
+    (TIMES_NEW_ROMAN, "tinos", "liberation serif"),
 )
 # Blink FontCache AlternateFamilyName: retried when the first name finds nothing
-ALTERNATE = {"courier": "courier new", "courier new": "courier", "times": "times new roman", "times new roman": "times", "arial": "helvetica", "helvetica": "arial"}
+ALTERNATE = {"courier": COURIER_NEW, COURIER_NEW: "courier", "times": TIMES_NEW_ROMAN, TIMES_NEW_ROMAN: "times", "arial": "helvetica", "helvetica": "arial"}
 FC_MATCH_PATTERN = 0
 _NULL_CACHE: dict[str, str | None] = {}
 
