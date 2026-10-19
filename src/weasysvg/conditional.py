@@ -11,6 +11,8 @@ from xml.etree import ElementTree as ET
 from . import _core
 
 XHTML_NS = "http://www.w3.org/1999/xhtml"
+# Filled by foreign_object.install(). Without it nothing draws a foreignObject, and a <switch> must keep its fallback
+SUPPORTED_EXTENSIONS: set[str] = set()
 # A referenced element ignores the attributes, as in Chromium
 REFERENCED = frozenset(("clipPath", "mask", "pattern", "linearGradient", "radialGradient", "filter", "marker", "symbol", "defs", "style"))
 
@@ -24,7 +26,7 @@ def passes(element: ET.Element) -> bool:
     extensions = element.get("requiredExtensions")
     if extensions is not None:
         parts = extensions.split()
-        if not parts or any(part != XHTML_NS for part in parts):
+        if not parts or any(part not in SUPPORTED_EXTENSIONS for part in parts):
             return False
     languages = element.get("systemLanguage")
     if languages is not None:

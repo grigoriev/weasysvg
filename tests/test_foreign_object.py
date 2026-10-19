@@ -228,3 +228,18 @@ def test_object_without_pages_draws_nothing(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(foreign_object, "BATCH", False)
     monkeypatch.setattr(foreign_object, "_render", lambda svg_, html: type("Document", (), {"pages": []})())
     assert text_of(render(svg(fo("Nothing")))).strip() == ""
+
+
+def test_inherited_style_lands_on_the_object_not_an_ancestor() -> None:
+    # Ancestor class and id values may contain "style"; the inherited declarations must not land in them
+    root = ET.fromstring(f'<svg xmlns="{SVG_NS}"><g class="node-style" id="style-3"><foreignObject width="50" height="20"><div xmlns="{XHTML_NS}">Label</div></foreignObject></g></svg>')
+    stash_foreign_objects(root)
+    element = next(element for element in root.iter() if element.tag.endswith("foreignObject"))
+
+    class Node:
+        def get(self, name: str) -> str | None:
+            return element.get(name)
+
+    html = foreign_object._object_html(Node(), 50, 20, "font-size:30px;")
+    assert 'class="wp-fo-anc node-style" id="style-3"' in html
+    assert '<foreignobject class="wp-fo-anc" style="font-size:30px;">' in html

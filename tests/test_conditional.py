@@ -7,6 +7,7 @@ from xml.etree import ElementTree as ET
 import pytest
 from helpers import SVG_NS, XHTML_NS, render, svg, text_of
 
+from weasysvg import conditional
 from weasysvg.conditional import apply_conditionals, local_name, passes
 
 
@@ -95,3 +96,12 @@ def test_draw_io_label_renders_once() -> None:
     text = text_of(render(svg(body)))
     assert "Label" in text
     assert "Fallback" not in text
+
+
+def test_without_foreign_object_the_fallback_wins(monkeypatch: pytest.MonkeyPatch) -> None:
+    # install(foreign_object=False): nothing would draw the foreignObject, so the switch must keep the fallback
+    monkeypatch.setattr(conditional, "SUPPORTED_EXTENSIONS", set())
+    assert passes(ET.Element("foreignObject", {"requiredExtensions": XHTML_NS})) is False
+    root = tree(f'<switch><foreignObject id="fo" requiredExtensions="{XHTML_NS}"/><text id="fallback">x</text></switch>')
+    apply_conditionals(root)
+    assert ids(root) == ["fallback"]

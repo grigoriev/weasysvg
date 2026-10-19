@@ -23,7 +23,7 @@ from weasyprint.layout import table as wp_table
 from weasyprint.layout.table import add_top_padding
 from weasyprint.svg.utils import size as wp_size
 
-from . import _core
+from . import _core, conditional
 from .conditional import local_name
 from .fonts import IN_FOREIGN_OBJECT
 
@@ -36,7 +36,9 @@ WRAPPER_CSS = (
     "border:none!important;background:none!important;box-shadow:none!important;transform:none!important;"
     "position:static!important;opacity:1!important;overflow:visible!important}"
 )
-FO_STYLE_SLOT = "style"
+# Marks where the inherited style goes. Private use characters, written as escapes: they never occur in
+# diagram markup, and a plain "style" would also match the class and id values of the ancestors
+FO_STYLE_SLOT = "\ue000style\ue000"
 OVERFLOW_ROOM = 2000  # px of page beyond the box, where overflow is visible
 # Chromium on Linux, in an SVG used as an image: :link never matches, th is centered, the root font is serif 16px
 UA_EXTRA = ":link,:visited{color:inherit;text-decoration:none} th{text-align:center} html{font-family:serif;font-size:16px}"
@@ -261,5 +263,7 @@ def install() -> None:
     if _UA_EXTRA_SHEET is None:
         _UA_EXTRA_SHEET = weasyprint.CSS(string=UA_EXTRA)
     _core.add_tree_pass(30, "foreign_object", stash_foreign_objects)
+    # A <switch> may now pick its foreignObject over the fallback
+    conditional.SUPPORTED_EXTENSIONS.add(conditional.XHTML_NS)
     wp_block.table_layout = _table_layout
     wp_svg.TAGS["foreignObject"] = foreign_object

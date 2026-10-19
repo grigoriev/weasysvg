@@ -86,7 +86,7 @@ change between releases.
 | Area | What weasysvg adds |
 |---|---|
 | `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. |
-| Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. |
+| Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
 | Filters | `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over and in, `feComponentTransfer` alpha slope, `luminanceToAlpha`, and the CSS `drop-shadow()` and `blur()` functions, in vector. Blurred layers and other primitives go through resvg. |
 | Masks | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, and self-referencing masks. |
 | Gradients and patterns | Pattern `x` and `y`, patterns used twice, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
