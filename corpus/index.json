@@ -1,0 +1,1842 @@
+[
+ {
+  "name": "diagrams__kroki-blockdiag",
+  "source": "diagrams/kroki-blockdiag.svg",
+  "group": "diagrams",
+  "width": 832,
+  "reference_box": [
+   55,
+   34,
+   783,
+   178
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-bpmn",
+  "source": "diagrams/kroki-bpmn.svg",
+  "group": "diagrams",
+  "width": 306,
+  "reference_box": [
+   0,
+   0,
+   307,
+   90
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-c4plantuml",
+  "source": "diagrams/kroki-c4plantuml.svg",
+  "group": "diagrams",
+  "width": 194,
+  "reference_box": [
+   2,
+   2,
+   182,
+   593
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-d2-arch",
+  "source": "diagrams/kroki-d2-arch.svg",
+  "group": "diagrams",
+  "width": 1044,
+  "reference_box": [
+   96,
+   105,
+   948,
+   398
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-d2",
+  "source": "diagrams/kroki-d2.svg",
+  "group": "diagrams",
+  "width": 543,
+  "reference_box": [
+   96,
+   96,
+   447,
+   425
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-erd",
+  "source": "diagrams/kroki-erd.svg",
+  "group": "diagrams",
+  "width": 432,
+  "reference_box": [
+   11,
+   6,
+   420,
+   201
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-excalidraw",
+  "source": "diagrams/kroki-excalidraw.svg",
+  "group": "diagrams",
+  "width": 220,
+  "reference_box": [
+   4,
+   5,
+   216,
+   97
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-graphviz",
+  "source": "diagrams/kroki-graphviz.svg",
+  "group": "diagrams",
+  "width": 435,
+  "reference_box": [
+   0,
+   1,
+   434,
+   112
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-mermaid-er",
+  "source": "diagrams/kroki-mermaid-er.svg",
+  "group": "diagrams",
+  "width": 323,
+  "reference_box": [
+   2,
+   2,
+   323,
+   496
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-mermaid-mindmap",
+  "source": "diagrams/kroki-mermaid-mindmap.svg",
+  "group": "diagrams",
+  "width": 679,
+  "reference_box": [
+   6,
+   6,
+   673,
+   456
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-mermaid-state",
+  "source": "diagrams/kroki-mermaid-state.svg",
+  "group": "diagrams",
+  "width": 173,
+  "reference_box": [
+   3,
+   3,
+   174,
+   345
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-nomnoml",
+  "source": "diagrams/kroki-nomnoml.svg",
+  "group": "diagrams",
+  "width": 314,
+  "reference_box": [
+   22,
+   22,
+   292,
+   450
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-pikchr",
+  "source": "diagrams/kroki-pikchr.svg",
+  "group": "diagrams",
+  "width": 424,
+  "reference_box": [
+   0,
+   0,
+   422,
+   199
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-plantuml-activity",
+  "source": "diagrams/kroki-plantuml-activity.svg",
+  "group": "diagrams",
+  "width": 352,
+  "reference_box": [
+   11,
+   10,
+   337,
+   268
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-plantuml-sequence",
+  "source": "diagrams/kroki-plantuml-sequence.svg",
+  "group": "diagrams",
+  "width": 332,
+  "reference_box": [
+   7,
+   6,
+   321,
+   350
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-structurizr",
+  "source": "diagrams/kroki-structurizr.svg",
+  "group": "diagrams",
+  "width": 563,
+  "reference_box": [
+   6,
+   10,
+   549,
+   130
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-svgbob",
+  "source": "diagrams/kroki-svgbob.svg",
+  "group": "diagrams",
+  "width": 232,
+  "reference_box": [
+   19,
+   19,
+   230,
+   109
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-vegalite",
+  "source": "diagrams/kroki-vegalite.svg",
+  "group": "diagrams",
+  "width": 132,
+  "reference_box": [
+   3,
+   2,
+   132,
+   342
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__kroki-wavedrom",
+  "source": "diagrams/kroki-wavedrom.svg",
+  "group": "diagrams",
+  "width": 500,
+  "reference_box": [
+   13,
+   0,
+   485,
+   94
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-class",
+  "source": "diagrams/mermaid-ink-class.svg",
+  "group": "diagrams",
+  "width": 380,
+  "reference_box": [
+   4,
+   3,
+   376,
+   399
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-er",
+  "source": "diagrams/mermaid-ink-er.svg",
+  "group": "diagrams",
+  "width": 466,
+  "reference_box": [
+   3,
+   3,
+   463,
+   467
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-flowchart",
+  "source": "diagrams/mermaid-ink-flowchart.svg",
+  "group": "diagrams",
+  "width": 648,
+  "reference_box": [
+   3,
+   3,
+   645,
+   725
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-gantt",
+  "source": "diagrams/mermaid-ink-gantt.svg",
+  "group": "diagrams",
+  "width": 1904,
+  "reference_box": [
+   0,
+   8,
+   1871,
+   163
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-gitgraph",
+  "source": "diagrams/mermaid-ink-gitgraph.svg",
+  "group": "diagrams",
+  "width": 376,
+  "reference_box": [
+   3,
+   4,
+   372,
+   171
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-journey",
+  "source": "diagrams/mermaid-ink-journey.svg",
+  "group": "diagrams",
+  "width": 1300,
+  "reference_box": [
+   8,
+   22,
+   1154,
+   479
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-mindmap",
+  "source": "diagrams/mermaid-ink-mindmap.svg",
+  "group": "diagrams",
+  "width": 674,
+  "reference_box": [
+   6,
+   6,
+   668,
+   448
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-pie",
+  "source": "diagrams/mermaid-ink-pie.svg",
+  "group": "diagrams",
+  "width": 552,
+  "reference_box": [
+   34,
+   2,
+   507,
+   416
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-sequence",
+  "source": "diagrams/mermaid-ink-sequence.svg",
+  "group": "diagrams",
+  "width": 750,
+  "reference_box": [
+   45,
+   5,
+   705,
+   572
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "diagrams__mermaid-ink-state",
+  "source": "diagrams/mermaid-ink-state.svg",
+  "group": "diagrams",
+  "width": 119,
+  "reference_box": [
+   3,
+   3,
+   116,
+   361
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "drawio__connect-shapes",
+  "source": "drawio/connect-shapes.svg",
+  "group": "drawio",
+  "width": 1551,
+  "reference_box": [
+   176,
+   8,
+   1371,
+   1116
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "drawio__flowchart.drawio",
+  "source": "drawio/flowchart.drawio.svg",
+  "group": "drawio",
+  "width": 281,
+  "reference_box": [
+   0,
+   0,
+   285,
+   395
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "drawio__infographic",
+  "source": "drawio/infographic.svg",
+  "group": "drawio",
+  "width": 1033,
+  "reference_box": [
+   16,
+   52,
+   1037,
+   2004
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "drawio__infographic2",
+  "source": "drawio/infographic2.svg",
+  "group": "drawio",
+  "width": 777,
+  "reference_box": [
+   0,
+   0,
+   781,
+   1705
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "drawio__notion-template.drawio",
+  "source": "drawio/notion-template.drawio.svg",
+  "group": "drawio",
+  "width": 815,
+  "reference_box": [
+   343,
+   171,
+   472,
+   241
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "drawio__svgfile",
+  "source": "drawio/svgfile.svg",
+  "group": "drawio",
+  "width": 617,
+  "reference_box": [
+   0,
+   0,
+   620,
+   1061
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "fo__mdn-foreignobject",
+  "source": "fo/mdn-foreignobject.svg",
+  "group": "fo",
+  "width": 400,
+  "reference_box": [
+   6,
+   6,
+   394,
+   394
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "fo__rich-html",
+  "source": "fo/rich-html.svg",
+  "group": "fo",
+  "width": 500,
+  "reference_box": [
+   0,
+   0,
+   504,
+   324
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Bitmap_VS_SVG",
+  "source": "real/wm-Bitmap_VS_SVG.svg",
+  "group": "real",
+  "width": 915,
+  "reference_box": [
+   6,
+   6,
+   910,
+   572
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Flag_of_Brazil",
+  "source": "real/wm-Flag_of_Brazil.svg",
+  "group": "real",
+  "width": 1000,
+  "reference_box": [
+   0,
+   0,
+   1004,
+   704
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Flag_of_Switzerland",
+  "source": "real/wm-Flag_of_Switzerland.svg",
+  "group": "real",
+  "width": 512,
+  "reference_box": [
+   0,
+   0,
+   516,
+   516
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Flag_of_the_United_Kingdom",
+  "source": "real/wm-Flag_of_the_United_Kingdom.svg",
+  "group": "real",
+  "width": 1000,
+  "reference_box": [
+   0,
+   0,
+   1004,
+   604
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Git-logo",
+  "source": "real/wm-Git-logo.svg",
+  "group": "real",
+  "width": 273,
+  "reference_box": [
+   0,
+   0,
+   277,
+   119
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Inkscape_Logo",
+  "source": "real/wm-Inkscape_Logo.svg",
+  "group": "real",
+  "width": 128,
+  "reference_box": [
+   0,
+   0,
+   129,
+   128
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Kubernetes_logo_without_workmark",
+  "source": "real/wm-Kubernetes_logo_without_workmark.svg",
+  "group": "real",
+  "width": 723,
+  "reference_box": [
+   5,
+   6,
+   717,
+   696
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-OSI_Model_v1",
+  "source": "real/wm-OSI_Model_v1.svg",
+  "group": "real",
+  "width": 476,
+  "reference_box": [
+   6,
+   3,
+   454,
+   538
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Openstreetmap_logo",
+  "source": "real/wm-Openstreetmap_logo.svg",
+  "group": "real",
+  "width": 256,
+  "reference_box": [
+   3,
+   0,
+   258,
+   254
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Python-logo-notext",
+  "source": "real/wm-Python-logo-notext.svg",
+  "group": "real",
+  "width": 110,
+  "reference_box": [
+   0,
+   0,
+   114,
+   114
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-SVG_Logo",
+  "source": "real/wm-SVG_Logo.svg",
+  "group": "real",
+  "width": 300,
+  "reference_box": [
+   4,
+   4,
+   296,
+   296
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Simple_Periodic_Table_Chart-blocks",
+  "source": "real/wm-Simple_Periodic_Table_Chart-blocks.svg",
+  "group": "real",
+  "width": 1205,
+  "reference_box": [
+   11,
+   13,
+   1206,
+   642
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Tux",
+  "source": "real/wm-Tux.svg",
+  "group": "real",
+  "width": 216,
+  "reference_box": [
+   0,
+   0,
+   220,
+   260
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "real__wm-Wikimedia-logo",
+  "source": "real/wm-Wikimedia-logo.svg",
+  "group": "real",
+  "width": 1024,
+  "reference_box": [
+   39,
+   26,
+   985,
+   985
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feColorMatrix--type=luminanceToAlpha",
+  "source": "resvg/filters-feColorMatrix--type=luminanceToAlpha.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values",
+  "source": "resvg/filters-feColorMatrix--type=matrix-with-non-normalized-values.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feComposite--operator=arithmetic-with-large-k1-4",
+  "source": "resvg/filters-feComposite--operator=arithmetic-with-large-k1-4.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feComposite--operator=over",
+  "source": "resvg/filters-feComposite--operator=over.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feDropShadow--hsla-color",
+  "source": "resvg/filters-feDropShadow--hsla-color.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feDropShadow--with-percent-offset",
+  "source": "resvg/filters-feDropShadow--with-percent-offset.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feFlood--seagreen",
+  "source": "resvg/filters-feFlood--seagreen.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feFlood--with-opacity-on-target-element",
+  "source": "resvg/filters-feFlood--with-opacity-on-target-element.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feGaussianBlur--small-stdDeviation",
+  "source": "resvg/filters-feGaussianBlur--small-stdDeviation.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feGaussianBlur--stdDeviation=0-5",
+  "source": "resvg/filters-feGaussianBlur--stdDeviation=0-5.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feOffset--complex-transform",
+  "source": "resvg/filters-feOffset--complex-transform.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feOffset--fractional-offset",
+  "source": "resvg/filters-feOffset--fractional-offset.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feTurbulence--baseFrequency=0.01",
+  "source": "resvg/filters-feTurbulence--baseFrequency=0.01.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-feTurbulence--type=invalid",
+  "source": "resvg/filters-feTurbulence--type=invalid.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-filter--in=SourceAlpha",
+  "source": "resvg/filters-filter--in=SourceAlpha.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-filter--on-the-root-svg",
+  "source": "resvg/filters-filter--on-the-root-svg.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-filter-functions--blur-function-two-values",
+  "source": "resvg/filters-filter-functions--blur-function-two-values.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__filters-filter-functions--drop-shadow-function-comma-separated",
+  "source": "resvg/filters-filter-functions--drop-shadow-function-comma-separated.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__masking-clipPath--clip-path-on-children",
+  "source": "resvg/masking-clipPath--clip-path-on-children.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__masking-clipPath--on-a-horizontal-line",
+  "source": "resvg/masking-clipPath--on-a-horizontal-line.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__masking-mask--invalid-child",
+  "source": "resvg/masking-mask--invalid-child.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__masking-mask--recursive-on-self",
+  "source": "resvg/masking-mask--recursive-on-self.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect",
+  "source": "resvg/paint-servers-linearGradient--attributes-via-xlink-href-from-rect.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1",
+  "source": "resvg/paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__paint-servers-pattern--nested-objectBoundingBox",
+  "source": "resvg/paint-servers-pattern--nested-objectBoundingBox.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__paint-servers-pattern--text-child",
+  "source": "resvg/paint-servers-pattern--text-child.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__paint-servers-radialGradient--fr=0.2",
+  "source": "resvg/paint-servers-radialGradient--fr=0.2.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__paint-servers-radialGradient--gradientTransform-via-href",
+  "source": "resvg/paint-servers-radialGradient--gradientTransform-via-href.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-marker--on-ArcTo",
+  "source": "resvg/painting-marker--on-ArcTo.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-marker--orient=auto-on-M-C-C-4",
+  "source": "resvg/painting-marker--orient=auto-on-M-C-C-4.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-mix-blend-mode--screen",
+  "source": "resvg/painting-mix-blend-mode--screen.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-mix-blend-mode--xor",
+  "source": "resvg/painting-mix-blend-mode--xor.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-paint-order--duplicates",
+  "source": "resvg/painting-paint-order--duplicates.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-paint-order--invalid",
+  "source": "resvg/painting-paint-order--invalid.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-stroke-dasharray--0-n-with-round-caps",
+  "source": "resvg/painting-stroke-dasharray--0-n-with-round-caps.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__painting-stroke-dasharray--odd-count",
+  "source": "resvg/painting-stroke-dasharray--odd-count.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__shapes-path--M-H-H-implicit",
+  "source": "resvg/shapes-path--M-H-H-implicit.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__shapes-path--M-T",
+  "source": "resvg/shapes-path--M-T.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-style--class-selector",
+  "source": "resvg/structure-style--class-selector.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-style--iD-selector",
+  "source": "resvg/structure-style--iD-selector.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-switch--single-child",
+  "source": "resvg/structure-switch--single-child.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-switch--with-attributes",
+  "source": "resvg/structure-switch--with-attributes.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-symbol--with-transform",
+  "source": "resvg/structure-symbol--with-transform.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-symbol--with-viewBox-and-custom-use-size",
+  "source": "resvg/structure-symbol--with-viewBox-and-custom-use-size.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-systemLanguage--on-clipPath",
+  "source": "resvg/structure-systemLanguage--on-clipPath.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-systemLanguage--on-defs",
+  "source": "resvg/structure-systemLanguage--on-defs.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-transform--scale-without-Y",
+  "source": "resvg/structure-transform--scale-without-Y.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-transform--skewY",
+  "source": "resvg/structure-transform--skewY.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-use--with-size",
+  "source": "resvg/structure-use--with-size.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__structure-use--xlink-to-svg-element-with-rect",
+  "source": "resvg/structure-use--xlink-to-svg-element-with-rect.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-dominant-baseline--auto",
+  "source": "resvg/text-dominant-baseline--auto.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   16,
+   16,
+   184,
+   184
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-dominant-baseline--reset-size",
+  "source": "resvg/text-dominant-baseline--reset-size.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   16,
+   16,
+   184,
+   184
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-letter-spacing--0",
+  "source": "resvg/text-letter-spacing--0.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-letter-spacing--on-Arabic",
+  "source": "resvg/text-letter-spacing--on-Arabic.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-text--nested",
+  "source": "resvg/text-text--nested.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-text--x-and-y-with-less-values-than-characters",
+  "source": "resvg/text-text--x-and-y-with-less-values-than-characters.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-text-decoration--line-through",
+  "source": "resvg/text-text-decoration--line-through.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-text-decoration--style-resolving-3",
+  "source": "resvg/text-text-decoration--style-resolving-3.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-textPath--with-invalid-path-and-xlink-href",
+  "source": "resvg/text-textPath--with-invalid-path-and-xlink-href.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-textPath--with-underline",
+  "source": "resvg/text-textPath--with-underline.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-tspan--mixed",
+  "source": "resvg/text-tspan--mixed.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-tspan--only-with-y",
+  "source": "resvg/text-tspan--only-with-y.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor",
+  "source": "resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "resvg__text-writing-mode--tb-with-rotate",
+  "source": "resvg/text-writing-mode--tb-with-rotate.svg",
+  "group": "resvg",
+  "width": 200,
+  "reference_box": [
+   0,
+   0,
+   204,
+   204
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ }
+]
