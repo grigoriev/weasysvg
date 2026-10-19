@@ -188,7 +188,8 @@ def test_blur_layer_goes_raster() -> None:
 def test_blurred_shadow_keeps_the_source_vector() -> None:
     pdf = render(filtered('<feDropShadow dx="4" dy="4" stdDeviation="3"/>', ' color-interpolation-filters="sRGB"'))
     assert images(pdf) == 1
-    assert "0 0 0 rg" not in content(pdf) or "1 0 0 rg" in content(pdf)
+    # The shadow is the only image: the red source stays a vector fill
+    assert "1 0 0 rg" in content(pdf)
 
 
 def test_css_blur_and_drop_shadow_go_raster() -> None:
