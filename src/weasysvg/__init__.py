@@ -72,12 +72,17 @@ def install(
         _raster.install(scale=raster_scale, enabled=raster_filters)
         _filters.install()
 
+    def _install_fonts() -> None:
+        _fonts.install()
+        # The text feature may have been installed earlier with fonts off
+        _text.FEATURES["fonts"] = True
+
     installers = {
         "conditional": _conditional.install,
         "paint": lambda: _paint.install(blend=False),
         "blend": lambda: _paint.install(blend=True),
         "text": lambda: _text.install(fonts=fonts),
-        "fonts": _fonts.install,
+        "fonts": _install_fonts,
         "fetch": _fetch.install,
         "filters": _install_filters,
         "foreign_object": _foreign_object.install,

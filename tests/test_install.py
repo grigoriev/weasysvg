@@ -72,3 +72,13 @@ def test_svgimage_hook_without_fetcher(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(_core, "_TREE_PASSES", [])
     _core._svgimage_init(object(), object(), None, None, None)
     assert seen == [None]
+
+
+def test_a_later_install_turns_on_fonts_for_svg_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A fresh process: text installed without fonts first, fonts asked for later
+    monkeypatch.setattr(weasysvg, "_INSTALLED", set(ALL - {"text", "fonts"}))
+    monkeypatch.setitem(weasysvg.text.FEATURES, "fonts", True)
+    weasysvg.install(fonts=False)
+    assert weasysvg.text.FEATURES["fonts"] is False
+    assert "fonts" in weasysvg.install(fonts=True)
+    assert weasysvg.text.FEATURES["fonts"] is True
