@@ -13,7 +13,7 @@ license and the attribution of its SVG.
 | `svg/resvg/` | 64 | [linebender/resvg](https://github.com/linebender/resvg) `crates/resvg/tests/tests/`, commit `054ccf3` | MIT (dual Apache-2.0 or MIT), see [licenses/resvg-LICENSE-MIT.txt](licenses/resvg-LICENSE-MIT.txt) |
 | `reference/resvg/` | 64 | the reference PNGs of the same resvg tests | as above |
 | `svg/diagrams/kroki-*` | 19 | rendered by [kroki.io](https://kroki.io) from diagram sources written for this corpus | MIT, as this repository |
-| `svg/diagrams/mermaid-ink-*` | 10 | rendered by [mermaid.ink](https://mermaid.ink) from diagram sources written for this corpus or taken from the Mermaid documentation (MIT) | MIT |
+| `svg/diagrams/mermaid-ink-*` | 10 | rendered by [mermaid.ink](https://mermaid.ink) from diagram sources written for this corpus or taken from the Mermaid documentation | MIT, see [licenses/mermaid-LICENSE.txt](licenses/mermaid-LICENSE.txt) ([mermaid-js/mermaid](https://github.com/mermaid-js/mermaid) commit `6d8921f`) |
 | `svg/fo/mdn-foreignobject.svg` | 1 | the `<foreignObject>` example of [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/foreignObject) | CC0-1.0 (MDN code samples) |
 | `svg/fo/rich-html.svg` | 1 | written for this corpus | MIT, as this repository |
 | `svg/real/wm-*` | 14 | Wikimedia Commons, one file each, see below | per file |
