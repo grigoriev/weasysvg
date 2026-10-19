@@ -249,3 +249,53 @@ def test_drop_shadow_of_a_flood(no_resvg: None) -> None:
     )
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 63, 47), (0, 0, 0), 60)
+
+
+# ---------------- exceptions ----------------
+
+
+class RecordingStream:
+    """A stand-in for the PDF stream: counts state pushes and pops, hands out child streams."""
+
+    def __init__(self) -> None:
+        self.depth = 0
+        self.id = "x0"
+
+    def push_state(self) -> None:
+        self.depth += 1
+
+    def pop_state(self) -> None:
+        self.depth -= 1
+
+    def set_alpha_state(self, *_args: Any, **_kwargs: Any) -> RecordingStream:
+        return RecordingStream()
+
+    def add_group(self, *_args: Any) -> RecordingStream:
+        return RecordingStream()
+
+    def __getattr__(self, _name: str) -> Any:
+        # transform, rectangle, clip, end, set_color, fill, set_alpha, draw_x_object
+        return lambda *_args, **_kwargs: None
+
+
+class FakeSvg:
+    def __init__(self) -> None:
+        self.stream = RecordingStream()
+        self.tree = object()
+
+
+def failing_original(*_args: Any) -> None:
+    raise RuntimeError("drawing failed")
+
+
+@pytest.mark.parametrize("layer", [Layer("alpha", opacity=0.5), Layer("lum"), Layer("source", opacity=0.5)])
+@pytest.mark.parametrize("opacity", [1, 0.5])
+def test_a_failing_layer_restores_the_stream(no_resvg: None, layer: Layer, opacity: float) -> None:
+    fake = FakeSvg()
+    stream = fake.stream
+    plan = filters.Plan([layer], None)
+    with pytest.raises(RuntimeError):
+        filters.draw(fake, failing_original, object(), 12, None, plan, opacity)
+    # Else the caller pops the state of a mask or group stream, and q and Q of the page drift apart
+    assert fake.stream is stream
+    assert stream.depth == 0

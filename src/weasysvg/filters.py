@@ -322,30 +322,37 @@ def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: 
                     continue
         stream = svg.stream
         stream.push_state()
-        stream.transform(e=layer.dx, f=layer.dy)
-        if layer.kind == "flood":
-            stream.set_color(_with_alpha(layer.rgba, layer.opacity))
-            stream.rectangle(*cast(Region, layer.region))
-            stream.fill()
-        elif layer.kind in ("alpha", "lum"):
-            mask = stream.set_alpha_state(*big, mode="alpha" if layer.kind == "alpha" else "luminosity")
-            svg.stream = mask
-            original(svg, node, font_size, True, context)
+        # A failure while drawing must leave svg.stream and the state depth as they were
+        try:
+            _draw_layer(svg, original, node, font_size, context, layer, stream, big)
+        finally:
             svg.stream = stream
-            rgba = layer.rgba if layer.kind == "alpha" else color("black")
-            stream.set_color(_with_alpha(rgba, layer.opacity))
-            stream.rectangle(*big)
-            stream.fill()
-        elif layer.opacity < 1:
-            group = stream.add_group(*big)
-            svg.stream = group
-            original(svg, node, font_size, True, context)
-            svg.stream = stream
-            stream.set_alpha(layer.opacity, stroke=True, fill=True)
-            stream.draw_x_object(group.id)
-        else:
-            original(svg, node, font_size, True, context)
-        svg.stream.pop_state()
+            stream.pop_state()
+
+
+def _draw_layer(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region) -> None:
+    stream.transform(e=layer.dx, f=layer.dy)
+    if layer.kind == "flood":
+        stream.set_color(_with_alpha(layer.rgba, layer.opacity))
+        stream.rectangle(*cast(Region, layer.region))
+        stream.fill()
+    elif layer.kind in ("alpha", "lum"):
+        svg.stream = stream.set_alpha_state(*big, mode="alpha" if layer.kind == "alpha" else "luminosity")
+        original(svg, node, font_size, True, context)
+        svg.stream = stream
+        rgba = layer.rgba if layer.kind == "alpha" else color("black")
+        stream.set_color(_with_alpha(rgba, layer.opacity))
+        stream.rectangle(*big)
+        stream.fill()
+    elif layer.opacity < 1:
+        group = stream.add_group(*big)
+        svg.stream = group
+        original(svg, node, font_size, True, context)
+        svg.stream = stream
+        stream.set_alpha(layer.opacity, stroke=True, fill=True)
+        stream.draw_x_object(group.id)
+    else:
+        original(svg, node, font_size, True, context)
 
 
 def _draw_whole(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, plan_: Plan, strip_mask: bool) -> None:
@@ -364,18 +371,20 @@ def draw(svg: Any, original: Callable[..., None], node: Any, font_size: float, c
     outer = svg.stream
     if opacity < 1:
         svg.stream = outer.add_group(-1e4, -1e4, 2e4, 2e4)
+    root = svg.stream if node is svg.tree else None
     try:
-        if node is svg.tree:
+        if root is not None:
             # The root draws its own viewport: x, y, viewBox and clip, before its content
-            svg.stream.push_state()
+            root.push_state()
             wp_svg.TAGS["svg"](svg, node, size(node.get("font-size", "1em"), font_size, font_size))
         if plan_.whole:
             _draw_whole(svg, original, node, font_size, context, plan_, strip_mask)
         else:
             _draw_layers(svg, original, node, font_size, context, plan_, strip_mask)
-        if node is svg.tree:
-            svg.stream.pop_state()
     finally:
+        if root is not None:
+            svg.stream = root
+            root.pop_state()
         if opacity < 1:
             group = svg.stream
             svg.stream = outer
