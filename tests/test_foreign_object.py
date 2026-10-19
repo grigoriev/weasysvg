@@ -278,3 +278,10 @@ def test_style_text_stays_raw() -> None:
     assert ".a > .b" in html
     # Only a closing tag inside the text is defused
     assert html.count("</style>") == 1
+
+
+def test_svg_stylesheet_cannot_close_the_html_style() -> None:
+    # A comment or a string in the SVG stylesheet may hold </style>: the sub-document keeps one stylesheet
+    document = foreign_object._document("p{color:red} /* </style><p>injected</p> */", "", "<p>body</p>")
+    assert document.count("</style>") == 1
+    assert "<p>injected</p>" not in document.split("</style>", 1)[1]

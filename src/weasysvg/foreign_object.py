@@ -154,6 +154,8 @@ def _object_html(node: Any, width: float, height: float, inherited: str, page: s
 
 
 def _document(css: str, pages_css: str, bodies: str) -> str:
+    # The stylesheet of the SVG is raw text here too: a </style> in a comment or a string must not close it
+    css = css.replace("</", "<\\/")
     return f"<!DOCTYPE html><html><head><style>{pages_css}html,body{{margin:0;padding:0;background:transparent}}.wp-fo-box{{margin:0;padding:0;overflow:visible}}{css}\n{WRAPPER_CSS}</style></head><body>{bodies}</body></html>"
 
 
