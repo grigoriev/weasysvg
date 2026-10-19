@@ -1,0 +1,232 @@
+"""Gradients, patterns, masks, blending and the opacity group."""
+
+from __future__ import annotations
+
+import re
+from xml.etree import ElementTree as ET
+
+from helpers import SVG_NS, content, pixel, render, streams, svg
+
+from weasysvg import paint
+from weasysvg.paint import GRADIENT_CELL, drop_empty_presentation
+
+RED = (255, 0, 0)
+WHITE = (255, 255, 255)
+
+
+def near(actual: tuple[int, int, int], expected: tuple[int, int, int], tolerance: int = 40) -> bool:
+    return all(abs(a - e) <= tolerance for a, e in zip(actual, expected, strict=True))
+
+
+# ---------------- tree pass ----------------
+
+
+def test_empty_presentation_attributes_are_dropped() -> None:
+    root = ET.fromstring(f'<svg xmlns="{SVG_NS}"><rect fill="" stroke=" " id="r" width="1"/></svg>')
+    drop_empty_presentation(root)
+    assert root[0].attrib == {"id": "r", "width": "1"}
+
+
+def test_empty_fill_paints_black() -> None:
+    pdf = render(svg('<rect width="200" height="100" fill=""/>'))
+    assert near(pixel(pdf, 50, 30), (0, 0, 0))
+
+
+# ---------------- gradients ----------------
+
+
+def test_gradient_cell_is_large() -> None:
+    body = '<defs><linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient></defs><rect width="200" height="100" fill="url(#g)"/>'
+    pdf = render(svg(body))
+    text = pdf.decode("latin-1")
+    sizes = [float(value) for value in re.findall(r"/BBox \[\s*[-\d.]+ [-\d.]+ ([-\d.]+)", text)]
+    assert any(abs(value - GRADIENT_CELL) < 1 for value in sizes)
+    assert near(pixel(pdf, 5, 30), RED, 60)
+
+
+def test_radial_percentages_use_the_normalized_diagonal() -> None:
+    gradient = ET.Element("radialGradient", {"r": "25%", "fr": "10%"})
+    node = type("Node", (), {"tag": "radialGradient", "attrib": gradient.attrib, "get": gradient.get})()
+    changed = paint._radial_percentages(node)
+    assert changed == {"r": "25%", "fr": "10%"}
+    assert gradient.attrib == {"r": "0.25", "fr": "0.1"}
+
+
+def test_radial_percentages_skip_user_space_and_linear() -> None:
+    user = ET.Element("radialGradient", {"gradientUnits": "userSpaceOnUse", "r": "50%"})
+    node = type("Node", (), {"tag": "radialGradient", "attrib": user.attrib, "get": user.get})()
+    assert paint._radial_percentages(node) == {}
+    linear = type("Node", (), {"tag": "linearGradient", "attrib": {}, "get": {}.get})()
+    assert paint._radial_percentages(linear) == {}
+
+
+def test_radial_gradient_attributes_are_restored() -> None:
+    body = (
+        '<defs><radialGradient id="g" r="40%" fr="5%"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="white"/></radialGradient>'
+        '<radialGradient id="h" href="#g"/></defs>'
+        '<rect width="100" height="100" fill="url(#g)"/><rect x="100" width="100" height="100" fill="url(#h)"/>'
+    )
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 37, 37), RED, 60)
+    assert near(pixel(pdf, 112, 37), RED, 60)
+
+
+def test_gradient_stops_via_href_used_twice() -> None:
+    body = (
+        '<defs><linearGradient id="base"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>'
+        '<linearGradient id="a" xlink:href="#base"/><linearGradient id="b" xlink:href="#base" x1="1" x2="0"/></defs>'
+        '<rect width="100" height="100" fill="url(#a)"/><rect x="100" width="100" height="100" fill="url(#b)"/>'
+    )
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 120, 30), RED)
+
+
+# ---------------- patterns ----------------
+
+
+def test_pattern_x_moves_the_tile_in_user_space() -> None:
+    body = '<defs><pattern id="p" patternUnits="userSpaceOnUse" x="50" y="0" width="100" height="100"><rect width="50" height="100" fill="red"/></pattern></defs><rect width="200" height="100" fill="url(#p)"/>'
+    pdf = render(svg(body))
+    # The tile starts at x=50: red from 50 to 100 CSS px, white from 0 to 50
+    assert near(pixel(pdf, 15, 30), WHITE)
+    assert near(pixel(pdf, 55, 30), RED)
+
+
+def test_pattern_in_bounding_box_units_used_twice() -> None:
+    body = '<defs><pattern id="p" x="0.25" y="0" width="0.5" height="1"><rect width="50" height="100" fill="red"/></pattern></defs><rect width="200" height="100" fill="url(#p)"/><rect y="100" width="200" height="100" fill="url(#p)"/>'
+    pdf = render(svg(body, height=200))
+    assert near(pixel(pdf, 50, 30), RED)
+    assert near(pixel(pdf, 50, 105), RED)
+    assert near(pixel(pdf, 15, 30), WHITE)
+
+
+def test_pattern_on_a_shape_without_box() -> None:
+    body = '<defs><pattern id="p" x="0.1" width="1" height="1"><rect width="10" height="10" fill="red"/></pattern></defs><g fill="url(#p)"><path d=""/></g>'
+    render(svg(body))
+
+
+# ---------------- masks ----------------
+
+
+def test_mask_is_set_before_the_path() -> None:
+    body = '<defs><mask id="m"><rect width="100" height="100" fill="white"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    pdf = render(svg(body))
+    page = streams(pdf)[0]
+    # The soft mask comes first, then the path: no path construction between them
+    assert re.search(r"/s\d+ gs\n(?:(?!.* re\n).*\n)*?0 0 200 100 re\nf", page)
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+def test_mask_on_a_group_and_content_units() -> None:
+    body = '<defs><mask id="m" maskContentUnits="objectBoundingBox"><rect width="0.5" height="1" fill="white"/></mask></defs><g mask="url(#m)"><rect width="200" height="100" fill="red"/></g>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+def test_mask_in_user_space() -> None:
+    body = '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="50" height="100"><rect width="200" height="100" fill="white"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 20, 30), RED)
+    assert near(pixel(pdf, 60, 30), WHITE)
+
+
+def test_mask_that_references_itself() -> None:
+    body = '<defs><mask id="m"><rect width="100" height="100" fill="white" mask="url(#m)"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+def test_mask_on_an_empty_group_is_skipped() -> None:
+    body = (
+        '<defs><mask id="m"><rect width="1" height="1" fill="white"/></mask><mask id="c" maskContentUnits="objectBoundingBox"><rect width="1" height="1"/></mask></defs>'
+        '<g mask="url(#m)"/><g mask="url(#c)"/><rect width="10" height="10" mask="url(#missing)"/>'
+    )
+    render(svg(body))
+
+
+def test_mask_tag_is_restored_after_drawing() -> None:
+    body = '<mask id="m"><rect width="100" height="100" fill="white"/></mask><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    pdf = render(svg(body))
+    # The <mask> outside <defs> is not drawn as a group of its own
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+# ---------------- blending and opacity ----------------
+
+
+def test_blend_mode_is_an_isolated_group() -> None:
+    body = '<rect width="200" height="100" fill="yellow"/><g style="mix-blend-mode:multiply"><rect width="100" height="100" fill="cyan"/><rect width="50" height="100" fill="cyan"/></g>'
+    pdf = render(svg(body))
+    assert "/BM /Multiply" in pdf.decode("latin-1")
+    assert near(pixel(pdf, 20, 30), (0, 255, 0))
+
+
+def test_blend_mode_values() -> None:
+    node = type("Node", (), {"get": {"mix-blend-mode": " Screen "}.get})()
+    assert paint.blend_mode(node) == "Screen"
+    assert paint.blend_mode(type("Node", (), {"get": {"mix-blend-mode": "normal"}.get})()) is None
+
+
+def test_blend_mode_is_not_inherited() -> None:
+    body = '<g style="mix-blend-mode:screen"><g><rect width="10" height="10"/></g></g>'
+    pdf = render(svg(body))
+    assert pdf.decode("latin-1").count("/BM /Screen") == 1
+
+
+def test_opacity_group_is_unbounded() -> None:
+    body = '<g opacity="0.5"><text x="100" y="50" text-anchor="end" font-size="30">Shifted</text></g>'
+    pdf = render(svg(body))
+    assert "/A0.5 gs" in content(pdf) or "/a0.5 gs" in content(pdf)
+    assert "/BBox [-10000 -10000 10000 10000]" in pdf.decode("latin-1")
+
+
+def test_transform_with_mask_and_opacity() -> None:
+    body = (
+        '<defs><mask id="m"><rect width="50" height="100" fill="white"/></mask></defs>'
+        '<rect transform="translate(100 0)" width="100" height="100" fill="red" mask="url(#m)"/>'
+        '<rect transform="translate(0 0)" width="50" height="100" fill="red" opacity="0.5"/>'
+    )
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 80, 30), RED)
+    assert near(pixel(pdf, 130, 30), WHITE)
+    assert near(pixel(pdf, 20, 30), (255, 128, 128))
+
+
+def test_mask_with_transform_and_content_units_on_an_empty_group() -> None:
+    body = (
+        '<defs><mask id="m" maskContentUnits="objectBoundingBox" transform="translate(0 0)"><rect width="0.5" height="1" fill="white"/></mask>'
+        '<mask id="e" maskUnits="userSpaceOnUse" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="white"/></mask></defs>'
+        '<rect width="200" height="100" fill="red" mask="url(#m)"/><g mask="url(#e)"/>'
+    )
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+def test_radial_gradient_with_default_and_absolute_radius() -> None:
+    body = (
+        '<defs><radialGradient id="a"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="white"/></radialGradient>'
+        '<radialGradient id="b" r="0.4"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="white"/></radialGradient></defs>'
+        '<rect width="100" height="100" fill="url(#a)"/><rect x="100" width="100" height="100" fill="url(#b)"/>'
+    )
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 37, 37), RED, 60)
+    assert near(pixel(pdf, 112, 37), RED, 60)
+
+
+def test_pattern_override_nests() -> None:
+    class Stream:
+        def add_pattern(self) -> str:
+            return "class"
+
+    stream = Stream()
+    with paint._add_pattern_override(stream, lambda: "outer"):
+        with paint._add_pattern_override(stream, lambda: "inner"):
+            assert stream.add_pattern() == "inner"
+        assert stream.add_pattern() == "outer"
+    assert stream.add_pattern() == "class"
+    assert "add_pattern" not in stream.__dict__
