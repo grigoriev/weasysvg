@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -25,9 +24,8 @@ def filtered(primitives: str, attributes: str = "", target: str = '<rect x="20" 
 
 
 @pytest.fixture
-def no_resvg(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def no_resvg(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(raster, "_RESVG", False)
-    yield
 
 
 def images(pdf: bytes) -> int:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 import sys
-from collections.abc import Iterator
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -33,10 +32,10 @@ class Recorder:
 
 
 @pytest.fixture
-def recorder(monkeypatch: pytest.MonkeyPatch) -> Iterator[Recorder]:
+def recorder(monkeypatch: pytest.MonkeyPatch) -> Recorder:
     fake = Recorder()
     monkeypatch.setattr(raster, "_RESVG", fake)
-    yield fake
+    return fake
 
 
 def parse(document: str) -> ET.Element:
