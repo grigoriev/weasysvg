@@ -306,4 +306,6 @@ def test_groups_reach_far_coordinates(attribute: str) -> None:
     body = f'<rect x="50010" y="10" width="80" height="80" fill="red" {attribute}/>'
     pdf = render(f'<svg xmlns="{SVG_NS}" width="200" height="100" viewBox="50000 0 200 100">{body}</svg>')
     red, green, blue = pixel(pdf, 40, 40)
-    assert red > 200 and green < 200 and blue < 200
+    assert red > 200
+    assert green < 200
+    assert blue < 200
