@@ -12,13 +12,14 @@ uv sync --all-extras                # install the dependencies
 make lint                           # ruff check, ruff format --check, mypy
 make test                           # pytest with coverage, in Docker
 make test BASE=python:3.10-slim-trixie  # the same on the lowest supported Python
+make test BASE=pypy:3.11-slim-trixie    # the same on PyPy
 make visual                         # the visual bench, in Docker
 uv build                            # wheel and sdist
 ```
 
 On Linux with Pango installed, `uv run pytest --cov` works without Docker.
 
-CI runs actionlint, zizmor, ruff, mypy, the tests on Python 3.10 to 3.14 and SonarCloud for every pull
+CI runs actionlint, zizmor, ruff, mypy, the tests on Python 3.10 to 3.14 and PyPy 3.11, and SonarCloud for every pull
 request.
 
 ## Visual regression bench

@@ -25,6 +25,9 @@ service needs no browser.
 
 ## Installation
 
+weasysvg runs on CPython 3.10 to 3.14 and on PyPy 3.11, as WeasyPrint 70 does. On PyPy a C compiler
+must be present: zopfli, which WeasyPrint needs, has no PyPy wheel and builds from source.
+
 The package is not on PyPI yet. Install a release from GitHub:
 
 ```sh

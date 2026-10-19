@@ -10,7 +10,7 @@ an optional extra that rasterizes only the filter subtrees PDF cannot express.
 
 ## Tech Stack
 
-- **Python**: 3.10+ (the target services run 3.14)
+- **Python**: 3.10+ and PyPy 3.11, as WeasyPrint 70 supports them (the target services run 3.14)
 - **Package Manager**: uv
 - **Build Backend**: hatchling, `src/` layout
 - **Linting/Formatting**: ruff, line length 240
@@ -89,7 +89,7 @@ files: pre-commit excludes them.
 
 ## CI/CD
 
-- **CI** (`ci.yml`): actionlint and zizmor; tests on Python 3.10 to 3.14 with Pango and fonts from apt;
+- **CI** (`ci.yml`): actionlint and zizmor; tests on Python 3.10 to 3.14 and PyPy 3.11 with Pango and fonts from apt;
   SonarCloud; build.
 - **Scorecard** (`scorecard.yml`): OpenSSF Scorecard, weekly and on push to main.
 - **Release** (`release.yml`): on `v*` tags, tests, then a GitHub release with the wheel, the sdist
