@@ -110,7 +110,8 @@ review:
 | broken | 54 | 10 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
-differences are in the resvg feature tests and one Wikimedia file. The verdicts are in
+differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
+which has no scrollbar for `overflow: auto` (print has no use for one). The verdicts are in
 [`corpus/verdicts.json`](corpus/verdicts.json).
 
 ## Known gaps
