@@ -156,3 +156,11 @@ def test_failing_decoration_lines_restore_the_state() -> None:
     with pytest.raises(RuntimeError):
         text._draw_lines(fake, node, 12, 0, 10, [(5, 1)])
     assert stream.depth == 0
+
+
+def test_each_use_keeps_its_own_font_family() -> None:
+    # One <text> drawn through two <use>: the family the first resolves must not stick to the node
+    body = '<defs><text id="t" x="10" y="30">Hi</text></defs><use href="#t" font-family="Liberation Mono"/><use href="#t" y="40" font-family="DejaVu Serif"/>'
+    pdf = render(svg(body, height=100))
+    assert b"Liberation-Mono" in pdf
+    assert b"DejaVu-Serif" in pdf
