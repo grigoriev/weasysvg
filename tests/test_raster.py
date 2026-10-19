@@ -312,6 +312,7 @@ def test_a_failing_image_draw_restores_the_state() -> None:
         def draw(self, *_args: Any) -> None:
             raise RuntimeError("draw failed")
 
+    fake, image = SimpleNamespace(stream=stream), FailingImage()
     with pytest.raises(RuntimeError):
-        raster.draw(SimpleNamespace(stream=stream), FailingImage(), (0, 0, 10, 10))
+        raster.draw(fake, image, (0, 0, 10, 10))
     assert stream.depth == 0

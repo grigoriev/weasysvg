@@ -152,7 +152,7 @@ def test_failing_decoration_lines_restore_the_state() -> None:
     def failing(*_args: Any) -> Any:
         raise RuntimeError("paint failed")
 
-    fake = SimpleNamespace(stream=stream, set_graphical_state=failing, fill_stroke=failing)
+    fake, node = SimpleNamespace(stream=stream, set_graphical_state=failing, fill_stroke=failing), SimpleNamespace()
     with pytest.raises(RuntimeError):
-        text._draw_lines(fake, SimpleNamespace(), 12, 0, 10, [(5, 1)])
+        text._draw_lines(fake, node, 12, 0, 10, [(5, 1)])
     assert stream.depth == 0
