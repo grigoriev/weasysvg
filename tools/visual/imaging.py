@@ -45,8 +45,9 @@ def ink_box(images: list[Image.Image]) -> tuple[int, int, int, int] | None:
     return min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes)
 
 
-def padded(box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
-    return max(box[0] - PAD, 0), max(box[1] - PAD, 0), box[2] + PAD, box[3] + PAD
+def padded(box: tuple[int, int, int, int], size: tuple[int, int]) -> tuple[int, int, int, int]:
+    """The box plus a margin, inside the image: a crop past the edge fills with black, which reads as ink."""
+    return max(box[0] - PAD, 0), max(box[1] - PAD, 0), min(box[2] + PAD, size[0]), min(box[3] + PAD, size[1])
 
 
 def mismatch(a: Image.Image, b: Image.Image) -> float:

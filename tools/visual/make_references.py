@@ -30,7 +30,7 @@ def main(pdfs: Path) -> None:
             item["reference_box"] = None
             print(f"{item['name']}: no reference")
             continue
-        box = padded(box)
+        box = padded(box, image.size)
         image.crop(box).save(out / f"{item['name']}.png", optimize=True)
         item["reference_box"] = list(box)
         item["page_size"] = list(image.size)

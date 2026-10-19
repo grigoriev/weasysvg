@@ -84,7 +84,7 @@ def run(item: dict[str, Any], out: Path, handler: Warnings) -> dict[str, Any]:
     if ours is None or ref is None or box is None:
         row["mismatch"] = None
         return row
-    box = padded(box)
+    box = padded(box, ours.size)
     row["mismatch"] = round(mismatch(ref.crop(box), ours.crop(box)), 1)
     row["panels"] = [panel(ref.crop(box), out / "img" / f"{name}.chromium.webp"), panel(ours.crop(box), out / "img" / f"{name}.weasysvg.webp")]
     resvg = CORPUS / "reference" / "resvg" / f"{name}.png"
