@@ -298,3 +298,12 @@ def test_a_failing_pattern_keeps_its_origin() -> None:
     with pytest.raises(ValueError, match="bad length"):
         paint.draw_pattern(fake, object(), pattern, 12, 1, False)
     assert pattern.attrib == {"x": "5", "y": "5", "patternUnits": "userSpaceOnUse"}
+
+
+@pytest.mark.parametrize("attribute", ['opacity="0.5"', 'style="mix-blend-mode:multiply"'])
+def test_groups_reach_far_coordinates(attribute: str) -> None:
+    # Map and CAD exports draw far from the origin: the opacity and blend groups must not clip them
+    body = f'<rect x="50010" y="10" width="80" height="80" fill="red" {attribute}/>'
+    pdf = render(f'<svg xmlns="{SVG_NS}" width="200" height="100" viewBox="50000 0 200 100">{body}</svg>')
+    red, green, blue = pixel(pdf, 40, 40)
+    assert red > 200 and green < 200 and blue < 200

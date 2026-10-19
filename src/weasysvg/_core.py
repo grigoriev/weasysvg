@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -24,7 +25,8 @@ FetcherWrapper = Callable[[object], object]
 _TREE_PASSES: list[tuple[int, str, TreePass]] = []
 _FETCHER_WRAPPERS: list[FetcherWrapper] = []
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
-BLEND_GROUP_BOX = (-1e4, -1e4, 2e4, 2e4)
+# The smallest box a group gets, in user units
+MIN_GROUP_EXTENT = 1e4
 
 _ORIGINAL_SVGIMAGE_INIT = wp_images.SVGImage.__init__
 _ORIGINAL_DRAW_NODE = wp_svg.SVG.draw_node
@@ -138,6 +140,25 @@ def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True,
         node.attrib.update(saved)
 
 
+def group_box(svg: Any, node: Any, font_size: float) -> tuple[float, float, float, float]:
+    """The box of an opacity, blend or filter group: it must contain the content, it must not clip it.
+
+    It spans the root viewport and the element, each with a margin of its own size, and at least
+    MIN_GROUP_EXTENT around the origin: map and CAD exports draw far from the origin. A plain huge box
+    would do the same, but PDF/A-1 limits real numbers to 32767.
+    """
+    x0, y0, x1, y1 = -MIN_GROUP_EXTENT, -MIN_GROUP_EXTENT, MIN_GROUP_EXTENT, MIN_GROUP_EXTENT
+    boxes = [svg.tree.get_viewbox(), svg.calculate_bounding_box(node, font_size, stroke=True)]
+    for box in boxes:
+        if not box or len(box) != 4 or not all(math.isfinite(value) for value in box):
+            continue
+        bx, by, bw, bh = box
+        margin = max(abs(bw), abs(bh))
+        x0, y0 = min(x0, bx - margin), min(y0, by - margin)
+        x1, y1 = max(x1, bx + bw + margin), max(y1, by + bh + margin)
+    return x0, y0, x1 - x0, y1 - y0
+
+
 def _draw_grouped(self: Any, original: Callable[..., None], node: Any, font_size: float, fill_stroke: bool, context: Any, effects: _Effects, filter_opacity: Any) -> None:
     """The node inside its blend group and its opacity group, through its filter plan if it has one."""
     from . import filters
@@ -145,12 +166,12 @@ def _draw_grouped(self: Any, original: Callable[..., None], node: Any, font_size
     outer = self.stream
     if effects.blend is not None:
         # The element blends as one isolated group: its own parts must not blend with each other
-        self.stream = outer.add_group(*BLEND_GROUP_BOX)
+        self.stream = outer.add_group(*group_box(self, node, font_size))
     blended = self.stream
     if effects.opacity is not None:
         # WeasyPrint bounds its opacity group by the bounding box of the element, which misses the shift
         # of text-anchor, markers and wide strokes: the Mermaid gantt dates lost their first half
-        self.stream = blended.add_group(*BLEND_GROUP_BOX)
+        self.stream = blended.add_group(*group_box(self, node, font_size))
     try:
         if effects.plan is not None:
             filters.draw(self, original, node, font_size, context, effects.plan, filter_opacity, strip_mask=effects.mask is not None)

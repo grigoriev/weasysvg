@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -256,7 +257,11 @@ def test_drop_shadow_of_a_flood(no_resvg: None) -> None:
 class FakeSvg:
     def __init__(self) -> None:
         self.stream = RecordingStream()
-        self.tree = object()
+        # No viewBox and no bounding box: the group box falls back to its minimum
+        self.tree = SimpleNamespace(get_viewbox=lambda: None)
+
+    def calculate_bounding_box(self, *_args: Any, **_kwargs: Any) -> None:
+        return None
 
 
 def failing_original(*_args: Any) -> None:

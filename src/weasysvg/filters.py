@@ -372,7 +372,7 @@ def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: 
         stream.rectangle(*region)
         stream.clip()
         stream.end()
-    big = region or (-1e4, -1e4, 2e4, 2e4)
+    big = region or _core.group_box(svg, node, font_size)
     for layer in layers:
         if layer.blur != (0.0, 0.0) and layer.kind != "flood" and raster.available():
             layer_region = region or _blur_region(svg, node, font_size, [layer])
@@ -431,7 +431,7 @@ def draw(svg: Any, original: Callable[..., None], node: Any, font_size: float, c
     opacity = alpha_value(opacity_value)
     outer = svg.stream
     if opacity < 1:
-        svg.stream = outer.add_group(-1e4, -1e4, 2e4, 2e4)
+        svg.stream = outer.add_group(*_core.group_box(svg, node, font_size))
     root = svg.stream if node is svg.tree else None
     try:
         if root is not None:
