@@ -66,8 +66,14 @@ def _serialize(element: ET.Element) -> str:
     start = f"<{tag}{' ' if attributes else ''}{' '.join(attributes)}>"
     if tag in VOID:
         return start + html.escape(element.tail or "")
-    inner = html.escape(element.text or "") + "".join(_serialize(child) for child in element)
-    return f"{start}{inner}</{tag}>" + html.escape(element.tail or "")
+    return f"{start}{_inner(element, tag)}</{tag}>" + html.escape(element.tail or "")
+
+
+def _inner(element: ET.Element, tag: str) -> str:
+    if tag == "style":
+        # Raw text in HTML: entities are not decoded there, so only a closing tag is defused
+        return (element.text or "").replace("</", "<\\/")
+    return html.escape(element.text or "") + "".join(_serialize(child) for child in element)
 
 
 def _wrapper(element: ET.Element, tag: str) -> str:

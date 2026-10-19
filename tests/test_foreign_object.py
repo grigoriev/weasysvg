@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import io
+from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
 import weasyprint
-from helpers import SVG_NS, XHTML_NS, close, content, page_html, render, svg, text_of
+from helpers import SVG_NS, XHTML_NS, RecordingStream, close, content, page_html, render, svg, text_of
 from PIL import Image
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
@@ -243,3 +244,37 @@ def test_inherited_style_lands_on_the_object_not_an_ancestor() -> None:
     html = foreign_object._object_html(Node(), 50, 20, "font-size:30px;")
     assert 'class="wp-fo-anc node-style" id="style-3"' in html
     assert '<foreignobject class="wp-fo-anc" style="font-size:30px;">' in html
+
+
+def test_a_failing_page_draw_restores_the_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A failure in draw_page must not leave the shift and the clip of the object on the rest of the page
+    stream = RecordingStream()
+
+    class Node:
+        _etree_node = object()
+
+        def get(self, name: str) -> str | None:
+            return "<div>x</div>" if name == STASH else None
+
+    node = Node()
+    fake = SimpleNamespace(stream=stream, _fo_batch={id(node._etree_node): SimpleNamespace(_page_box=None)})
+    monkeypatch.setattr(foreign_object, "_object_geometry", lambda *_args: (0, 0, 10, 10, False, ""))
+
+    def failing(*_args: Any) -> None:
+        raise RuntimeError("draw failed")
+
+    monkeypatch.setattr(foreign_object, "draw_page", failing)
+    with pytest.raises(RuntimeError):
+        foreign_object.foreign_object(fake, node, 12)
+    assert stream.depth == 0
+
+
+def test_style_text_stays_raw() -> None:
+    # <style> is raw text in HTML: entities are not decoded there, so quotes and > must stay as they are
+    style = ET.Element(f"{{{XHTML_NS}}}style")
+    style.text = 'p{font-family:"Open Sans"} .a > .b{color:red} </style><b>'
+    html = foreign_object._serialize(style)
+    assert 'font-family:"Open Sans"' in html
+    assert ".a > .b" in html
+    # Only a closing tag inside the text is defused
+    assert html.count("</style>") == 1
