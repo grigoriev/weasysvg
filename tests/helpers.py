@@ -103,7 +103,8 @@ def ink(pdf: bytes, scale: float = 1.0) -> tuple[int, int, int] | None:
     box = image.point(lambda value: 255 if value < 250 else 0).getbbox()
     if box is None:
         return None
-    pixels = list(image.crop(box).getdata())
+    # An RGB image yields tuples of three channels
+    pixels = cast("list[tuple[int, int, int]]", list(image.crop(box).get_flattened_data()))
     darkest: tuple[int, int, int] = min(pixels, key=sum)
     return darkest
 

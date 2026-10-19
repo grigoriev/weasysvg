@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import io
 import sys
-from typing import Any
+from typing import Any, cast
 from xml.etree import ElementTree as ET
 
+import helpers
 import pytest
 from helpers import render, svg
 from PIL import Image
@@ -192,3 +193,32 @@ def test_interrupt_is_not_swallowed(monkeypatch: pytest.MonkeyPatch) -> None:
     node = FakeNode(ET.Element("rect"), {})
     with pytest.raises(KeyboardInterrupt):
         raster.render(fake, node, (0, 0, 10, 10), "url(#f)")
+
+
+# ---------------- elements drawn through <use> ----------------
+
+WIDE_BLUR = '<filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>'
+
+
+def colors_of(pdf: bytes) -> set[tuple[int, int, int]]:
+    """The strongly colored pixels of the first page, reduced to their dominant channel."""
+    image = helpers.rasterize(pdf, 2)
+    found = set()
+    pixels = cast("list[tuple[int, int, int]]", list(image.get_flattened_data()))
+    for red, green, blue in pixels:
+        if max(red, green, blue) - min(red, green, blue) > 150:
+            found.add((int(red > 128), int(green > 128), int(blue > 128)))
+    return found
+
+
+def test_a_filtered_element_in_defs_is_drawn_through_use() -> None:
+    # resvg draws nothing inside <defs>: the element must leave it, or it vanishes from the PDF
+    document = svg(f'<defs>{WIDE_BLUR}<rect id="r" width="60" height="40" fill="red" filter="url(#b)"/></defs><use href="#r" x="20" y="20"/>', height=100)
+    assert (1, 0, 0) in colors_of(render(document))
+
+
+def test_each_use_keeps_the_paint_it_passes_down() -> None:
+    # One target, two fills from two <use>: the cache must not hand the first image to the second
+    defs = f'<defs>{WIDE_BLUR}<rect id="r" width="60" height="40" filter="url(#b)"/></defs>'
+    document = svg(f'{defs}<use href="#r" x="10" y="20" fill="red"/><use href="#r" x="110" y="20" fill="blue"/>', height=100)
+    assert {(1, 0, 0), (0, 0, 1)} <= colors_of(render(document))

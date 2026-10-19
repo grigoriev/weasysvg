@@ -302,7 +302,8 @@ def build_document(svg: Any, node: Any, region: tuple[float, float, float, float
     document, defs = _skeleton(root, styles, region, pixel_size, extra_defs)
     if element is root:
         _append_root(document, root, filter_value)
-    elif chain and chain[0] is root:
+    elif chain and chain[0] is root and not any(_local(ancestor.tag) in NON_RENDERING for ancestor in chain):
+        # Inside <defs> or <symbol> the element is drawn through <use>, and resvg would draw nothing there
         _append_chain(document, root, chain, element, _target_copy(element, filter_value, strip_mask), _needed(referenced, parents))
     else:
         _append_detached(document, defs, node, _target_copy(element, filter_value, strip_mask), referenced)
@@ -322,7 +323,9 @@ def render(svg: Any, node: Any, region: tuple[float, float, float, float], filte
     if not resvg or region[2] <= 0 or region[3] <= 0:
         return None
     pixel_size = _pixel_size(svg, region[2], region[3])
-    key = (id(node._etree_node), tuple(round(v, 3) for v in region), pixel_size, filter_value, extra_defs, strip_mask)
+    # Through <use> one element is drawn with the paint each <use> passes down
+    inherited = tuple((name, str(node.get(name))) for name in INHERITED if node.get(name) is not None)
+    key = (id(node._etree_node), tuple(round(v, 3) for v in region), pixel_size, filter_value, extra_defs, strip_mask, inherited)
     cache = svg.__dict__.setdefault("_svg_ext_raster_cache", {})
     if key in cache:
         return cache[key]
