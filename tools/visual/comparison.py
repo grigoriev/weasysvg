@@ -2,10 +2,12 @@
 
 Usage: comparison.py
 
-Run it through make comparison: it renders the panels of WeasyPrint and weasysvg with the bench first
-(bench.py --panels), into corpus/render. This script renders the resvg panels into corpus/render/resvg, at
-the width of the page and with the fonts Chromium picks. The Chromium panels are the references in
-corpus/reference/chromium. The page is Markdown, so GitHub shows it in the repository.
+Run it through make comparison: the bench renders WeasyPrint and weasysvg first (bench.py --panels), over
+the box of the Chromium reference, into tools/visual/out/panels. This script renders resvg on a page like
+the one of the references, at the width of the page and with the fonts Chromium picks.
+
+Every panel is cropped to the same box: the ink of the Chromium reference, without a margin. The panels
+go into corpus/render. The page is Markdown, so GitHub shows it in the repository.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import resvg_py
-from imaging import ink_box, padded
+from imaging import ink_box
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -36,7 +38,10 @@ GROUPS = {
 }
 VERDICTS = ("same", "minor", "font", "broken")
 LABELS = {"same": "same as Chromium", "minor": "minor difference", "font": "other font only", "broken": "broken"}
-COLUMNS = (("Chromium", "reference/chromium"), ("resvg", "render/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
+COLUMNS = (("Chromium", "render/chromium"), ("resvg", "render/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
+# The panels of the bench, over the box of the Chromium reference, as make comparison writes them
+BENCH_PANELS = ROOT / "tools" / "visual" / "out" / "panels"
+Box = tuple[int, int, int, int]
 
 
 UNITS = {"pt": 4 / 3, "pc": 16, "mm": 96 / 25.4, "cm": 96 / 2.54, "in": 96}
@@ -50,12 +55,8 @@ def in_px(svg: str) -> str:
     return svg
 
 
-def render_resvg(item: dict[str, Any], target: Path) -> str | None:
-    """The SVG through resvg on white, at the width of the page, cropped to its ink as the references are.
-
-    Returns why there is no panel: resvg refused the SVG, or drew nothing. The page shows it in the cell.
-    """
-    target.unlink(missing_ok=True)
+def render_resvg(item: dict[str, Any]) -> Image.Image | str:
+    """The page of the SVG through resvg, on white, at the width of the page; or why there is none."""
     svg = CORPUS / "svg" / item["source"]
     try:
         # The families Chromium resolves the generic names to, in the visual image
@@ -75,12 +76,34 @@ def render_resvg(item: dict[str, Any], target: Path) -> str | None:
             raise
         return f"resvg error: {error}"[:200]
     image = Image.open(io.BytesIO(png)).convert("RGBA")
-    flat = Image.new("RGB", image.size, "white")
-    flat.paste(image, mask=image.getchannel("A"))
-    box = ink_box([flat])
-    if box is None:
+    # The <img> of the references sits at the top left of a white page
+    page = Image.new("RGB", tuple(item.get("page_size") or image.size), "white")
+    page.paste(image, (0, 0), mask=image.getchannel("A"))
+    return page
+
+
+def panels(item: dict[str, Any]) -> str | None:
+    """Write the four panels of item, each cropped to the ink of the Chromium reference. Returns a resvg failure."""
+    name, box = item["name"], item.get("reference_box")
+    for _, folder in COLUMNS:
+        (CORPUS / folder / f"{name}.png").unlink(missing_ok=True)
+    if not box:
+        return None
+    reference = Image.open(CORPUS / "reference" / "chromium" / f"{name}.png").convert("RGB")
+    ink: Box = ink_box([reference]) or (0, 0, *reference.size)
+    reference.crop(ink).save(CORPUS / "render" / "chromium" / f"{name}.png", optimize=True)
+    for mode in ("weasyprint", "weasysvg"):
+        source = BENCH_PANELS / mode / f"{name}.png"
+        if source.exists():
+            Image.open(source).crop(ink).save(CORPUS / "render" / mode / f"{name}.png", optimize=True)
+    page = render_resvg(item)
+    if isinstance(page, str):
+        return page
+    absolute = (box[0] + ink[0], box[1] + ink[1], box[0] + ink[2], box[1] + ink[3])
+    resvg = page.crop(absolute)
+    if ink_box([resvg]) is None:
         return "resvg draws nothing"
-    flat.crop(padded(box, flat.size)).save(target, optimize=True)
+    resvg.save(CORPUS / "render" / "resvg" / f"{name}.png", optimize=True)
     return None
 
 
@@ -130,20 +153,20 @@ def page(resvg_errors: dict[str, str]) -> str:
         "# Corpus comparison\n\n"
         "<!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->\n\n"
         f"Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg-py {resvg_version}); "
-        f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. resvg renders the SVG alone, at the width of the page, cropped "
-        "to its ink. The WeasyPrint panels are PDFium rasterizations at 96 dpi over "
-        "the box of the Chromium panel. The verdicts come from a visual review, see "
+        f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. The WeasyPrint panels are PDFium "
+        "rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the "
+        "ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see "
         "[`verdicts.json`](verdicts.json). Click a panel for its full size.\n\n"
     )
     return intro + summary(list(verdicts.values()), version) + "\n\n" + contents + "\n\n" + "\n".join(sections)
 
 
 def main() -> None:
-    panels = CORPUS / "render" / "resvg"
-    panels.mkdir(parents=True, exist_ok=True)
+    for _, folder in COLUMNS:
+        (CORPUS / folder).mkdir(parents=True, exist_ok=True)
     errors = {}
     for item in json.loads((CORPUS / "index.json").read_text()):
-        error = render_resvg(item, panels / f"{item['name']}.png")
+        error = panels(item)
         if error:
             errors[item["name"]] = error
             print(f"{item['name']}: {error}")
