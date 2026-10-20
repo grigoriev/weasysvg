@@ -430,3 +430,53 @@ def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
     gradient = '<linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>'
     body = f'<defs>{gradient}</defs><text x="20" y="40" font-size="20" fill="url(#g)" text-anchor="middle"><tspan>1</tspan><tspan x="100" dy="25">HHHH</tspan></text>'
     assert render(svg(body, height=120))
+
+
+# ---------------- leading shifts ----------------
+
+
+class TextStream:
+    """The part of the PDF stream draw_first_line writes text with."""
+
+    def __init__(self) -> None:
+        self.stream: list[bytes] = []
+
+    def show_text(self, text: str) -> None:
+        self.stream.append(b"[" + text.encode() + b"] TJ")
+
+    def set_font_size(self, font: str, size: float) -> None:
+        self.stream.append(f"/{font} {size} Tf".encode())
+
+    def set_text_rise(self, rise: float) -> None:
+        self.stream.append(f"{rise} Ts".encode())
+
+
+def test_a_leading_shift_moves_to_the_end_of_the_array_before() -> None:
+    stream = TextStream()
+    with text.carried_shifts(stream):
+        stream.set_font_size("f1", 18)
+        stream.show_text("<0001>")
+        stream.show_text("<>-284.5<0003>-271")
+        # Another font of another size: the shift is scaled to the size of the array before
+        stream.set_font_size("f2", 9)
+        stream.show_text("-100<0004>")
+        stream.set_text_rise(2)
+        # Not right after an array: the shift stays
+        stream.show_text("<>-50<0005>")
+    assert stream.stream == [b"/f1 18 Tf", b"[<0001> -284.5] TJ", b"[<0003>-271 -50.0] TJ", b"/f2 9 Tf", b"[<0004>] TJ", b"2 Ts", b"[<>-50<0005>] TJ"]
+
+
+def test_a_first_leading_shift_stays() -> None:
+    stream = TextStream()
+    with text.carried_shifts(stream):
+        stream.show_text("<>-10<0001>")
+    assert stream.stream == [b"[<>-10<0001>] TJ"]
+    # The methods of the stream are its own again
+    assert "show_text" not in vars(stream)
+
+
+def test_arabic_letter_spacing_needs_no_leading_shift() -> None:
+    body = '<text x="38" y="100" font-size="18" letter-spacing="10">بعض النص الطويل</text>'
+    arrays = re.findall(r"\[([^\]]*)\] TJ", content(render(svg(body, height=200))))
+    assert len(arrays) > 1
+    assert not any(re.match(r"(<>)?-?[\d.]", array) for array in arrays[1:])

@@ -19,7 +19,10 @@ scripts joined (css-text-3, cursive tracking). Other runs keep the layout of Wea
 from __future__ import annotations
 
 import math
+import re
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -175,6 +178,45 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
     if node.tag != "text" and ("x" in node.attrib or "y" in node.attrib) and is_valid_bounding_box(getattr(node, "text_bounding_box", None)):
         node.__dict__[CHUNK_BOX] = node.text_bounding_box
         node.text_bounding_box = EMPTY_BOUNDING_BOX
+
+
+# ---------------- leading shifts ----------------
+
+# A TJ array that starts with a shift: an empty string first, or none
+_LEADING_SHIFT = re.compile(r"^(?:<>)?(-?\d+(?:\.\d+)?(?:e-?\d+)?)(?=<)")
+
+
+@contextmanager
+def carried_shifts(stream: Any) -> Iterator[None]:
+    """Move a shift at the start of a TJ array to the end of the array before it, while text is drawn.
+
+    PDFium drops a shift at the start of an array, so a letter-spacing Pango puts before a glyph got
+    lost. At the end of the array before, in the same text object, the shift is the same. Only a font
+    change may lie between: its size scales the shift.
+    """
+    state: dict[str, Any] = {"size": None, "last": None}
+    show_text, set_font_size = stream.show_text, stream.set_font_size
+
+    def sized(font: Any, size: float) -> None:
+        state["size"] = size
+        set_font_size(font, size)
+
+    def show(text: str) -> None:
+        match = _LEADING_SHIFT.match(text)
+        last = state["last"]
+        if match and last is not None and all(entry.endswith(b" Tf") for entry in stream.stream[last[0] + 1 :]):
+            index, size = last
+            value = match[1] if size == state["size"] else str(float(match[1]) * state["size"] / size)
+            stream.stream[index] = stream.stream[index][: -len(b"] TJ")] + f" {value}] TJ".encode()
+            text = text[match.end() :]
+        show_text(text)
+        state["last"] = (len(stream.stream) - 1, state["size"])
+
+    stream.show_text, stream.set_font_size = show, sized
+    try:
+        yield
+    finally:
+        del stream.show_text, stream.set_font_size
 
 
 # ---------------- text-decoration ----------------
@@ -337,7 +379,8 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
         svg.fill_stroke(fill, stroke, text=True)
         text_box = sys.modules["weasyprint.svg.text"].TextBox(layout, style)
         text_box.baseline = baseline
-        emojis = draw_first_line(svg.stream, text_box, "none", "none", Matrix(d=-1, e=x_position, f=y_position))
+        with carried_shifts(svg.stream):
+            emojis = draw_first_line(svg.stream, text_box, "none", "none", Matrix(d=-1, e=x_position, f=y_position))
         svg.stream.end_text()
     finally:
         svg.stream.pop_state()
