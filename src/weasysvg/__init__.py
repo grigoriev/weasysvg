@@ -17,7 +17,6 @@ from . import filters as _filters
 from . import fonts as _fonts
 from . import foreign_object as _foreign_object
 from . import paint as _paint
-from . import raster as _raster
 from . import text as _text
 from .fonts import resolve_families
 
@@ -42,8 +41,6 @@ def install(
     conditional_processing: bool = True,
     foreign_object: bool = True,
     filters: bool = True,
-    raster_filters: bool = True,
-    raster_scale: float = 2.0,
     paint: bool = True,
     blend: bool = True,
     text: bool = True,
@@ -54,7 +51,6 @@ def install(
 
     Idempotent: a feature installed before is skipped. A later call can add features, never remove them.
     ``fonts`` resolves font families as Chromium does, in SVG text and inside foreignObject.
-    ``raster_filters`` lets resvg render the filters PDF cannot express, at ``raster_scale`` times the CSS px size.
     """
     _check_version()
     wanted = {
@@ -67,10 +63,6 @@ def install(
         "filters": filters,
         "foreign_object": foreign_object,
     }
-
-    def _install_filters() -> None:
-        _raster.install(scale=raster_scale, enabled=raster_filters)
-        _filters.install()
 
     def _install_fonts() -> None:
         _fonts.install()
@@ -85,7 +77,7 @@ def install(
         "text": lambda: _text.install(fonts=fonts or "fonts" in _INSTALLED),
         "fonts": _install_fonts,
         "fetch": _fetch.install,
-        "filters": _install_filters,
+        "filters": _filters.install,
         "foreign_object": _foreign_object.install,
     }
     for name, enabled in wanted.items():

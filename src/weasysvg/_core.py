@@ -116,6 +116,18 @@ def _effects(svg: Any, node: Any, font_size: float) -> _Effects:
 
 
 def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True, context: Any = None) -> None:
+    from . import filters
+
+    # A blur mask being built draws its shapes grown or as bands along their edge
+    restyled = filters.restyle(self, node, font_size) if fill_stroke and DRAW_FEATURES["filters"] else None
+    try:
+        _draw_with_effects(self, node, font_size, fill_stroke, context)
+    finally:
+        if restyled is not None:
+            filters.unrestyle(node, restyled)
+
+
+def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool, context: Any) -> None:
     original: Callable[..., None] = _ORIGINAL_DRAW_NODE
     if not fill_stroke or node.tag == "defs":
         return original(self, node, font_size, fill_stroke, context)
@@ -174,7 +186,7 @@ def _draw_grouped(self: Any, original: Callable[..., None], node: Any, font_size
         self.stream = blended.add_group(*group_box(self, node, font_size))
     try:
         if effects.plan is not None:
-            filters.draw(self, original, node, font_size, context, effects.plan, filter_opacity, strip_mask=effects.mask is not None)
+            filters.draw(self, original, node, font_size, context, effects.plan, filter_opacity)
         else:
             original(self, node, font_size, fill_stroke, context)
     finally:

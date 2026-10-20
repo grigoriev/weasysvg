@@ -318,7 +318,7 @@
   "name": "real__wm-Openstreetmap_logo",
   "verdict": "broken",
   "native_verdict": "broken",
-  "what": "Magnifier handle is drawn only as its blurred shadow; the black handle and yellow ferrules are missing.",
+  "what": "Shadows are blurred in vector, as in Chromium. The black handle and yellow ferrules of the magnifier are missing.",
   "reference_agrees_with": "n/a"
  },
  {
@@ -372,9 +372,9 @@
  },
  {
   "name": "resvg__filters-feComposite--operator=arithmetic-with-large-k1-4",
-  "verdict": "same",
+  "verdict": "broken",
   "native_verdict": "broken",
-  "what": "",
+  "what": "feComposite arithmetic has no vector form: drawn unfiltered.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -421,9 +421,9 @@
  },
  {
   "name": "resvg__filters-feGaussianBlur--stdDeviation=0-5",
-  "verdict": "same",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "",
+  "what": "Blurred along x as well: the vector blur uses the mean of the two deviations.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -442,16 +442,16 @@
  },
  {
   "name": "resvg__filters-feTurbulence--baseFrequency=0.01",
-  "verdict": "same",
+  "verdict": "broken",
   "native_verdict": "broken",
-  "what": "",
+  "what": "feTurbulence has no vector form: drawn unfiltered.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__filters-feTurbulence--type=invalid",
-  "verdict": "same",
+  "verdict": "broken",
   "native_verdict": "broken",
-  "what": "",
+  "what": "feTurbulence has no vector form: drawn unfiltered.",
   "reference_agrees_with": "chromium"
  },
  {

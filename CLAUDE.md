@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/claude-code) when working 
 ## Project Overview
 
 weasysvg is a plugin for WeasyPrint 70.x that renders SVG natively and close to Chromium. One
-`weasysvg.install()` call monkeypatches WeasyPrint internals for the whole process. resvg (resvg-py) is
-an optional extra that rasterizes only the filter subtrees PDF cannot express.
+`weasysvg.install()` call monkeypatches WeasyPrint internals for the whole process. Everything stays
+vector in the PDF: weasysvg has no rasterizer. resvg serves only as a reference in the corpus.
 
 ## Tech Stack
 
@@ -39,8 +39,9 @@ once.
 - `foreign_object.py`: stashes the XHTML in an attribute, lays all objects of one SVG out as one
   WeasyPrint document (one page each), draws each page into the SVG stream. Also patches
   `layout.block.table_layout` inside a foreignObject.
-- `filters.py`: evaluates a filter chain into vector layers, or decides to go raster.
-- `raster.py`: builds a standalone SVG for one element and renders it with resvg.
+- `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask built in
+  levels: the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
+  and transfer functions recolor every parsed color (`RECOLOR`).
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
 - `text.py`, `fonts.py`: SVG text, Chromium font selection.
 - `fetch.py`: one fetch per URL and SVG.
@@ -54,10 +55,8 @@ changes on a node: WeasyPrint walks `<use>` targets, gradients and patterns more
   fails when a `gs` operator appears inside path construction.
 - Assert on PDF operators (`streams()`, `content()`), extracted text (`text_of()`) and PDFium pixels
   (`pixel()`, 72 dpi, so CSS px times 0.75).
-- `raster._RESVG` is the switch for resvg: set it to `False` to test the vector path, or to a stand-in
-  with `svg_to_bytes`.
-- Coverage is 100% of lines. Two branches cannot be reached: `conditional.py` (a failing element whose
-  parent no longer holds it) and `filters._silhouette` (a layer kind outside the four).
+- Coverage is 100% of lines. One branch cannot be reached: `conditional.py` (a failing element whose
+  parent no longer holds it).
 
 ## Visual regression bench
 
@@ -81,8 +80,8 @@ files: pre-commit excludes them.
 - A patch must restore every attribute, tag and stream method it changes, also on an exception
   (`try`/`finally`). A leak shows as wrong output on the second `<use>` of the same element.
 - No graphics state (`gs`) between path construction and its paint operator: viewers ignore it.
-- Untrusted SVG: `foreignObject` content and resvg documents must not reach files or URLs outside the
-  URL fetcher of the caller. Raster sizes stay capped (`raster.SETTINGS`).
+- Untrusted SVG: `foreignObject` content must not reach files or URLs outside the URL fetcher of the
+  caller. A blur draws its element up to 3 * MAX_STEPS + 2 times: keep the step count capped.
 - WeasyPrint internals change between majors: a new hook needs a test that fails when the hooked
   function changes shape.
 - A rendering change updates `corpus/verdicts.json` and, for a new gap or a fixed one, the README.

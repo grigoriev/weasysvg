@@ -147,7 +147,7 @@ def main() -> None:
     (out / "pdf").mkdir(parents=True, exist_ok=True)
     (out / "img").mkdir(parents=True, exist_ok=True)
     features = weasysvg.install()
-    print("features:", ", ".join(sorted(features)), "| resvg:", weasysvg.raster.available(), flush=True)
+    print("features:", ", ".join(sorted(features)), flush=True)
     handler = Warnings()
     for logger in ("weasyprint", "weasysvg"):
         logging.getLogger(logger).addHandler(handler)
