@@ -347,6 +347,14 @@ def test_vertical_text_anchor(anchor: str, first: float) -> None:
     assert first < matrices[0][5] < first + 20
 
 
+@pytest.mark.parametrize(("anchor", "first"), [("start", 140), ("middle", 110), ("end", 80)])
+def test_vertical_text_anchor_spans_the_glyphs_after_dy(anchor: str, first: float) -> None:
+    # The second character moves up past the first: the run spans from its top to the end of the first
+    body = f'<text x="50" y="100" dy="0 -60" writing-mode="vertical-rl" text-anchor="{anchor}" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=200)))
+    assert first < matrices[0][5] < first + 20
+
+
 def test_vertical_text_positions_and_rotation() -> None:
     body = '<text x="50 80" y="30" dx="1" dy="2" rotate="30" writing-mode="tb" font-size="20">A B</text>'
     matrices = glyph_matrices(render(svg(body, height=120)))

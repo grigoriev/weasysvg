@@ -104,8 +104,8 @@ review:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 107 |
-| minor difference | 10 | 8 |
+| same as Chromium | 40 | 108 |
+| minor difference | 10 | 7 |
 | other font only | 11 | 0 |
 | broken | 54 | 0 |
 
@@ -117,7 +117,6 @@ SVG in Chromium, resvg, WeasyPrint alone and WeasyPrint with weasysvg.
 
 ## Known gaps
 
-- Vertical text anchors a run that `dy` moves backwards by its advance, not by its extent as Chromium does.
 - On a `textPath` each character is laid out alone, so Arabic does not join there. Underlines skip no ink.
 - A blur treats every point by its distance to the nearest edge: sharp corners and thin filled shapes
   come out a little darker than in Chromium.

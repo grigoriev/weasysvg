@@ -61,14 +61,29 @@ def advance(character: str, width: float, font_size: float) -> float:
     return font_size if upright(character) else width
 
 
-def start(svg: Any, node: Any, texts: list[tuple[Any, float]], advances: Any) -> _Run:
-    """Begin a vertical <text>: measure all its text for text-anchor."""
-    total = 0.0
+def _extent(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> tuple[float, float]:
+    """The top and bottom of all characters, relative to the start of the run, dy included."""
+    y, low, high = 0.0, 0.0, 0.0
     for text, size in texts:
         spacing = svg.length(text.get("letter-spacing"), size)
-        total += sum(advance(character, width, size) + spacing for character, width in advances(svg, text, size))
+        dys = _numbers(text, "dy", size, svg.inner_height)
+        for index, (character, width) in enumerate(advances(svg, text, size)):
+            y += dys[index] if index < len(dys) else 0
+            # letter-spacing belongs to the advance of each character, the last one included
+            step = advance(character, width, size) + spacing
+            low, high = min(low, y), max(high, y + step)
+            y += step
+    return low, high
+
+
+def start(svg: Any, node: Any, texts: list[tuple[Any, float]], advances: Any) -> _Run:
+    """Begin a vertical <text>: measure all its text for text-anchor.
+
+    Chromium anchors the extent of the characters, so a dy that moves one past the start moves the run.
+    """
+    low, high = _extent(svg, texts, advances)
     anchor = node.get(ANCHOR) or node.get("text-anchor", "start")
-    shift = {"middle": -total / 2, "end": -total}.get(anchor, 0.0)
+    shift = {"middle": -(low + high) / 2, "end": -high}.get(anchor, -low)
     run = _Run({id(text) for text, _ in texts}, shift)
     CURRENT.set(run)
     return run

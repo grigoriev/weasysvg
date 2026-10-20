@@ -6,8 +6,8 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 107 |
-| minor difference | 10 | 8 |
+| same as Chromium | 40 | 108 |
+| minor difference | 10 | 7 |
 | other font only | 11 | 0 |
 | broken | 54 | 0 |
 
@@ -933,7 +933,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor
 
-[`resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg`](svg/resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg). WeasyPrint: broken, weasysvg: **minor**. Vertical, BCA top to bottom as in Chromium. Chromium anchors the run by its extent after dy, so its columns sit about 40 px lower.
+[`resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg`](svg/resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg). WeasyPrint: broken, weasysvg: **same**.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|

@@ -792,9 +792,9 @@
  },
  {
   "name": "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor",
-  "verdict": "minor",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Vertical, BCA top to bottom as in Chromium. Chromium anchors the run by its extent after dy, so its columns sit about 40 px lower.",
+  "what": "",
   "reference_agrees_with": "chromium"
  },
  {
