@@ -52,7 +52,13 @@ gradients, and its cairo backend drops soft masks that PDFium and Quartz apply. 
 PDF engine of Chrome, and check a disputed case in Quartz (macOS Preview).
 
 A new corpus file needs a license that allows redistribution, and an entry in `corpus/SOURCES.md`.
-`tools/visual/make_references.py` turns Chromium PDFs into reference PNGs.
+`make references` prints the Chromium references again: the headless Chromium of Playwright, in English,
+with the fonts of `corpus/fonts`. Run it after adding an SVG or a font, and after a Playwright upgrade.
+
+Each entry of `corpus/verdicts.json` names a reference: `chromium`, `resvg`, `both` where they agree,
+or `browser` where headless Chromium matches no `systemLanguage`. `reference_why` says why one renderer
+is wrong. `verdict` and `native_verdict` are `same`, `close` or `differs` against that reference, and
+`what` and `native_what` say what differs. Judge at full size, zoomed in, never from a thumbnail.
 
 ## Pull requests
 

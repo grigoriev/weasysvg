@@ -86,11 +86,11 @@ change between releases.
 |---|---|
 | `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. |
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
-| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask that steps through the Gaussian profile of the edge. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
+| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, and in steps through the profile for other shapes. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
-| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright, other scripts sideways. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, font-size keywords, nested `<text>` ignored. |
+| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright, other scripts sideways. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, font-size keywords, nested `<text>` ignored, `text-anchor` per text chunk. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
@@ -125,7 +125,7 @@ with the reference marked and a swipe between any two of them, as GitHub compare
   unfiltered, with a warning.
 - `feComposite` arithmetic needs one input to be a flood of the whole filter region, or both inputs to
   be the same. A translucent result composites over the value of the formula on nothing.
-- A blur with two different deviations uses their mean.
+- Except on a plain rect, a blur with two different deviations uses their mean.
 - `overflow: auto` inside a `<foreignObject>` shows no scrollbar, so text reflows into the full width.
 
 ## Development

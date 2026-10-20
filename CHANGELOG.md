@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `weasysvg.install()` patches WeasyPrint 70.x to render SVG close to Chromium: `<foreignObject>`,
-  conditional processing, vector filter chains (blur, color matrices and transfer functions
-  included), masks set before the path, pattern and gradient fixes, `mix-blend-mode`, unclipped
-  opacity groups, marker orientation, text baselines from font metrics, decorations placed as in Chromium, font-size
+  conditional processing, vector filter chains (blur, exact for a plain rect, color matrices and
+  transfer functions included), masks set before the path, pattern and gradient fixes, `mix-blend-mode`, unclipped
+  opacity groups, marker orientation, text baselines from font metrics, text-anchor per text chunk, circles of the right length, decorations placed as in Chromium, font-size
   keywords, and Chromium font selection. No SVG content is rasterized: the PDF stays vector.
 - `feTurbulence`, drawn as an image of the noise, and `feComposite` arithmetic.
 - Python 3.10 to 3.14 and PyPy 3.11, the versions WeasyPrint 70 supports.
@@ -22,3 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compares weasysvg with Chromium.
 - `corpus/COMPARISON.md` and the interactive `corpus/comparison.html` on GitHub Pages: every corpus SVG
   in Chromium, resvg, WeasyPrint alone and with weasysvg.
+- Each corpus SVG names its reference (Chromium, resvg, both, or an English browser). The verdicts say
+  whether a rendering matches it, comes close or differs, and what differs. The comparison page shows
+  the SVG in your own browser too, and a swipe between any two renderers.
+- `corpus/fonts`: the fonts the resvg tests ask for. The references, weasysvg and resvg all use them.

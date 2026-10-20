@@ -5,13 +5,15 @@ Each file keeps the license of its source, listed below. The MIT license of this
 cover these files.
 
 The reference PNGs in `reference/` are renderings of the SVG of the same name. A rendering carries the
-license and the attribution of its SVG.
+license and the attribution of its SVG. `make references` prints `reference/chromium/` again with the
+headless Chromium of Playwright, in the visual image.
 
 | Path | Files | Source | License |
 |---|---|---|---|
 | `svg/drawio/` | 6 | [jgraph/drawio-diagrams](https://github.com/jgraph/drawio-diagrams), `diagrams/`, commit `380ac88` | Apache-2.0, see [licenses/drawio-diagrams-LICENSE.txt](licenses/drawio-diagrams-LICENSE.txt) |
 | `svg/resvg/` | 64 | [linebender/resvg](https://github.com/linebender/resvg) `crates/resvg/tests/tests/`, commit `054ccf3` | MIT (dual Apache-2.0 or MIT), see [licenses/resvg-LICENSE-MIT.txt](licenses/resvg-LICENSE-MIT.txt) |
 | `reference/resvg/` | 64 | the reference PNGs of the same resvg tests | as above |
+| `fonts/` | 9 | the fonts the resvg tests ask for, from `crates/resvg/tests/fonts/` of the same commit: Amiri, M+ 1p, Noto Sans (regular, bold, italic), Noto Serif, Noto Mono, Noto Sans Devanagari, Source Sans Pro | SIL Open Font License 1.1, see the license files next to them |
 | `svg/diagrams/kroki-*` | 10 | rendered by [kroki.io](https://kroki.io) from diagram sources written for this corpus: `bpmn`, `excalidraw`, `d2-arch`, `svgbob`, `plantuml-sequence`, `plantuml-activity`, `graphviz`, `blockdiag`, `pikchr`, `structurizr` | MIT, as this repository |
 | `svg/diagrams/mermaid-ink-*`, `svg/diagrams/kroki-mermaid-*` | 13 | rendered by [mermaid.ink](https://mermaid.ink) and kroki.io from examples of the Mermaid documentation (`packages/mermaid/src/docs/`), some shortened or extended | MIT, see [licenses/mermaid-LICENSE.txt](licenses/mermaid-LICENSE.txt) ([mermaid-js/mermaid](https://github.com/mermaid-js/mermaid) commit `6d8921f`) |
 | `svg/diagrams/kroki-d2.svg` | 1 | kroki.io, from the first example of the D2 sequence diagram tour, [terrastruct/d2-docs](https://github.com/terrastruct/d2-docs) `static/d2/sequence-diagrams-1.d2`, commit `5530a5e` | BSD-3-Clause, see [licenses/d2-docs-LICENSE.txt](licenses/d2-docs-LICENSE.txt) |
