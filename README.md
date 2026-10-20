@@ -131,7 +131,11 @@ Tests and the bench run in Docker, since WeasyPrint needs Pango. See [CONTRIBUTI
 make lint     # ruff and mypy, on the host
 make test     # pytest with coverage, in Docker
 make visual   # the visual bench, report in tools/visual/out/report.html
+make upstream # probes of the WeasyPrint gaps and of the hooked internals
 ```
+
+weasysvg supports the latest WeasyPrint major only. [UPGRADING.md](UPGRADING.md) describes how a new one
+is taken: which patches it makes redundant, which internals changed, what renders worse.
 
 ## Contributing
 

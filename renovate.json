@@ -5,5 +5,14 @@
   ],
   "lockFileMaintenance": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "description": "weasysvg supports one WeasyPrint major: an upgrade moves the pin and needs the work of UPGRADING.md",
+      "matchPackageNames": ["weasyprint"],
+      "rangeStrategy": "replace",
+      "automerge": false,
+      "prBodyNotes": ["Follow UPGRADING.md: failed probes name the patches to remove, changed hooks the code to review."]
+    }
+  ]
 }

@@ -24,6 +24,10 @@ uv sync --all-extras    # install dependencies
 make lint               # ruff check, ruff format --check, mypy src tests tools
 make test               # pytest with coverage in Docker (Dockerfile.test, stage "test")
 make visual             # visual bench in Docker (stage "visual"), report in tools/visual/out/report.html
+make upstream           # gap probes and hook snapshot, WeasyPrint alone (upstream/)
+make hooks              # write upstream/hooks.json for the installed WeasyPrint
+make visual-baseline    # write corpus/baseline.json, weasysvg and WeasyPrint alone
+make visual-check       # compare with corpus/baseline.json, fails when weasysvg got worse
 uv build                # wheel and sdist
 ```
 
@@ -73,6 +77,13 @@ Use PDFium (`tools/visual/imaging.py`), and check a disputed case in Quartz (mac
 
 Every corpus file needs a cleared license and an entry in `corpus/SOURCES.md`. Never reformat corpus
 files: pre-commit excludes them.
+
+## Upstream tracking
+
+weasysvg supports the latest WeasyPrint major only; UPGRADING.md is the procedure for a new one.
+A new patch for a WeasyPrint gap needs a probe in `upstream/test_gaps.py` that shows the gap on WeasyPrint
+alone, and its hooked internals in `HOOKS` of `tools/upstream/hooks.py` (then `make hooks`). The probes
+run in a process of their own: `tests/helpers.py` installs weasysvg on import.
 
 ## Code Style
 

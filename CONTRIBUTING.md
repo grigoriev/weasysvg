@@ -14,10 +14,15 @@ make test                           # pytest with coverage, in Docker
 make test BASE=python:3.10-slim-trixie  # the same on the lowest supported Python
 make test BASE=pypy:3.11-slim-trixie    # the same on PyPy
 make visual                         # the visual bench, in Docker
+make upstream                       # probes of the WeasyPrint gaps and hooked internals
+make visual-check                   # the bench against corpus/baseline.json
 uv build                            # wheel and sdist
 ```
 
 On Linux with Pango installed, `uv run pytest --cov` works without Docker.
+
+A patch for a WeasyPrint gap comes with a probe in `upstream/test_gaps.py` and its hooked internals in
+`tools/upstream/hooks.py`. [UPGRADING.md](UPGRADING.md) describes how a new WeasyPrint is taken.
 
 CI runs actionlint, zizmor, ruff, mypy, the tests on Python 3.10 to 3.14 and PyPy 3.11, and SonarCloud for every pull
 request.
