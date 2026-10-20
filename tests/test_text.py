@@ -355,6 +355,14 @@ def test_vertical_text_anchor_spans_the_glyphs_after_dy(anchor: str, first: floa
     assert first < matrices[0][5] < first + 20
 
 
+@pytest.mark.parametrize(("dy", "anchor", "first"), [("-10", "start", 90), ("50", "end", 110), ("50", "middle", 130)])
+def test_vertical_text_anchor_starts_at_the_first_character(dy: str, anchor: str, first: float) -> None:
+    # The anchor point is where the first character lands, after its dy
+    body = f'<text x="50" y="100" dy="{dy}" writing-mode="vertical-rl" text-anchor="{anchor}" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert first < matrices[0][5] < first + 20
+
+
 def test_vertical_text_anchor_counts_absolute_y() -> None:
     # The second character starts anew at 200 and moves up 60: the run spans 100 to 160
     body = '<text x="50" y="100 200" dy="0 -60" writing-mode="vertical-rl" text-anchor="start" font-size="20" letter-spacing="0">日本</text>'

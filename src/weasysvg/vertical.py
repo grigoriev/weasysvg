@@ -62,20 +62,26 @@ def advance(character: str, width: float, font_size: float) -> float:
 
 
 def _extent(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> tuple[float, float]:
-    """The top and bottom of all characters, relative to the start of the run, y and dy included as draw places them."""
-    first = _numbers(texts[0][0], "y", texts[0][1], svg.inner_height)
-    origin = first[0] if first else svg.cursor_position[1]
-    y, low, high = origin, origin, origin
+    """The top and bottom of all characters, relative to where the first one lands, placed as draw places them.
+
+    As in SVG 2 "apply anchoring": the extent spans the characters only, after y and dy, and the anchor
+    point is the position of the first character.
+    """
+    y, low, high = svg.cursor_position[1], math.inf, -math.inf
+    first: float | None = None
     for text, size in texts:
         spacing = svg.length(text.get("letter-spacing"), size)
         ys, dys = _numbers(text, "y", size, svg.inner_height), _numbers(text, "dy", size, svg.inner_height)
         for index, (character, width) in enumerate(advances(svg, text, size)):
             y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
+            first = y if first is None else first
             # letter-spacing belongs to the advance of each character, the last one included
             step = advance(character, width, size) + spacing
             low, high = min(low, y), max(high, y + step)
             y += step
-    return low - origin, high - origin
+    if first is None:
+        return 0.0, 0.0
+    return low - first, high - first
 
 
 def start(svg: Any, node: Any, texts: list[tuple[Any, float]], advances: Any) -> _Run:
