@@ -571,7 +571,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 [`real/wm-Openstreetmap_logo.svg`](svg/real/wm-Openstreetmap_logo.svg)
 
 - Reference: Chromium and resvg.
-- weasysvg: **close to the reference**. The shadow under the lens ring shows faint steps: a blur of anything but a plain rect is drawn in levels.
+- weasysvg: **close to the reference**. The shadow of the lens ring is darker and sharper than in Chromium: the ring is a filled shape thinner than two deviations, and the levels of a blur know only the nearest edge.
 - WeasyPrint: **differs from the reference**. No shadows, and the handle is a flat dark shape.
 
 | Chromium | resvg | WeasyPrint | weasysvg |

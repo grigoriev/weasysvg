@@ -119,7 +119,8 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 
 - On a `textPath` each character is laid out alone, so Arabic does not join there. Underlines skip no ink.
 - A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
-  edge: corners come out mitered, and a wide shadow shows faint steps.
+  edge, which knows nothing of the far edge: a filled shape thinner than about two deviations comes out
+  darker and sharper than in Chromium, and corners come out mitered inside the shape.
 - `rotate` on vertical text lays out each character alone, so Arabic does not join there.
 - Lighting, morphology, convolution and displacement have no vector form: the element draws
   unfiltered, with a warning.
