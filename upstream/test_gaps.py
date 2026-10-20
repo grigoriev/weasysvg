@@ -197,6 +197,13 @@ def test_clip_cycle_loses_the_svg() -> None:
     still_broken(lost(errors), "clip-path cycles", "_core._draw_node (_ACTIVE_CLIPS)")
 
 
+def test_circle_outline_is_too_long() -> None:
+    # The control point of a quarter circle sits at 1 / sqrt(pi) of the radius, not 0.5523
+    pdf, _ = render(svg('<circle cx="100" cy="50" r="40"/>'))
+    curves = re.findall(r"((?:-?[\d.]+ ){6})c\b", content(pdf))
+    still_broken(bool(curves) and abs(float(curves[0].split()[1]) - 72.57) < 0.01, "the arc constant of circles", "paint.ellipse")
+
+
 # ---------------- opacity group ----------------
 
 
@@ -237,6 +244,14 @@ def test_baseline_uses_a_fixed_ascent() -> None:
 def test_text_decoration_is_dropped() -> None:
     pdf, _ = render(svg('<text x="10" y="50" font-size="40" text-decoration="underline">Text</text>'))
     still_broken(" re" not in content(pdf).split("BT", 1)[-1], "text-decoration", "text._decorate")
+
+
+def test_text_chunk_is_anchored_with_its_parent() -> None:
+    # A tspan with its own x starts a chunk, but its width moves the anchor of the chunk before it too
+    shift = re.compile(r"1 0 0 1 (-[\d.]+) 0 cm")
+    chunked, _ = render(svg('<text x="50" y="40" font-size="20" text-anchor="middle"><tspan>1</tspan><tspan x="50" dy="25">H</tspan></text>', height=120))
+    alone, _ = render(svg('<text x="50" y="40" font-size="20" text-anchor="middle">1</text><text x="50" y="65" font-size="20" text-anchor="middle">H</text>', height=120))
+    still_broken(sorted(shift.findall(content(chunked))) != sorted(shift.findall(content(alone))), "text-anchor per text chunk", "text.chunk_boxes")
 
 
 def test_text_is_laid_out_one_character_at_a_time() -> None:
