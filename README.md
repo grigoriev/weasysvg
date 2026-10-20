@@ -99,7 +99,7 @@ change between releases.
 
 The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
 Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
-the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (73 SVGs), or an
+the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (72 SVGs), or an
 English browser where headless Chromium matches no `systemLanguage`. For the resvg tests the expected
 image of the resvg suite decides between Chromium and resvg where they differ. `make review` compares the
 renderings at twice the resolution of the panels, in an 8 x 8 grid, and a look at each cell that differs
@@ -108,8 +108,8 @@ gives the verdict:
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 41 | 108 |
-| 🟡 close to the reference | 20 | 5 |
+| ✅ matches the reference | 39 | 108 |
+| 🟡 close to the reference | 22 | 5 |
 | ❌ differs from the reference | 54 | 1 |
 
 Of the 35 diagrams from draw.io, kroki and mermaid.ink, 32 match the reference and 3 are close.

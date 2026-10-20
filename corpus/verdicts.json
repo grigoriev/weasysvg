@@ -235,12 +235,12 @@
  },
  {
   "name": "diagrams__mermaid-ink-pie",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "With Trebuchet MS resvg places the centered title about 4 px off; Chromium and the HarfBuzz layout of WeasyPrint agree.",
   "verdict": "same",
   "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The title sits about 2 px lower; the rest matches."
  },
  {
   "name": "diagrams__mermaid-ink-sequence",
@@ -248,8 +248,8 @@
   "reference_why": "",
   "verdict": "same",
   "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The text of the note sits about 2.5 px off to the side; the rest matches."
  },
  {
   "name": "diagrams__mermaid-ink-state",

@@ -29,4 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   between any two renderers.
 - `make review`: the renderings of each corpus SVG compared region by region at twice the resolution of the
   panels, with sheets of the cells that differ, to judge the verdicts at full size.
+- The visual image has Trebuchet MS, the first font of Mermaid, as Safari has it: Mermaid labels fit their
+  boxes in the references.
 - `corpus/fonts`: the fonts the resvg tests ask for. The references, weasysvg, resvg and the browser panel of the comparison page all use them.
