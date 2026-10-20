@@ -129,6 +129,12 @@ def test_ex_in_a_font_size_is_the_x_height_of_the_parent_font() -> None:
     assert font_sizes(render(svg(body))) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
 
 
+def test_ex_in_a_use_target_follows_the_use() -> None:
+    # The target draws inside the <use>: 2ex of its 40 px and its font, not of the 16 px around its <defs>
+    body = '<defs><text id="t" x="10" y="50" font-size="2ex">A</text></defs><use href="#t" font-size="40" font-family="Liberation Sans"/>'
+    assert font_sizes(render(svg(body))) == [pytest.approx(2 * 40 * 1082 / 2048, abs=0.05)]
+
+
 def test_ex_holds_where_a_size_is_read_before_drawing() -> None:
     # A textPath measures its tspans before they draw: 4ex must place the glyphs as its size in px does
     def placed(size: str) -> list[str]:
