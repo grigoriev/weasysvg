@@ -23,6 +23,7 @@ import re
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -160,6 +161,12 @@ def baseline_shift(value: str, ascent: float, descent: float, x_height: float) -
 
 CHUNK_BOX = "_weasysvg_chunk_box"
 TEXT_TAGS_WITH_CHUNKS = frozenset(("text", "tspan", "a"))
+# The text chunk started last in the <text> being drawn: the text after it belongs to it, until the next one
+LAST_CHUNK: ContextVar[Any] = ContextVar("weasysvg_last_chunk", default=None)
+
+
+def _holds(node: Any, target: Any) -> bool:
+    return node is target or any(_holds(child, target) for child in node)
 
 
 def anchored(node: Any, box: Any) -> Any:
@@ -171,6 +178,18 @@ def anchored(node: Any, box: Any) -> Any:
     return (x - (width / 2 if anchor == "middle" else width), y, width, height)
 
 
+def starts_chunk(node: Any) -> bool:
+    return node.tag in TEXT_TAGS_WITH_CHUNKS and node.tag != "text" and ("x" in node.attrib or "y" in node.attrib)
+
+
+def chunk_started(_svg: Any, node: Any) -> None:
+    """Note the chunk a node starts, or that a <text> starts with none, before the node draws."""
+    if node.tag == "text":
+        LAST_CHUNK.set(None)
+    elif starts_chunk(node):
+        LAST_CHUNK.set(node)
+
+
 def chunk_boxes(_svg: Any, node: Any) -> None:
     """Keep the box of a text chunk out of the anchor of its parent, and give it back afterwards.
 
@@ -180,11 +199,20 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
     back to it: a gradient or a filter of the text still spans every chunk. A tspan that starts no chunk
     passes the boxes on, since WeasyPrint merges its own box into the anchor of the chunk around it.
     The box of the text and of each chunk ends where text-anchor drew it, so effects see the text as drawn.
+    Text after a chunk, the white space between the tspans included, belongs to that chunk: its box is
+    hidden as the box of the chunk is. Text inside the chunk started last is left to WeasyPrint, which
+    merges it into that chunk.
     """
     if node.tag not in TEXT_TAGS_WITH_CHUNKS:
         return
     hidden = [entry for child in node for entry in child.__dict__.pop(CHUNK_BOX, ())]
-    starts = node.tag != "text" and ("x" in node.attrib or "y" in node.attrib) and is_valid_bounding_box(getattr(node, "text_bounding_box", None))
+    box = getattr(node, "text_bounding_box", None)
+    starts = starts_chunk(node) and is_valid_bounding_box(box)
+    last = LAST_CHUNK.get()
+    if node.tag != "text" and not starts and last is not None and not _holds(node, last) and not _holds(last, node) and is_valid_bounding_box(box):
+        # Drawn after a chunk and holding none: its text continues that chunk
+        hidden.append((node, box))
+        node.text_bounding_box = EMPTY_BOUNDING_BOX
     if node.tag == "text" or starts:
         # The width WeasyPrint anchored by: the chunks below are not in it, they moved on their own
         node.text_bounding_box = anchored(node, node.text_bounding_box)
@@ -196,6 +224,8 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
     if starts:
         hidden = [(node, node.text_bounding_box)]
         node.text_bounding_box = EMPTY_BOUNDING_BOX
+    if node.tag == "text":
+        LAST_CHUNK.set(None)
     if hidden:
         node.__dict__[CHUNK_BOX] = hidden
 
@@ -579,6 +609,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
     _core.add_restyler(anchor_restyle)
+    _core.add_before_draw(chunk_started)
     _core.add_after_draw(chunk_boxes)
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:

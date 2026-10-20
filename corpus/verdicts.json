@@ -118,10 +118,10 @@
  },
  {
   "name": "diagrams__kroki-plantuml-activity",
-  "reference": "both",
-  "reference_why": "",
-  "verdict": "same",
-  "what": "Matches, the underlined word included.",
+  "reference": "chromium",
+  "reference_why": "resvg draws the underline under 'waiting' through the descenders; Chromium skips their ink.",
+  "verdict": "close",
+  "what": "The underline under 'waiting' runs whole: the text has a textLength, so it is laid out character by character and skips no ink. Chromium cuts it under each glyph.",
   "native_verdict": "close",
   "native_what": "The underline under 'waiting' is missing."
  },
@@ -192,8 +192,8 @@
   "name": "diagrams__mermaid-ink-flowchart",
   "reference": "chromium",
   "reference_why": "resvg has no foreignObject: every label is missing.",
-  "verdict": "same",
-  "what": "Matches.",
+  "verdict": "close",
+  "what": "The label Car sits 3 px right of where Chromium puts it; the rest matches.",
   "native_verdict": "differs",
   "native_what": "All labels are missing."
  },
@@ -217,12 +217,12 @@
  },
  {
   "name": "diagrams__mermaid-ink-journey",
-  "reference": "both",
-  "reference_why": "",
-  "verdict": "same",
-  "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "reference": "chromium",
+  "reference_why": "The title has fill=\"\", which browsers ignore: it takes #333 from the CSS of the root, as in Chromium. resvg draws it black.",
+  "verdict": "close",
+  "what": "The title, sized 4ex, is about 4 % smaller: WeasyPrint takes 1ex as half an em, Chromium the x-height of the font.",
+  "native_verdict": "differs",
+  "native_what": "The title, with fill=\"\", and the labels of the two sections are missing."
  },
  {
   "name": "diagrams__mermaid-ink-mindmap",
@@ -265,7 +265,7 @@
   "reference": "chromium",
   "reference_why": "resvg draws the labels in a serif.",
   "verdict": "same",
-  "what": "Matches. The remote GIFs are blocked in every rendering, by policy.",
+  "what": "Matches, the underlines of the links skip the ink as in Chromium. The remote GIFs are blocked in every rendering, by policy.",
   "native_verdict": "close",
   "native_what": "The links lose their underline."
  },
@@ -309,8 +309,8 @@
   "name": "drawio__svgfile",
   "reference": "chromium",
   "reference_why": "resvg shows 'Not supported by viewer' fallbacks.",
-  "verdict": "same",
-  "what": "Matches.",
+  "verdict": "close",
+  "what": "The list markers of the MathJax box sit closer to the text, and one AsciiMath label breaks its line at another word.",
   "native_verdict": "differs",
   "native_what": "Fallback texts in place of the labels."
  },
@@ -327,8 +327,8 @@
   "name": "fo__rich-html",
   "reference": "chromium",
   "reference_why": "resvg has no foreignObject.",
-  "verdict": "same",
-  "what": "Matches: heading, list, table and the rotated paragraph.",
+  "verdict": "close",
+  "what": "Heading, table and the rotated paragraph match; the list markers sit about 2 px closer to their text than in Chromium.",
   "native_verdict": "differs",
   "native_what": "All HTML content is missing."
  },
@@ -379,8 +379,8 @@
  },
  {
   "name": "real__wm-Inkscape_Logo",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg fills some shapes black instead of their gradients.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "same",
@@ -400,7 +400,7 @@
   "reference": "chromium",
   "reference_why": "resvg drops the second line of every label.",
   "verdict": "same",
-  "what": "Matches.",
+  "what": "Matches: every label and its lines are centered as in Chromium.",
   "native_verdict": "differs",
   "native_what": "All translations of every label are drawn on top of each other."
  },
@@ -514,8 +514,8 @@
  },
  {
   "name": "resvg__filters-feFlood--seagreen",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "resvg",
+  "reference_why": "Chromium rounds the filter region out to whole pixels: the flood reaches a pixel further. resvg and the expected image of the resvg suite keep the region of the spec.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
@@ -550,8 +550,8 @@
  },
  {
   "name": "resvg__filters-feOffset--complex-transform",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg offsets in the wrong space; Chromium matches the expected image of the resvg suite.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
@@ -559,12 +559,12 @@
  },
  {
   "name": "resvg__filters-feOffset--fractional-offset",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "resvg",
+  "reference_why": "Chromium rounds the filter region out to whole pixels. resvg and the expected image of the resvg suite keep the region of the spec.",
   "verdict": "same",
   "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The offset square is not clipped to the filter region: it covers the frame."
  },
  {
   "name": "resvg__filters-feTurbulence--baseFrequency=0.01",
@@ -676,8 +676,8 @@
  },
  {
   "name": "resvg__paint-servers-pattern--nested-objectBoundingBox",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "resvg",
+  "reference_why": "Chromium shifts the tiles of the inner pattern; resvg matches the expected image of the resvg suite.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
@@ -685,8 +685,8 @@
  },
  {
   "name": "resvg__paint-servers-pattern--text-child",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "resvg",
+  "reference_why": "Chromium prints a pattern as a low-resolution image, so its text is blurred; resvg matches the expected image of the resvg suite.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "close",
@@ -694,8 +694,8 @@
  },
  {
   "name": "resvg__paint-servers-radialGradient--fr=0.2",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "resvg",
+  "reference_why": "Chromium leaves a white pixel at the focal center; resvg matches the expected image of the resvg suite.",
   "verdict": "same",
   "what": "Matches: the gray levels agree within 2 of 255.",
   "native_verdict": "close",
@@ -703,8 +703,8 @@
  },
  {
   "name": "resvg__paint-servers-radialGradient--gradientTransform-via-href",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg ignores a gradientTransform inherited through href; Chromium matches the expected image of the resvg suite.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
@@ -713,7 +713,7 @@
  {
   "name": "resvg__painting-marker--on-ArcTo",
   "reference": "chromium",
-  "reference_why": "The path is one arc, so it has no middle vertex. resvg splits the arc into curves and puts a marker-mid between them.",
+  "reference_why": "The path is one arc, so by the spec it has no middle vertex, as Chromium draws it. resvg, Safari and the resvg suite split the arc into curves and put a marker-mid where they meet.",
   "verdict": "same",
   "what": "Matches: a start and an end marker.",
   "native_verdict": "differs",
@@ -722,7 +722,7 @@
  {
   "name": "resvg__painting-marker--orient=auto-on-M-C-C-4",
   "reference": "both",
-  "reference_why": "",
+  "reference_why": "At the cusp the two tangents are opposite, so their bisector can point either way: undefined by the spec. Chromium, resvg and the resvg suite point left, Safari right.",
   "verdict": "same",
   "what": "Matches: the middle marker at the cusp points left.",
   "native_verdict": "differs",
@@ -914,8 +914,8 @@
   "reference_why": "",
   "verdict": "same",
   "what": "Matches, in the Noto Sans the test asks for.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The word is wider: WeasyPrint lays the letters out one by one, without kerning."
  },
  {
   "name": "resvg__text-dominant-baseline--reset-size",
@@ -923,8 +923,8 @@
   "reference_why": "",
   "verdict": "same",
   "what": "Matches, in the Noto Sans the test asks for.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The word is wider: WeasyPrint lays the letters out one by one, without kerning."
  },
  {
   "name": "resvg__text-letter-spacing--0",
@@ -964,8 +964,8 @@
  },
  {
   "name": "resvg__text-text-decoration--line-through",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium.",
   "verdict": "same",
   "what": "Matches, the line-through included.",
   "native_verdict": "differs",
@@ -973,8 +973,8 @@
  },
  {
   "name": "resvg__text-text-decoration--style-resolving-3",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium.",
   "verdict": "same",
   "what": "Matches, the line-through included.",
   "native_verdict": "differs",
@@ -991,8 +991,8 @@
  },
  {
   "name": "resvg__text-textPath--with-underline",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg and the resvg suite draw a thinner underline, from the font, through the descenders; Chromium a tenth of the font size, skipping the ink.",
   "verdict": "same",
   "what": "Matches: the underline breaks around the descenders, as in Chromium.",
   "native_verdict": "differs",
@@ -1004,8 +1004,8 @@
   "reference_why": "",
   "verdict": "same",
   "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The words are wider: WeasyPrint lays the letters out one by one, without kerning."
  },
  {
   "name": "resvg__text-tspan--only-with-y",
@@ -1013,13 +1013,13 @@
   "reference_why": "",
   "verdict": "same",
   "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The word is wider: WeasyPrint lays the letters out one by one, without kerning."
  },
  {
   "name": "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor",
   "reference": "chromium",
-  "reference_why": "SVG 2 anchors a text chunk by the extent of its glyph positions, dy included, as Chromium does. resvg anchors by the advance.",
+  "reference_why": "SVG 2 anchors a text chunk by the extent of its glyph positions, dy included; Chromium does, and matches the expected image of the resvg suite. resvg anchors by the advance.",
   "verdict": "same",
   "what": "Matches: each column is anchored with B moved up.",
   "native_verdict": "differs",
