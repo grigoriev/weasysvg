@@ -501,3 +501,10 @@ def test_invalid_stop_opacity_counts_as_opaque() -> None:
     pdf = render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/><rect y="50" width="200" height="50" fill="url(#g)"/>'))
     assert near(pixel(pdf, 75, 30), RED)
     assert near(pixel(pdf, 75, 60), RED)
+
+
+def test_blend_mode_with_a_complex_clip_blends_with_the_backdrop() -> None:
+    # Blue multiplied over red is black; inside the isolated clip group it blended with nothing
+    clip = '<clipPath id="c"><path d="M0 0H200V100H0Z" clip-rule="evenodd"/></clipPath>'
+    body = f'<defs>{clip}</defs><rect width="200" height="100" fill="red"/><rect width="200" height="100" fill="blue" style="mix-blend-mode:multiply" clip-path="url(#c)"/>'
+    assert near(pixel(render(svg(body)), 30, 30), (0, 0, 0), 20)

@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -228,10 +228,13 @@ def _draw_clipped(self: Any, original: Callable[..., None], node: Any, font_size
     try:
         paint.paint_clip(self, node, effects.clip, effects.font_size)
         self.stream = content
-        _draw_grouped(self, original, node, font_size, fill_stroke, context, effects, filter_opacity)
+        # The clipped group blends with what lies under it: inside it there is nothing to blend with
+        _draw_grouped(self, original, node, font_size, fill_stroke, context, replace(effects, blend=None), filter_opacity)
     finally:
         self.stream = outer
         group.draw_x_object(content.id)
+        if effects.blend is not None:
+            outer.set_blend_mode(effects.blend)
         outer.draw_x_object(group.id)
 
 
