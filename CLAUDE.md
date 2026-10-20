@@ -33,7 +33,7 @@ uv build                # wheel and sdist
 once.
 
 - `_core.py`: the two shared hooks. `images.SVGImage.__init__` runs the tree passes on the parsed
-  XML (conditional 10, nested_text 15, empty_presentation 20, foreign_object 30) and wraps the URL
+  XML (conditional 10, nested_text 15, invalid_rotate 16, empty_presentation 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
 - `conditional.py`: `<switch>`, `requiredExtensions`, `systemLanguage`.
 - `foreign_object.py`: stashes the XHTML in an attribute, lays all objects of one SVG out as one

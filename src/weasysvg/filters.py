@@ -712,8 +712,6 @@ def _fill_through(svg: Any, original: Callable[..., None], node: Any, font_size:
 
 def _blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, sigma: float, box: Region) -> None:
     """Set the blurred silhouette of node as the soft mask of svg.stream.
-        # original is the draw_node of WeasyPrint: the node itself does not pass the wrapper of _core
-        _core.restyle(svg, node, font_size, restyled)
 
     Every level lightens the mask, so each point keeps the highest level it reaches: the grown shapes and
     the lines outside, white minus the bands inside the filled shapes.
