@@ -316,9 +316,9 @@
  },
  {
   "name": "real__wm-Openstreetmap_logo",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Shadows are blurred in vector, as in Chromium. The black handle and yellow ferrules of the magnifier are missing.",
+  "what": "Handle and ferrules drawn: the rotated gradient cells cover the shapes. The blurred shadow of the lens ring is a little darker than in Chromium.",
   "reference_agrees_with": "n/a"
  },
  {

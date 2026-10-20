@@ -2,7 +2,8 @@
 
 Touches:
 - ``svg.defs.draw_gradient``: a gradient cell of about 1000 units, since Splash and Quartz drop a 1 x 1
-  cell; r and fr percentages of a radial gradient refer to the normalized diagonal.
+  cell, that covers the box under any gradientTransform; r and fr percentages of a radial gradient
+  refer to the normalized diagonal.
 - ``svg.SVG.set_graphical_state``: a gradient or pattern stroke gets its stroke-width, not 1.
 - ``svg.defs.draw_pattern``: the tile origin in pattern space, x and y included; attributes and tag are
   restored after each use.
@@ -103,25 +104,56 @@ def _add_pattern_override(stream: Any, function: Callable[..., Any]) -> Iterator
             stream.add_pattern = previous
 
 
-def _scaled_add_pattern(stream: Any) -> Callable[..., Any]:
-    """add_pattern with a cell of about GRADIENT_CELL units: the scale moves into the content, the result is identical."""
+def _scaled_add_pattern(stream: Any, cell: tuple[float, float, float, float] | None = None) -> Callable[..., Any]:
+    """add_pattern with a cell of about GRADIENT_CELL units: the scale moves into the content, the result is identical.
+
+    cell replaces the cell WeasyPrint computes, for its pattern, its group and the soft mask of its alpha.
+    """
     original = type(stream).add_pattern
 
     def add_pattern(x: float, y: float, width: float, height: float, repeat_width: float, repeat_height: float, matrix: Any) -> Any:
+        if cell is not None:
+            x, y, width, height = cell
+            repeat_width, repeat_height = width, height
         extent = max(abs(width), abs(height))
         k = GRADIENT_CELL / extent if extent else 1
         pattern = original(stream, x * k, y * k, width * k, height * k, repeat_width * k, repeat_height * k, Matrix(a=1 / k, d=1 / k) @ matrix)
         original_group = pattern.add_group
 
         def add_group(gx: float, gy: float, gwidth: float, gheight: float) -> Any:
+            if cell is not None:
+                gx, gy, gwidth, gheight = cell
             group = original_group(gx * k, gy * k, gwidth * k, gheight * k)
             group.transform(a=k, d=k)
+            if cell is not None:
+                original_alpha = group.set_alpha_state
+                group.set_alpha_state = lambda *_box, **kwargs: original_alpha(*cell, **kwargs)
             return group
 
         pattern.add_group = add_group
         return pattern
 
     return add_pattern
+
+
+def _gradient_cell(svg: Any, node: Any, gradient: Any, font_size: float, stroke: bool) -> tuple[float, float, float, float] | None:
+    """The cell of a transformed gradient: the box of all four corners, mapped back by gradientTransform.
+
+    WeasyPrint maps two corners only: rotated by 45 degrees, its cell is a sliver and the shape stays empty.
+    """
+    if "gradientTransform" not in gradient.attrib:
+        return None
+    box = svg.calculate_bounding_box(node, font_size, stroke)
+    if not wp_defs.is_valid_bounding_box(box):
+        return None
+    x, y, width, height = box if gradient.get("gradientUnits") == "userSpaceOnUse" else (0, 0, 1, 1)
+    matrix = wp_utils.transform(gradient.get("gradientTransform"), "0 0", font_size, svg.normalized_diagonal)
+    if not matrix.determinant:
+        return None
+    inverse = matrix.invert
+    points = [inverse.transform_point(px, py) for px in (x, x + width) for py in (y, y + height)]
+    xs, ys = [point[0] for point in points], [point[1] for point in points]
+    return min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)
 
 
 # ---------------- gradients ----------------
@@ -144,7 +176,8 @@ def draw_gradient(svg: Any, node: Any, gradient: Any, font_size: float, opacity:
     stream = svg.stream
     changed = _radial_percentages(gradient)
     try:
-        with _add_pattern_override(stream, _scaled_add_pattern(stream)):
+        cell = _gradient_cell(svg, node, gradient, font_size, stroke)
+        with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
             return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)
     finally:
         for name, value in changed.items():

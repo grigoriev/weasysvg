@@ -85,7 +85,7 @@ change between releases.
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
 | Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over and in, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. A blur is a soft mask that steps through the Gaussian profile of the edge. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, and self-referencing masks. |
-| Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
+| Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
 | Text | `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` from the font, font-size keywords, nested `<text>` ignored. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). |
@@ -101,9 +101,9 @@ review:
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | same as Chromium | 40 | 97 |
-| minor difference | 10 | 5 |
+| minor difference | 10 | 6 |
 | other font only | 11 | 0 |
-| broken | 54 | 13 |
+| broken | 54 | 12 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
 differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
@@ -117,7 +117,8 @@ which has no scrollbar for `overflow: auto` (print has no use for one). The verd
 - `clip-path` on the children of a `<clipPath>` and a mask that references itself through its content
   lose the clipped or masked part.
 - `letter-spacing` on Arabic text breaks the joining of the letters.
-- The handle of the OpenStreetMap logo magnifier is missing.
+- A blur treats every point by its distance to the nearest edge: sharp corners and thin filled shapes
+  come out a little darker than in Chromium.
 - `feTurbulence`, `feComposite` arithmetic, lighting, morphology, convolution and displacement have no
   vector form: the element draws unfiltered, with a warning.
 - A blur with two different deviations uses their mean.

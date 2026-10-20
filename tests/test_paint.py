@@ -75,6 +75,28 @@ def test_radial_gradient_attributes_are_restored() -> None:
     assert near(pixel(pdf, 112, 37), RED, 60)
 
 
+@pytest.mark.parametrize("units", ["", ' gradientUnits="userSpaceOnUse" x1="0" x2="200"'])
+@pytest.mark.parametrize("opacity", ["1", "0.999"])
+def test_rotated_gradient_covers_the_shape(units: str, opacity: str) -> None:
+    # WeasyPrint sizes the cell from two corners of the box: rotated by 45 degrees, the cell is a sliver
+    gradient = f'<linearGradient id="g"{units} gradientTransform="rotate(45 100 50)"><stop stop-color="red"/><stop offset="1" stop-color="red" stop-opacity="{opacity}"/></linearGradient>'
+    pdf = render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/>'))
+    for x, y in ((10, 10), (75, 37), (140, 65)):
+        assert near(pixel(pdf, x, y), RED, 30)
+
+
+def test_degenerate_gradient_transforms() -> None:
+    # A singular transform and a shape without a box: no cell, the rendering of WeasyPrint
+    gradient = '<linearGradient id="g" gradientTransform="scale(0)"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><linearGradient id="h" gradientTransform="rotate(45)" href="#g"/>'
+    render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/><path d="" fill="url(#h)"/>'))
+
+
+def test_gradient_cell_needs_a_box() -> None:
+    gradient = SimpleNamespace(attrib={"gradientTransform": "rotate(45)"}, get={"gradientTransform": "rotate(45)"}.get)
+    fake = SimpleNamespace(calculate_bounding_box=lambda *_args: None)
+    assert paint._gradient_cell(fake, object(), gradient, 12, False) is None
+
+
 def test_gradient_stops_via_href_used_twice() -> None:
     body = (
         '<defs><linearGradient id="base"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>'
