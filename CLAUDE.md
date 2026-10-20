@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/claude-code) when working 
 
 weasysvg is a plugin for WeasyPrint 70.x that renders SVG natively and close to Chromium. One
 `weasysvg.install()` call monkeypatches WeasyPrint internals for the whole process. Everything stays
-vector in the PDF: weasysvg has no rasterizer. resvg serves only as a reference in the corpus.
+vector in the PDF: weasysvg rasterizes no SVG content. The one image it makes is the noise of
+`feTurbulence`, computed in Python. resvg serves only as a reference in the corpus.
 
 ## Tech Stack
 
@@ -45,7 +46,8 @@ once.
   `layout.block.table_layout` inside a foreignObject.
 - `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask built in
   levels: the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
-  and transfer functions recolor every parsed color (`RECOLOR`).
+  and transfer functions recolor every parsed color (`RECOLOR`). feComposite arithmetic with a constant
+  input is a recolor too. `turbulence.py` computes the noise of feTurbulence as an image layer.
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
 - `pathdata.py`: path data as segments with tangents and points along them.
 - `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.

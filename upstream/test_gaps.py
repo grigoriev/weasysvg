@@ -58,6 +58,16 @@ def test_color_matrix_is_dropped() -> None:
     still_broken(near(pixel(pdf, 30, 30), RED, 5), "feColorMatrix", "filters (recolor)")
 
 
+def test_turbulence_is_dropped() -> None:
+    pdf, _ = filtered('<feTurbulence baseFrequency="0.05"/>')
+    still_broken(near(pixel(pdf, 30, 30), RED, 5), "feTurbulence", "filters._fe_turbulence, turbulence")
+
+
+def test_arithmetic_composite_is_dropped() -> None:
+    pdf, _ = filtered('<feFlood flood-color="blue"/><feComposite operator="arithmetic" in2="SourceGraphic" k2="1" k3="1"/>')
+    still_broken(near(pixel(pdf, 13, 30), WHITE, 3), "feComposite arithmetic", "filters._arithmetic")
+
+
 def test_css_drop_shadow_function_is_dropped() -> None:
     pdf, _ = render(svg('<rect x="20" y="20" width="60" height="40" fill="red" style="filter:drop-shadow(6px 6px 0 black)"/>', height=120))
     still_broken(near(pixel(pdf, 63, 48), WHITE, 3), "drop-shadow()", "filters._function_layers")

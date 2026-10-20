@@ -372,9 +372,9 @@
  },
  {
   "name": "resvg__filters-feComposite--operator=arithmetic-with-large-k1-4",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "feComposite arithmetic has no vector form: drawn unfiltered.",
+  "what": "",
   "reference_agrees_with": "chromium"
  },
  {
@@ -442,16 +442,16 @@
  },
  {
   "name": "resvg__filters-feTurbulence--baseFrequency=0.01",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "feTurbulence has no vector form: drawn unfiltered.",
+  "what": "Noise is drawn as an image over the filter region: it has no vector form.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__filters-feTurbulence--type=invalid",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "feTurbulence has no vector form: drawn unfiltered.",
+  "what": "Noise is drawn as an image over the filter region: it has no vector form.",
   "reference_agrees_with": "chromium"
  },
  {
