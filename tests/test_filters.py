@@ -621,3 +621,16 @@ def test_unbounded_flood_region_draws_unfiltered(caplog: pytest.LogCaptureFixtur
         pdf = render(filtered('<feFlood width="1e999" flood-color="blue"/>', ' filterUnits="userSpaceOnUse" x="0" y="0" width="200" height="120"'))
     assert near(pixel(pdf, 30, 30), RED)
     assert "length out of range" in caplog.text
+
+
+def test_outer_recolor_reaches_a_filtered_child() -> None:
+    # The shadow filter of the child must not drop the gray of its parent
+    body = '<defs><filter id="f"><feColorMatrix type="saturate" values="0"/></filter><filter id="s"><feOffset dx="0"/></filter></defs><g filter="url(#f)"><rect x="20" y="20" width="60" height="40" fill="red" filter="url(#s)"/></g>'
+    red, green, _ = pixel(render(svg(body, height=120)), 30, 30)
+    assert abs(red - green) < 4
+
+
+def test_outer_blur_spreads_a_filtered_child() -> None:
+    filters_ = '<filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter><filter id="s"><feOffset dx="0"/></filter>'
+    body = f'<defs>{filters_}</defs><g filter="url(#b)"><g filter="url(#s)"><rect x="20" y="20" width="60" height="40" fill="red"/></g></g>'
+    assert faint(pixel(render(svg(body, height=120)), 13, 30))

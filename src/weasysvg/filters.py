@@ -674,6 +674,9 @@ def _gray(value: float) -> Any:
 
 
 def _draw_into(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, target: Any, mode: Restyle | None, recolor: tuple[Recolor, ...] = ()) -> None:
+    if mode is None:
+        # A filtered element inside another keeps the passes and the recolor of the outer one
+        mode, recolor = RESTYLE.get(), (*recolor, *RECOLOR.get())
     previous, token, colors = svg.stream, RESTYLE.set(mode), RECOLOR.set(recolor)
     blurring = BLURRING.set(True) if mode is not None else None
     svg.stream = target
