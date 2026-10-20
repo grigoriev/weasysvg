@@ -582,9 +582,10 @@ def test_a_failing_restyle_restores_the_draw_state(monkeypatch: pytest.MonkeyPat
 
     fake = FakeSvg()
     stream = fake.stream
+    node, target, mode = SimpleNamespace(tag="rect"), RecordingStream(), Restyle("fills", 2)
     monkeypatch.setattr(_core, "restyle", broken)
     with pytest.raises(RuntimeError):
-        filters._draw_into(fake, failing_original, SimpleNamespace(tag="rect"), 12, None, RecordingStream(), Restyle("fills", 2))
+        filters._draw_into(fake, failing_original, node, 12, None, target, mode)
     assert fake.stream is stream
     assert filters.RESTYLE.get() is None
     assert filters.BLURRING.get() is False

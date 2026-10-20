@@ -781,36 +781,46 @@ def _draw_layer(svg: Any, original: Callable[..., None], node: Any, font_size: f
         stream.rectangle(*cast(Region, layer.region))
         stream.fill()
     elif layer.kind == "alpha":
-        if sigma:
-            # The silhouette of the grown element, in one color, under the blurred edge
-            _blur_mask(svg, original, node, font_size, context, sigma, big)
-            group = stream.add_group(*big)
-            mask = group.set_alpha_state(*big, mode="alpha")
-            _draw_into(svg, original, node, font_size, context, mask, _widest(sigma))
-            group.set_color(_with_alpha(layer.rgba, layer.opacity))
-            group.rectangle(*big)
-            group.fill()
-            stream.draw_x_object(group.id)
-            return
-        mask = stream.set_alpha_state(*big, mode="alpha")
-        _draw_into(svg, original, node, font_size, context, mask, None)
-        stream.set_color(_with_alpha(layer.rgba, layer.opacity))
-        stream.rectangle(*big)
-        stream.fill()
+        _draw_silhouette(svg, original, node, font_size, context, layer, stream, big, sigma)
     else:
-        # A blurred source keeps its colors and spreads them to the widest level of the mask
-        grow = None
-        if sigma:
-            _blur_mask(svg, original, node, font_size, context, sigma, big)
-            grow = _widest(sigma)
-        # A group under the blur mask: a mask or gradient opacity of the element sets a soft mask of its
-        # own, which would replace the blur mask in the graphics state
-        target = stream.add_group(*big) if layer.opacity < 1 or sigma else stream
-        _draw_into(svg, original, node, font_size, context, target, grow, layer.recolor)
-        if target is not stream:
-            if layer.opacity < 1:
-                stream.set_alpha(layer.opacity, stroke=True, fill=True)
-            stream.draw_x_object(target.id)
+        _draw_source(svg, original, node, font_size, context, layer, stream, big, sigma)
+
+
+def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
+    """The element in one color, blurred when sigma is set."""
+    if sigma:
+        # The silhouette of the grown element, in one color, under the blurred edge
+        _blur_mask(svg, original, node, font_size, context, sigma, big)
+        group = stream.add_group(*big)
+        mask = group.set_alpha_state(*big, mode="alpha")
+        _draw_into(svg, original, node, font_size, context, mask, _widest(sigma))
+        group.set_color(_with_alpha(layer.rgba, layer.opacity))
+        group.rectangle(*big)
+        group.fill()
+        stream.draw_x_object(group.id)
+        return
+    mask = stream.set_alpha_state(*big, mode="alpha")
+    _draw_into(svg, original, node, font_size, context, mask, None)
+    stream.set_color(_with_alpha(layer.rgba, layer.opacity))
+    stream.rectangle(*big)
+    stream.fill()
+
+
+def _draw_source(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
+    """The element in its own paint, faded, recolored or blurred."""
+    # A blurred source keeps its colors and spreads them to the widest level of the mask
+    grow = None
+    if sigma:
+        _blur_mask(svg, original, node, font_size, context, sigma, big)
+        grow = _widest(sigma)
+    # A group under the blur mask: a mask or gradient opacity of the element sets a soft mask of its
+    # own, which would replace the blur mask in the graphics state
+    target = stream.add_group(*big) if layer.opacity < 1 or sigma else stream
+    _draw_into(svg, original, node, font_size, context, target, grow, layer.recolor)
+    if target is not stream:
+        if layer.opacity < 1:
+            stream.set_alpha(layer.opacity, stroke=True, fill=True)
+        stream.draw_x_object(target.id)
 
 
 def _widest(sigma: float) -> Restyle:
