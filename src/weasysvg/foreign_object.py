@@ -356,8 +356,9 @@ def _symbol_marker(marker: Any, kind: str) -> None:
 
 def _marker_to_box(element: Any, state: Any, parent_style: Any, style_for: Any, *args: Any) -> Any:
     for marker in _ORIGINAL_MARKER_TO_BOX(element, state, parent_style, style_for, *args):
-        kind = parent_style["list_style_type"]
+        # The marker style decides the type, as WeasyPrint reads it when it makes the glyph
         own = style_for(element, "marker")
+        kind = (own if own is not None else parent_style)["list_style_type"]
         glyph = len(marker.children) == 1 and isinstance(marker.children[0], wp_boxes.TextBox)
         if IN_FOREIGN_OBJECT.get() and marker.is_outside_marker and kind in SYMBOL_MARKERS and glyph and (own is None or own["content"] in ("normal", "inhibit")):
             _symbol_marker(marker, kind)

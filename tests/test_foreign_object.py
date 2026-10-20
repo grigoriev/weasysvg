@@ -334,3 +334,9 @@ def test_other_markers_stay_text(style: str) -> None:
     pdf = render(svg(fo(f'<ul style="{style}"><li>Item</li></ul>', width=200, height=40), width=200, height=40))
     assert "Item" in text_of(pdf)
     assert "1." in text_of(pdf) or "\u2022" in text_of(pdf)
+
+
+def test_the_type_of_the_marker_itself_decides() -> None:
+    # A ::marker of its own type wins over the type of the item: a number stays a number
+    body = "<style>li::marker{list-style-type:decimal}</style>" + fo("<ul><li>Item</li></ul>", width=200, height=40)
+    assert "1." in text_of(render(svg(body, width=200, height=40)))
