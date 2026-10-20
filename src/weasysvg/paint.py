@@ -41,6 +41,7 @@ from . import _core
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
 DASH_FRACTION = 2.5e-5  # of the dash period: the length a dash of length 0 gets, 0.001 units of a period of 40
 STROKE_FRACTION = 1e-3  # of the stroke width: the most that length may be
+MIN_DASH = 1e-5  # user units: the least that length may be, pydyf writes six decimals
 ARC_CONSTANT = 4 * (2**0.5 - 1) / 3  # the control point of a quarter circle in one Bezier, per unit of radius
 SHAPES = frozenset(("circle", "ellipse", "line", "path", "polyline", "polygon", "rect"))
 BLEND_MODES = {
@@ -318,7 +319,8 @@ def no_zero_dashes(dashes: tuple[float, ...], stroke_width: float = math.inf) ->
     out = list(dashes * 2 if len(dashes) % 2 else dashes)
     # A share of the period, not a length in user units: a viewBox of one unit drawn large would show
     # 0.001 units. A share of the stroke as well: a long period would stretch a dot of a thin stroke.
-    epsilon = min(sum(out) * DASH_FRACTION, stroke_width * STROKE_FRACTION)
+    # And no shorter than the PDF writes: six decimals
+    epsilon = max(min(sum(out) * DASH_FRACTION, stroke_width * STROKE_FRACTION), MIN_DASH)
     for index in range(0, len(out), 2):
         if out[index] == 0 and out[index + 1] > epsilon:
             out[index], out[index + 1] = epsilon, out[index + 1] - epsilon

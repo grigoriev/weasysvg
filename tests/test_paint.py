@@ -664,7 +664,7 @@ def test_zero_length_dashes_with_butt_caps_stay() -> None:
 
 def test_a_zero_length_dash_grows_with_its_period() -> None:
     # In a viewBox of one unit drawn large, 0.001 units would show: the length follows the period
-    assert paint.no_zero_dashes((0, 0.04)) == pytest.approx((0.000001, 0.039999))
+    assert paint.no_zero_dashes((0, 4)) == pytest.approx((0.0001, 3.9999))
 
 
 @pytest.mark.parametrize(
@@ -683,3 +683,9 @@ def test_a_negative_offset_of_an_odd_dash_array_uses_its_whole_period(dashes: st
 def test_a_zero_length_dash_stays_short_against_its_stroke() -> None:
     # A long period on a thin stroke: the dot must stay a dot, not a dash of 2.5 units
     assert paint.no_zero_dashes((0, 100000), 1) == pytest.approx((0.001, 99999.999))
+
+
+def test_a_zero_length_dash_stays_above_what_the_pdf_writes() -> None:
+    # pydyf writes six decimals: a dash shorter than 0.000001 would be 0 in the PDF again
+    style = 'fill="none" stroke="green" stroke-width="1" stroke-dasharray="0 0.01" stroke-linecap="round"'
+    assert re.search(r"\[1e-05 0\.00999\] 0 d|\[0\.00001 0\.00999\] 0 d", content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
