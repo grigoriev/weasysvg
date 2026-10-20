@@ -134,14 +134,15 @@ def _place(character: str, width: float, x: float, y: float, angle: float) -> gl
     return place
 
 
-def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances: list[tuple[str, float]]) -> None:
-    """Draw each character of node down the y axis."""
+def _logical_places(svg: Any, node: Any, font_size: float, advances: list[tuple[str, float]]) -> tuple[list[list[float]], set[int]]:
+    """Where each character goes in logical order, as the attributes give it: x, y and its step down.
+
+    Also the characters with a position of their own. The cursor moves to the end of the node.
+    """
     xs, ys = _numbers(node, "x", font_size, svg.inner_width), _numbers(node, "y", font_size, svg.inner_height)
     dxs, dys = _numbers(node, "dx", font_size, svg.inner_width), _numbers(node, "dy", font_size, svg.inner_height)
-    rotations = [math.radians(float(value)) for value in wp_utils.normalize(node.get("rotate", "")).split()]
     spacing = svg.length(node.get("letter-spacing"), font_size)
     x, y = svg.cursor_position
-    # Positions and advances in logical order, as the attributes give them
     places = []
     for index, (character, width) in enumerate(advances):
         x = (xs[index] if index < len(xs) else x) + (dxs[index] if index < len(dxs) else 0)
@@ -150,10 +151,15 @@ def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances:
         places.append([x, y, step])
         y += step
     svg.cursor_position = x, y
-    # A right-to-left run turned sideways fills its span from its end: its last letter at the top. A letter
-    # with a position of its own starts a new span, as it starts a new text chunk
-    text = "".join(glyphs.base(character) for character, _ in advances)
     positioned = {index for index in range(len(advances)) if index < len(xs) or index < len(ys) or (index < len(dys) and dys[index])}
+    return places, positioned
+
+
+def _reverse_runs(text: str, places: list[list[float]], positioned: set[int]) -> None:
+    """Fill the span of each right-to-left run from its end: its last letter at the top, as it lies sideways.
+
+    A letter with a position of its own starts a new span, as it starts a new text chunk.
+    """
     for run_start, run_end in glyphs.rtl_runs(text):
         starts = [run_start, *sorted(index for index in positioned if run_start < index < run_end), run_end]
         for start, end in zip(starts, starts[1:], strict=False):
@@ -161,6 +167,13 @@ def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances:
             for index in glyphs.reversed_clusters(text, start, end):
                 places[index][1] = top
                 top += places[index][2]
+
+
+def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances: list[tuple[str, float]]) -> None:
+    """Draw each character of node down the y axis."""
+    rotations = [math.radians(float(value)) for value in wp_utils.normalize(node.get("rotate", "")).split()]
+    places, positioned = _logical_places(svg, node, font_size, advances)
+    _reverse_runs("".join(glyphs.base(character) for character, _ in advances), places, positioned)
     items = []
     for index, (character, width) in enumerate(advances):
         if character.strip():

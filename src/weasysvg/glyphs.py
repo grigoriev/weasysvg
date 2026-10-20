@@ -71,26 +71,21 @@ def in_context(text: str, index: int) -> str:
 DIGITS = ("EN", "AN")
 
 
-def rtl_runs(text: str) -> list[tuple[int, int]]:
-    """The right-to-left runs of text, start and end indices, for a left-to-right line.
-
-    A simple form of the bidi algorithm: strong Arabic and Hebrew letters make a run, with the marks after
-    them and the neutrals and numbers between two of them.
-    """
-    classes = [unicodedata.bidirectional(character) for character in text]
-    # The class of the nearest strong letter on each side of each index, None at the ends
-    before: list[str | None] = []
+def _nearest_strong(classes: list[str]) -> list[str | None]:
+    """The bidi class of the nearest strong letter before each index, None before the first."""
+    out: list[str | None] = []
     last = None
     for kind in classes:
-        before.append(last)
+        out.append(last)
         last = kind if kind in ("L", "R", "AL") else last
-    after: list[str | None] = []
-    last = None
-    for kind in reversed(classes):
-        after.append(last)
-        last = kind if kind in ("L", "R", "AL") else last
-    after.reverse()
-    rtl = [False] * len(text)
+    return out
+
+
+def _right_to_left(classes: list[str]) -> list[bool]:
+    """Whether each character belongs to a right-to-left run."""
+    before = _nearest_strong(classes)
+    after = _nearest_strong(classes[::-1])[::-1]
+    rtl = [False] * len(classes)
     for index, kind in enumerate(classes):
         if kind in ("R", "AL"):
             rtl[index] = True
@@ -98,17 +93,24 @@ def rtl_runs(text: str) -> list[tuple[int, int]]:
             rtl[index] = rtl[index - 1]
         elif kind != "L":
             rtl[index] = before[index] in ("R", "AL") and after[index] in ("R", "AL")
-    runs = []
-    index = 0
-    while index < len(text):
-        if rtl[index]:
-            end = index
-            while end < len(text) and rtl[end]:
-                end += 1
-            runs.append((index, end))
-            index = end
+    return rtl
+
+
+def rtl_runs(text: str) -> list[tuple[int, int]]:
+    """The right-to-left runs of text, start and end indices, for a left-to-right line.
+
+    A simple form of the bidi algorithm: strong Arabic and Hebrew letters make a run, with the marks after
+    them and the neutrals and numbers between two of them.
+    """
+    rtl = _right_to_left([unicodedata.bidirectional(character) for character in text])
+    runs: list[tuple[int, int]] = []
+    for index, inside in enumerate(rtl):
+        if not inside:
+            continue
+        if runs and runs[-1][1] == index:
+            runs[-1] = (runs[-1][0], index + 1)
         else:
-            index += 1
+            runs.append((index, index + 1))
     return runs
 
 
