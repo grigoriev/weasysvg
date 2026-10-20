@@ -71,6 +71,14 @@ def test_ex_is_the_x_height_of_the_font(body: str) -> None:
     assert font_sizes(pdf) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
 
 
+def test_ex_without_an_x_height_is_half_an_em(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A font with no ink for "x" has no x-height: CSS then takes half an em, the text must not vanish
+    monkeypatch.setattr(text, "_metrics", lambda *_: (12.0, 4.0, 0.0))
+    node = SimpleNamespace(attrib={"font-size": "4ex"})
+    text.ex_restyle(None, node, 16)
+    assert node.attrib == {"font-size": "32.0px"}
+
+
 def test_a_word_ending_in_ex_is_no_size() -> None:
     node = SimpleNamespace(attrib={"font-size": "complex"})
     assert text.ex_restyle(None, node, 16) is None

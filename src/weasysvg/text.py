@@ -100,7 +100,9 @@ def ex_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] |
     except ValueError:
         return None
     saved = {"font-size": node.attrib["font-size"]}
-    node.attrib["font-size"] = f"{count * _metrics(svg, node, font_size)[2]}px"
+    # A font with no ink for "x" has no x-height: CSS then takes half an em
+    x_height = _metrics(svg, node, font_size)[2] or font_size / 2
+    node.attrib["font-size"] = f"{count * x_height}px"
     return saved
 
 
