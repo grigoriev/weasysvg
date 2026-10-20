@@ -416,20 +416,43 @@ def test_a_broken_rotate_is_ignored(mode: str, value: str) -> None:
 
 
 @pytest.mark.parametrize("anchor", ["middle", "end"])
-def test_each_text_chunk_is_anchored_by_its_own_width(anchor: str) -> None:
+@pytest.mark.parametrize(
+    "inner",
+    [
+        '<tspan>1</tspan><tspan x="50" dy="25">H</tspan>',
+        # The chunk one level down, in a tspan that starts none: its box still stays out of the anchor of "1"
+        '<tspan>1<tspan x="50" dy="25">H</tspan></tspan>',
+    ],
+)
+def test_each_text_chunk_is_anchored_by_its_own_width(anchor: str, inner: str) -> None:
     # A tspan with its own x starts a chunk: "1" is anchored by its width alone, "H" by its own
-    body = f'<text x="50" y="40" font-size="20" text-anchor="{anchor}"><tspan>1</tspan><tspan x="50" dy="25">H</tspan></text>'
+    body = f'<text x="50" y="40" font-size="20" text-anchor="{anchor}">{inner}</text>'
     single = f'<text x="50" y="40" font-size="20" text-anchor="{anchor}">1</text><text x="50" y="65" font-size="20" text-anchor="{anchor}">H</text>'
     shifts = re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, height=120))))
     expected = re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(single, height=120))))
     assert sorted(shifts) == sorted(expected)
 
 
+class TextNode(list[Any]):
+    """A text node as chunk_boxes sees it: tag, attributes, children and the box WeasyPrint drew."""
+
+    def __init__(self, tag: str, box: tuple[float, float, float, float], children: tuple[Any, ...] = (), **attrib: str) -> None:
+        super().__init__(children)
+        self.tag, self.attrib, self.text_bounding_box = tag, attrib, box
+
+
 def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
-    # The gradient spans both chunks: its box is that of the whole text
-    gradient = '<linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>'
-    body = f'<defs>{gradient}</defs><text x="20" y="40" font-size="20" fill="url(#g)" text-anchor="middle"><tspan>1</tspan><tspan x="100" dy="25">HHHH</tspan></text>'
-    assert render(svg(body, height=120))
+    # Drawn inside out: the chunk "H" one level down, the tspan around it, then the text
+    chunk = TextNode("tspan", (90, 45, 20, 25), x="90")
+    middle = TextNode("tspan", (10, 20, 10, 25), (chunk,))
+    root = TextNode("text", (10, 20, 10, 25), (middle,))
+    for node in (chunk, middle, root):
+        text.chunk_boxes(None, node)
+    # The text spans both chunks again, the chunk has its own box back, the tspan between never had it
+    assert root.text_bounding_box == (10, 20, 100, 50)
+    assert chunk.text_bounding_box == (90, 45, 20, 25)
+    assert middle.text_bounding_box == (10, 20, 10, 25)
+    assert all(text.CHUNK_BOX not in vars(node) for node in (chunk, middle, root))
 
 
 # ---------------- leading shifts ----------------

@@ -164,20 +164,25 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
 
     A tspan with its own x or y starts a text chunk, which text-anchor places on its own. WeasyPrint draws it
     so, but then adds its box to the box of the parent, which anchors its own chunk by the width of both.
-    The box of a chunk is hidden from the parent until the parent is drawn, then added back to it: a
-    gradient or a filter of the text still spans every chunk.
+    The box of a chunk is hidden and passed up until the <text> or an enclosing chunk is drawn, then added
+    back to it: a gradient or a filter of the text still spans every chunk. A tspan that starts no chunk
+    passes the boxes on, since WeasyPrint merges its own box into the anchor of the chunk around it.
     """
     if node.tag not in TEXT_TAGS_WITH_CHUNKS:
         return
-    for child in node:
-        box = child.__dict__.pop(CHUNK_BOX, None)
-        if box is not None:
-            child.text_bounding_box = box
+    hidden = [entry for child in node for entry in child.__dict__.pop(CHUNK_BOX, ())]
+    starts = node.tag != "text" and ("x" in node.attrib or "y" in node.attrib) and is_valid_bounding_box(getattr(node, "text_bounding_box", None))
+    if node.tag == "text" or starts:
+        for owner, box in hidden:
+            owner.text_bounding_box = box
             x, y, width, height = box
             node.text_bounding_box = extend_bounding_box(node.text_bounding_box, ((x, y), (x + width, y + height)))
-    if node.tag != "text" and ("x" in node.attrib or "y" in node.attrib) and is_valid_bounding_box(getattr(node, "text_bounding_box", None)):
-        node.__dict__[CHUNK_BOX] = node.text_bounding_box
+        hidden = []
+    if starts:
+        hidden = [(node, node.text_bounding_box)]
         node.text_bounding_box = EMPTY_BOUNDING_BOX
+    if hidden:
+        node.__dict__[CHUNK_BOX] = hidden
 
 
 # ---------------- leading shifts ----------------
