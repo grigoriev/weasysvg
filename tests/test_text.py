@@ -355,6 +355,14 @@ def test_vertical_text_anchor_spans_the_glyphs_after_dy(anchor: str, first: floa
     assert first < matrices[0][5] < first + 20
 
 
+def test_vertical_text_anchor_counts_absolute_y() -> None:
+    # The second character starts anew at 200 and moves up 60: the run spans 100 to 160
+    body = '<text x="50" y="100 200" dy="0 -60" writing-mode="vertical-rl" text-anchor="start" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert 100 < matrices[0][5] < 120
+    assert 140 < matrices[1][5] < 160
+
+
 def test_vertical_text_positions_and_rotation() -> None:
     body = '<text x="50 80" y="30" dx="1" dy="2" rotate="30" writing-mode="tb" font-size="20">A B</text>'
     matrices = glyph_matrices(render(svg(body, height=120)))

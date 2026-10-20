@@ -62,18 +62,20 @@ def advance(character: str, width: float, font_size: float) -> float:
 
 
 def _extent(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> tuple[float, float]:
-    """The top and bottom of all characters, relative to the start of the run, dy included."""
-    y, low, high = 0.0, 0.0, 0.0
+    """The top and bottom of all characters, relative to the start of the run, y and dy included as draw places them."""
+    first = _numbers(texts[0][0], "y", texts[0][1], svg.inner_height)
+    origin = first[0] if first else svg.cursor_position[1]
+    y, low, high = origin, origin, origin
     for text, size in texts:
         spacing = svg.length(text.get("letter-spacing"), size)
-        dys = _numbers(text, "dy", size, svg.inner_height)
+        ys, dys = _numbers(text, "y", size, svg.inner_height), _numbers(text, "dy", size, svg.inner_height)
         for index, (character, width) in enumerate(advances(svg, text, size)):
-            y += dys[index] if index < len(dys) else 0
+            y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
             # letter-spacing belongs to the advance of each character, the last one included
             step = advance(character, width, size) + spacing
             low, high = min(low, y), max(high, y + step)
             y += step
-    return low, high
+    return low - origin, high - origin
 
 
 def start(svg: Any, node: Any, texts: list[tuple[Any, float]], advances: Any) -> _Run:
