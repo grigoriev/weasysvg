@@ -247,6 +247,8 @@ function step(direction) {
   const index = items.indexOf(current);
   if (index < 0) return;
   current = items[(index + direction + items.length) % items.length];
+  // The next SVG may lack this renderer: Chromium is there whenever any panel is
+  if (!current.panels[currentKey]) currentKey = "chromium";
   showLightbox();
 }
 
@@ -297,7 +299,10 @@ function setup() {
       lightboxZoom = steps[Math.min(Math.max(index, 0), steps.length - 1)];
       showLightbox();
     }
-    else if (event.key === " ") { currentKey = currentKey === state.left ? state.right : state.left; showLightbox(); }
+    else if (event.key === " ") {
+      const other = currentKey === state.left ? state.right : state.left;
+      if (current.panels[other]) { currentKey = other; showLightbox(); }
+    }
     else if (/^[1-4]$/.test(event.key) && current.panels[keys[Number(event.key) - 1]]) { currentKey = keys[Number(event.key) - 1]; showLightbox(); }
     else return;
     event.preventDefault();
