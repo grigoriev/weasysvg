@@ -7,6 +7,8 @@ Touches:
 - ``svg.Node.cascade``: font-size keywords. ``size()`` knows none, so "initial" or "medium" gave 0.
   The cascade rewrites the attribute once, so every reader of font-size sees a length.
 - a tree pass: a <text> inside a <text> is not rendered, as in browsers.
+- a tree pass: a rotate list with a value that is no number is dropped, as in Chromium. WeasyPrint
+  parses it during the cascade, and one bad value lost the whole SVG.
 
 WeasyPrint lays SVG text out one character at a time: Arabic lost its joining and its order,
 ligatures and kerning were gone. A run with one position at most, no rotate and no textLength is laid
@@ -84,6 +86,17 @@ def drop_nested_text(root: ET.Element) -> None:
             for child in list(parent):
                 if local_name(child.tag) == "text":
                     parent.remove(child)
+
+
+def drop_invalid_rotate(root: ET.Element) -> None:
+    for element in root.iter():
+        value = element.get("rotate")
+        if value is None or local_name(element.tag) not in TEXT_TAGS:
+            continue
+        try:
+            [float(number) for number in normalize(value).split()]
+        except ValueError:
+            del element.attrib["rotate"]
 
 
 # ---------------- font metrics ----------------
@@ -412,6 +425,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     FEATURES.update(fonts=fonts, baseline=baseline, decoration=decoration)
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
+    _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
     _core.add_restyler(anchor_restyle)
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:

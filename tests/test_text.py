@@ -319,3 +319,11 @@ def test_vertical_text_positions_and_rotation() -> None:
     # Sideways and turned 30 degrees further: 120 degrees in all
     assert round(math.degrees(math.atan2(matrices[0][1], matrices[0][0]))) == 120
     assert glyph_matrices(render(svg('<text x="50" y="30" writing-mode="tb">   </text>'))) == []
+
+
+@pytest.mark.parametrize("mode", ["", ' writing-mode="tb"'])
+def test_a_broken_rotate_is_ignored(mode: str) -> None:
+    # WeasyPrint parses rotate during the cascade: "abc" lost the whole SVG
+    matrices = glyph_matrices(render(svg(f'<text x="50 60" y="30"{mode} rotate="10 abc">AB</text><g rotate="x"/>')))
+    assert len(matrices) == 2
+    assert [round(matrix[1], 3) for matrix in matrices] == ([1, 1] if mode else [0, 0])
