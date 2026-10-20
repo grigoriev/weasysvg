@@ -41,6 +41,7 @@ MIN_GROUP_EXTENT = 1e4
 _ORIGINAL_SVGIMAGE_INIT = wp_images.SVGImage.__init__
 _ORIGINAL_DRAW_NODE = wp_svg.SVG.draw_node
 _ORIGINAL_ADD_GROUP = wp_stream.Stream.add_group
+_ORIGINAL_ADD_PATTERN = wp_stream.Stream.add_pattern
 
 
 def original_draw_node() -> Callable[..., None]:
@@ -254,8 +255,16 @@ def _add_group(self: Any, *args: Any, **kwargs: Any) -> Any:
     return group
 
 
+def _add_pattern(self: Any, x: float, y: float, width: float, height: float, repeat_width: float, repeat_height: float, matrix: Any) -> Any:
+    pattern = _ORIGINAL_ADD_PATTERN(self, x, y, width, height, repeat_width, repeat_height, matrix)
+    # The pattern matrix maps the tile to the default space of the stream that paints with it
+    base = getattr(self, "weasysvg_base", None)
+    pattern.weasysvg_base = matrix @ base if base is not None else matrix
+    return pattern
+
+
 def absolute_matrix(stream: Any) -> Any:
-    """The matrix from the user space of stream to the page, through the groups it lies in."""
+    """The matrix from the user space of stream to the page, through the groups and patterns it lies in."""
     base = getattr(stream, "weasysvg_base", None)
     return stream.ctm @ base if base is not None else stream.ctm
 
@@ -263,6 +272,8 @@ def absolute_matrix(stream: Any) -> Any:
 def track_groups() -> None:
     if wp_stream.Stream.add_group is not _add_group:
         wp_stream.Stream.add_group = _add_group
+    if wp_stream.Stream.add_pattern is not _add_pattern:
+        wp_stream.Stream.add_pattern = _add_pattern
 
 
 def text_scale(svg: Any) -> float:

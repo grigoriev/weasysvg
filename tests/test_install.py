@@ -104,6 +104,12 @@ def test_a_later_install_never_turns_fonts_off(monkeypatch: pytest.MonkeyPatch) 
         ('<text x="1" y="5" font-size="3" text-decoration="underline">A</text>', ' viewBox="0 0 20 10"', 10.0),
         # An opacity group starts with an identity matrix: the scale outside it still counts
         ('<g opacity="0.5" transform="scale(2)"><text x="1" y="2" font-size="1" text-decoration="underline">A</text></g>', ' viewBox="0 0 20 10"', 20.0),
+        # A pattern tile starts with an identity matrix too: its Matrix and the scale outside count
+        (
+            '<defs><pattern id="p" width="10" height="5" patternUnits="userSpaceOnUse"><text x="1" y="3" font-size="3" text-decoration="underline">A</text></pattern></defs><rect width="10" height="5" fill="url(#p)"/>',
+            ' viewBox="0 0 20 10"',
+            10.0,
+        ),
     ],
 )
 def test_text_scale_counts_every_transform(monkeypatch: pytest.MonkeyPatch, body: str, extra: str, expected: float) -> None:

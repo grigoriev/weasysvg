@@ -155,7 +155,7 @@
   },
   "weasyprint.pdf.stream:Stream.add_pattern": {
    "fingerprint": "a904666c25081fe1",
-   "used_by": "paint._scaled_add_pattern"
+   "used_by": "paint._scaled_add_pattern; _core._add_pattern keeps the absolute matrix"
   },
   "weasyprint.pdf.stream:Stream.create_interpolation_function": {
    "fingerprint": "b1feacaa57a4e477",

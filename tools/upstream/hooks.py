@@ -65,7 +65,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.text.line_break:Layout.reactivate": "text._track runs again after it",
     "weasyprint.pdf.stream:Stream.add_group": "_core._add_group keeps the absolute matrix; _core, filters, paint groups",
     "weasyprint.pdf.stream:Stream.set_alpha_state": "filters blur masks, paint clip masks",
-    "weasyprint.pdf.stream:Stream.add_pattern": "paint._scaled_add_pattern",
+    "weasyprint.pdf.stream:Stream.add_pattern": "paint._scaled_add_pattern; _core._add_pattern keeps the absolute matrix",
     "weasyprint.pdf.stream:Stream.create_interpolation_function": "paint._scaled_add_pattern forces its exponent n to 1",
     "weasyprint.pdf.stream:Stream.clone": "groups start with an identity ctm",
     "weasyprint.css:ComputedStyle.__missing__": "fonts._computed_families, called through COMPUTER_FUNCTIONS",
