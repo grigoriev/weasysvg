@@ -93,7 +93,7 @@ def _chunks(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> list[_Ch
                 chunks.append(_Chunk(y))
             chunk = chunks[-1]
             # letter-spacing belongs to the advance of each character, the last one included
-            step = advance(character, width, size) + spacing
+            step = advance(character, width, size) + glyphs.spacing_after(character, spacing)
             chunk.low, chunk.high = min(chunk.low, y, y + step), max(chunk.high, y, y + step)
             chunk.characters.append((id(text), index))
             y += step
@@ -147,7 +147,7 @@ def _logical_places(svg: Any, node: Any, font_size: float, advances: list[tuple[
     for index, (character, width) in enumerate(advances):
         x = (xs[index] if index < len(xs) else x) + (dxs[index] if index < len(dxs) else 0)
         y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
-        step = advance(character, width, font_size) + spacing
+        step = advance(character, width, font_size) + glyphs.spacing_after(character, spacing)
         places.append([x, y, step])
         y += step
     svg.cursor_position = x, y

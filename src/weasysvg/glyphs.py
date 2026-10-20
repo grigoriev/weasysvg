@@ -31,6 +31,22 @@ NON_JOINING = frozenset("\u0621\u0674")
 JOIN_CAUSING = frozenset("\u0640" + ZWJ)
 
 
+# Cursive scripts take no letter-spacing (css-text-3): Arabic, Syriac, N'Ko, Mandaic, Mongolian,
+# Hanifi Rohingya, Adlam and the Arabic presentation forms
+CURSIVE = ((0x0600, 0x08FF), (0x1800, 0x18AF), (0x10D00, 0x10D3F), (0x1E900, 0x1E95F), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
+
+
+def cursive(character: str) -> bool:
+    """Whether character, or the character of a string from in_context, is of a cursive script."""
+    code = ord(base(character))
+    return any(low <= code <= high for low, high in CURSIVE)
+
+
+def spacing_after(character: str, letter_spacing: float) -> float:
+    """The letter-spacing after character: none after a letter of a cursive script, which keeps it joined."""
+    return 0.0 if cursive(character) else letter_spacing
+
+
 def _joining(character: str) -> str:
     """The joining type of character: D dual, R right, C join causing, T transparent, U none."""
     if character in JOIN_CAUSING:

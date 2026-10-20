@@ -962,3 +962,15 @@ def test_arabic_on_a_path_runs_right_to_left() -> None:
     xs = placed('<path id="p" d="M 10 50 H 190" fill="none"/><text font-size="20"><textPath href="#p">\u0644\u0644</textPath></text>')
     assert len(xs) == 2
     assert xs[initial] == max(xs.values())
+
+
+@pytest.mark.parametrize(
+    "body",
+    ['<path id="p" d="M 10 50 H 190" fill="none"/><text font-size="20" letter-spacing="{}"><textPath href="#p">\u0644\u0644</textPath></text>', '<text x="50" y="20" writing-mode="tb" font-size="20" letter-spacing="{}">\u0644\u0644</text>'],
+)
+def test_letter_spacing_leaves_arabic_joined_one_character_at_a_time(body: str) -> None:
+    # As in a run laid out whole: letter-spacing skips cursive scripts, the joined letters keep touching
+    def matrices(spacing: int) -> list[str]:
+        return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body.format(spacing), height=200))))
+
+    assert matrices(10) == matrices(0)

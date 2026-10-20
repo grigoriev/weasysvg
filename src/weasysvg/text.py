@@ -453,14 +453,6 @@ def _draw_lines(svg: Any, node: Any, font_size: float, rects: list[tuple[float, 
 
 POSITIONS = ("x", "y", "dx", "dy")
 PANGO_RECTANGLE = "PangoRectangle *"
-# Cursive scripts take no letter-spacing (css-text-3): Arabic, Syriac, N'Ko, Mandaic, Mongolian,
-# Hanifi Rohingya, Adlam and the Arabic presentation forms
-CURSIVE = ((0x0600, 0x08FF), (0x1800, 0x18AF), (0x10D00, 0x10D3F), (0x1E900, 0x1E95F), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
-
-
-def _cursive(character: str) -> bool:
-    code = ord(character)
-    return any(low <= code <= high for low, high in CURSIVE)
 
 
 def _track(layout: Any, spacing: float) -> float:
@@ -473,7 +465,7 @@ def _track(layout: Any, spacing: float) -> float:
     start = 0
     for character in layout.text:
         end = start + len(character.encode())
-        if not _cursive(character):
+        if not glyphs.cursive(character):
             attribute = pango.pango_attr_letter_spacing_new(int(spacing * TO_UNITS))
             attribute.start_index, attribute.end_index = start, end
             pango.pango_attr_list_change(attributes, attribute)
@@ -508,7 +500,7 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
     if node.get("direction") in ("ltr", "rtl"):
         style["direction"] = node.get("direction")
     letter_spacing = svg.length(node.get("letter-spacing"), font_size)
-    tracked = bool(letter_spacing) and any(_cursive(character) for character in node.text)
+    tracked = bool(letter_spacing) and any(glyphs.cursive(character) for character in node.text)
     if letter_spacing and not tracked:
         style["letter_spacing"] = letter_spacing
     layout, _, _, width, height, baseline = split_first_line(node.text, style, svg.context, float("inf"), 0)

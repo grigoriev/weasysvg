@@ -123,7 +123,7 @@ def _place(svg: Any, node: Any, font_size: float, state: _State, advances: list[
             (x, y), angle = position
             cos, sin = math.cos(angle), math.sin(angle)
             placed.append((character, width, (x - cos * width / 2 - sin * state.shift, y - sin * width / 2 + cos * state.shift), cos, sin))
-        state.distance += width + letter_spacing
+        state.distance += width + glyphs.spacing_after(character, letter_spacing)
     return placed
 
 
@@ -135,7 +135,7 @@ def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations
     drawn = False
     for index, (character, width, origin, cos, sin) in enumerate(placed):
         # The line runs on under the letter-spacing, up to the next character
-        length = width + (letter_spacing if index + 1 < len(placed) else 0)
+        length = width + (glyphs.spacing_after(character, letter_spacing) if index + 1 < len(placed) else 0)
         for top, thickness, dilation in decorations:
             # Each character skips its own ink, in its own frame
             cuts = ink.intercepts(characters.get(character, []), top, top + thickness) if dilation is not None else []
