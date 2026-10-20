@@ -392,8 +392,10 @@ def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, flo
 
 # The most layers one chain may have: feMerge and feComposite can double them at each primitive
 MAX_LAYERS = 64
-# The layers of the filters being drawn, multiplied: nested filters may not exceed MAX_LAYERS together
+# The draws of the element that the filters being drawn cost, multiplied along the nesting. A blurred
+# layer costs up to 3 * MAX_STEPS + 2 draws, any other one 1.
 FAN_OUT: ContextVar[int] = ContextVar("weasysvg_fan_out", default=1)
+MAX_DRAWS = 256
 # The largest filter region coordinate, in user units
 MAX_REGION = 1e7
 
@@ -742,6 +744,12 @@ def _blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: fl
 # ---------------- drawing ----------------
 
 
+def _cost(layer: Layer) -> int:
+    """The draws of the element one layer makes."""
+    blurred = layer.kind != "flood" and not BLURRING.get() and _sigma(layer)
+    return 3 * MAX_STEPS + 2 if blurred else 1
+
+
 def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, plan_: Plan) -> None:
     layers, region = plan_.layers, plan_.region
     stream = svg.stream
@@ -751,9 +759,9 @@ def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: 
         stream.clip()
         stream.end()
     big = region or _core.group_box(svg, node, font_size)
-    # Each layer draws the element again, nested filters included: their layers multiply
-    fan_out = FAN_OUT.get() * len(layers)
-    if fan_out > MAX_LAYERS:
+    # Each layer draws the element again, nested filters included: their costs multiply
+    fan_out = FAN_OUT.get() * sum(_cost(layer) for layer in layers)
+    if fan_out > MAX_DRAWS:
         LOGGER.warning("SVG filter is drawn unfiltered: too many nested layers")
         layers, fan_out = UNFILTERED.layers, FAN_OUT.get()
     token = FAN_OUT.set(fan_out)

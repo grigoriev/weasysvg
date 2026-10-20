@@ -653,3 +653,12 @@ def test_invalid_stop_opacity_under_a_recolor_counts_as_opaque() -> None:
     red, green, blue = pixel(render(filtered('<feColorMatrix type="saturate" values="0"/>', target=target)), 30, 30)
     assert red < 200
     assert abs(red - green) < 4
+
+
+def test_blurred_layers_count_against_the_draw_budget(caplog: pytest.LogCaptureFixture) -> None:
+    # Eight blurred layers cost some 400 draws of the element: beyond the budget, the filter is dropped
+    merge = "<feMerge>" + '<feMergeNode in="b"/>' * 8 + "</feMerge>"
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered(f'<feGaussianBlur stdDeviation="2" result="b"/>{merge}'))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert "too many nested layers" in caplog.text
