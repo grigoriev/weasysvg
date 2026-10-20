@@ -610,3 +610,12 @@ def test_bounding_box_clip_on_a_link_around_a_shape() -> None:
     pdf = render(svg(f'<defs>{clip}</defs><a clip-path="url(#c)"><rect width="200" height="100" fill="red"/></a>'))
     assert near(pixel(pdf, 56, 30), RED)
     assert near(pixel(pdf, 90, 30), WHITE)
+
+
+def test_a_link_with_text_and_a_shape_clips_by_both() -> None:
+    # The box spans the "H" and the rect: its left half keeps the whole "H", not only its left half
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath>'
+    link = '<a clip-path="url(#c)" font-size="60" font-weight="bold" fill="red">H<rect x="150" y="20" width="50" height="60"/></a>'
+    pdf = render(svg(f'<defs>{clip}</defs><g transform="translate(10 70)">{link}</g>'))
+    # pixel() reads pt: the right stem of the "H" lies at about 38 to 48 user units
+    assert any(near(pixel(pdf, x, 37), RED) for x in range(30, 37))

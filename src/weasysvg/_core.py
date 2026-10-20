@@ -122,9 +122,14 @@ def enable_draw_feature(name: str) -> None:
 
 
 def bounding_box_a(svg: Any, node: Any, font_size: float) -> Any:
-    """The box of an <a>, which WeasyPrint leaves empty: its text inside a <text>, its children elsewhere."""
-    box = getattr(node, "text_bounding_box", None)
-    return box if is_valid_bounding_box(box) else wp_bounding_box.bounding_box_g(svg, node, font_size)
+    """The box of an <a>, which WeasyPrint leaves empty: its own text and its children, as for a <g>."""
+    text, children = getattr(node, "text_bounding_box", None), wp_bounding_box.bounding_box_g(svg, node, font_size)
+    if not is_valid_bounding_box(text):
+        return children
+    if not is_valid_bounding_box(children):
+        return text
+    x, y, width, height = children
+    return wp_bounding_box.extend_bounding_box(text, ((x, y), (x + width, y + height)))
 
 
 def _group_opacity(node: Any) -> float | None:
