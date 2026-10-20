@@ -729,9 +729,9 @@
  },
  {
   "name": "resvg__text-letter-spacing--on-Arabic",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Arabic letters unjoined and spaced apart instead of connected words.",
+  "what": "Letters joined, right to left, in the fallback font of Chromium. letter-spacing widens the spaces only; PDFium shows half of it (it drops the shift before the first glyph of a TJ array), Quartz all of it.",
   "reference_agrees_with": "chromium"
  },
  {

@@ -209,3 +209,9 @@ def test_letter_spacing_reaches_the_spaces_only() -> None:
     layout.reactivate(style)
     assert abs(text._track(layout, 10) - width - 20) < 3
     layout.deactivate()
+
+
+def test_missing_glyphs_fall_back_to_sans_serif() -> None:
+    # Chromium takes a character the family lacks from the sans-serif list: DejaVu Sans, not FreeSerif
+    pdf = render(svg('<text x="10" y="50" font-family="serif">a بعض</text>', width=300))
+    assert b"DejaVu-Sans" in pdf

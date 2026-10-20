@@ -30,7 +30,7 @@ from weasyprint.text.line_break import Layout
 
 from . import _core
 from .conditional import local_name
-from .fonts import resolve_families
+from .fonts import FALLBACK, resolve_families
 
 TEXT_TAGS = ("a", "text", "textPath", "tspan")
 # font-size keywords, as CSS defines them (medium = 16px)
@@ -291,7 +291,7 @@ def _draw_decorated(svg: Any, node: Any, font_size: float) -> Any:
 
 def draw_text(svg: Any, node: Any, font_size: float) -> Any:
     if FEATURES["fonts"]:
-        node.attrib["font-family"] = resolve_families(node.get("font-family") or "", svg.font_config)
+        node.attrib["font-family"] = f"{resolve_families(node.get('font-family') or '', svg.font_config)}, {FALLBACK}"
     if not FEATURES["baseline"] or node.get("display-anchor"):
         return _draw_decorated(svg, node, font_size)
     # text() knows a fixed ascent of 0.8em only: hide the attribute, shift around the call instead

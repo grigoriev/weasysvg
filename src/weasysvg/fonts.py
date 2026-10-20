@@ -9,6 +9,10 @@ the first family of a list that fontconfig finds, by name or as a metric equival
 A list where nothing matches falls back to Times New Roman. WeasyPrint hands the whole list to Pango,
 where fontconfig picks DejaVu Sans for any unknown name. Measured in Chromium: 46 of 47 lists match.
 
+A character the family lacks comes from the font fontconfig picks for it with no family, which is the
+sans-serif list (gfx::GetFallbackFontForChar). Pango falls back within the family it gets, so serif
+text took Arabic from FreeSerif: after the family Pango gets FALLBACK.
+
 No fontconfig file is needed: the resolver hands Pango one concrete family, so the strong aliases and the
 emoji rule of the earlier fonts.conf changed no pixel of the corpus, with or without it.
 """
@@ -26,6 +30,8 @@ from weasyprint.text.ffi import ffi, fontconfig
 
 # Chromium draws with it when no family of a list matches
 STANDARD = "Times New Roman"
+# Where Chromium finds a character the family lacks: fontconfig with no family asks for sans-serif
+FALLBACK = "sans-serif"
 # Lowercase keys of the equivalence and alternate tables
 COURIER_NEW = "courier new"
 TIMES_NEW_ROMAN = "times new roman"
@@ -137,7 +143,7 @@ def _computed_families(style: Any, name: str, value: Any) -> Any:
     families = _ORIGINAL_FAMILY_COMPUTER(style, name, value) if _ORIGINAL_FAMILY_COMPUTER else value
     if not IN_FOREIGN_OBJECT.get() or style.font_config is None:
         return families
-    return (resolve_families(families, style.font_config),)
+    return (resolve_families(families, style.font_config), FALLBACK)
 
 
 def install() -> None:
