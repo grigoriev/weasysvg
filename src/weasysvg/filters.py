@@ -527,7 +527,7 @@ def _fe_turbulence(chain: _Chain, child: Any) -> list[Layer]:
     )
     if region[2] <= 0 or region[3] <= 0:
         return []
-    scale, linear = _px_per_unit(chain.svg), _linear_space(chain, child)
+    scale, linear = _core.px_per_unit(chain.svg), _linear_space(chain, child)
     columns, rows = turbulence.size(region, scale)
     image = _computed(chain.svg, ("turbulence", spec, region, scale, linear), columns * rows * max(spec.octaves, 1), lambda: turbulence.image(spec, region, scale, linear))
     return [Layer("image", region=region, image=image)]
@@ -829,17 +829,6 @@ def _sigma(layer: Layer) -> float:
     return (layer.blur[0] + layer.blur[1]) / 2
 
 
-def _px_per_unit(svg: Any) -> float:
-    """About how many CSS px one user unit spans: the scale of the root viewBox and of the stream."""
-    try:
-        local = math.sqrt(abs(svg.stream.ctm.determinant)) or 1.0
-        viewbox = svg.tree.get_viewbox()
-        root = svg.concrete_width / viewbox[2] if viewbox and viewbox[2] else 1.0
-        return float(local * root)
-    except (AttributeError, TypeError, ZeroDivisionError):
-        return 1.0
-
-
 def levels(sigma: float, steps: int) -> list[Restyle]:
     """The levels of the blurred edge. Level k of 2n holds alpha (k - 0.5) / 2n and is painted k / 2n.
 
@@ -912,7 +901,7 @@ def _blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: fl
     Every level lightens the mask, so each point keeps the highest level it reaches: the grown shapes and
     the lines outside, white minus the bands inside the filled shapes.
     """
-    steps = max(MIN_STEPS, min(MAX_STEPS, math.ceil(STEPS_PER_PX * sigma * _px_per_unit(svg))))
+    steps = max(MIN_STEPS, min(MAX_STEPS, math.ceil(STEPS_PER_PX * sigma * _core.px_per_unit(svg))))
     mask = svg.stream.set_alpha_state(*box, mode="luminosity")
     mask.set_blend_mode("Lighten")
     for k, level in enumerate(levels(sigma, steps), 1):
@@ -1144,3 +1133,4 @@ def install() -> None:
     _core.add_restyler(restyle)
     _core.add_restyler(recolor_restyle)
     _core.enable_draw_feature("filters")
+    _core.track_groups()

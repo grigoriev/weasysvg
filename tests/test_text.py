@@ -149,6 +149,19 @@ def test_decoration_lines_are_a_tenth_of_the_font_size() -> None:
     assert [height for height in heights if height < 10] == [pytest.approx(3.0)]
 
 
+@pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
+def test_decoration_lines_follow_the_scale_of_the_svg(decoration: str) -> None:
+    # Chromium applies its rules in CSS px: font-size 3 at ten px per unit draws as font-size 30 at one
+    def lines(body: str, extra: str = "") -> list[float]:
+        found = re.findall(r"([-\d.]+) ([-\d.]+) [-\d.]+ ([-\d.]+) re", content(render(svg(body, extra=extra))))
+        return [float(value) for line in found for value in (line[1], line[2]) if abs(float(line[2])) < 10]
+
+    plain = lines(f'<text x="10" y="50" font-size="30" text-decoration="{decoration}">Decor</text>')
+    scaled = lines(f'<text x="1" y="5" font-size="3" text-decoration="{decoration}">Decor</text>', ' viewBox="0 0 20 10"')
+    assert plain
+    assert scaled == [pytest.approx(value / 10, abs=1e-3) for value in plain]
+
+
 def test_decoration_skips_positioned_glyphs_and_blank_runs() -> None:
     pdf = render(svg('<text x="10" y="50 60" text-decoration="underline">AB</text><text x="10" y="80" dy="1 2" text-decoration="underline">CD</text><text x="10" y="90" text-decoration="underline"> </text>'))
     assert rectangles(pdf) == 0

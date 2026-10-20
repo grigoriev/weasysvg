@@ -174,6 +174,13 @@ def chromium_lines(lines: list[str], font_size: float, ascent: float, underline_
     return out
 
 
+def _lines_of(svg: Any, lines: list[str], font_size: float, layout: Any) -> list[tuple[float, float]]:
+    """chromium_lines in user units: Chromium applies its minimum and its rounding in CSS px."""
+    scale = _core.px_per_unit(svg)
+    found = chromium_lines(lines, font_size * scale, layout.ascent * scale, layout.underline_position * scale, layout.underline_thickness * scale)
+    return [(top / scale, thickness / scale) for top, thickness in found]
+
+
 def _decorate(svg: Any, node: Any, font_size: float) -> None:
     """Draw the lines over the run text() just laid out, with the position and thickness of the font.
 
@@ -191,7 +198,7 @@ def _decorate(svg: Any, node: Any, font_size: float) -> None:
     ascent = pango.pango_layout_get_baseline(layout.layout) * FROM_UNITS
     x, y, width, _ = node.text_bounding_box
     baseline = y + ascent
-    rects = [(baseline + top, thickness) for top, thickness in chromium_lines(lines, font_size, layout.ascent, layout.underline_position, layout.underline_thickness)]
+    rects = [(baseline + top, thickness) for top, thickness in _lines_of(svg, lines, font_size, layout)]
     layout.deactivate()
     _draw_lines(svg, node, font_size, x, width, rects)
 
@@ -351,7 +358,7 @@ def _path_decorations(svg: Any, node: Any, font_size: float) -> list[tuple[float
     style["text_decoration_line"] = set(lines)
     layout = Layout(style)
     layout.set_text(node.text or "x")
-    out = chromium_lines(lines, font_size, layout.ascent, layout.underline_position, layout.underline_thickness)
+    out = _lines_of(svg, lines, font_size, layout)
     layout.deactivate()
     return out
 
@@ -443,3 +450,4 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:
             wp_svg.TAGS[tag] = draw_text
     wp_svg.text = draw_text
+    _core.track_groups()

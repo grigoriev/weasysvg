@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import warnings
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
 import weasyprint
+from helpers import render, svg
 from weasyprint import images as wp_images
 from weasyprint import svg as wp_svg
 
@@ -90,3 +93,29 @@ def test_a_later_install_never_turns_fonts_off(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setitem(weasysvg.text.FEATURES, "fonts", True)
     assert "fonts" in weasysvg.install(fonts=False)
     assert weasysvg.text.FEATURES["fonts"] is True
+
+
+@pytest.mark.parametrize(
+    ("body", "extra", "expected"),
+    [
+        ('<text x="10" y="50" text-decoration="underline">A</text>', "", 1.0),
+        ('<text x="1" y="5" font-size="3" text-decoration="underline">A</text>', ' viewBox="0 0 20 10"', 10.0),
+        # An opacity group starts with an identity matrix: the scale outside it still counts
+        ('<g opacity="0.5" transform="scale(2)"><text x="1" y="2" font-size="1" text-decoration="underline">A</text></g>', ' viewBox="0 0 20 10"', 20.0),
+    ],
+)
+def test_px_per_unit_counts_every_transform(monkeypatch: pytest.MonkeyPatch, body: str, extra: str, expected: float) -> None:
+    seen: list[float] = []
+    original = _core.px_per_unit
+
+    def recording(image: Any) -> float:
+        seen.append(original(image))
+        return seen[-1]
+
+    monkeypatch.setattr(_core, "px_per_unit", recording)
+    render(svg(body, extra=extra))
+    assert seen == [pytest.approx(expected)]
+
+
+def test_px_per_unit_without_a_stream_is_one() -> None:
+    assert _core.px_per_unit(SimpleNamespace()) == 1.0
