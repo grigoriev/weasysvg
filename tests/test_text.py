@@ -811,3 +811,9 @@ def test_a_positioned_letter_keeps_its_place_in_a_vertical_run() -> None:
     ys = {glyph: float(y) for y, glyph in re.findall(r"[-\d.]+ ([-\d.]+) Tm\n(?:[^\n]*Tf\n)?\[<([0-9a-f]+)>", content(pdf))}
     assert ys[dal] == pytest.approx(80)
     assert min(ys.values()) == pytest.approx(20)
+
+
+def test_digits_inside_a_right_to_left_run_keep_their_order() -> None:
+    # Alef, space, the digits 1 and 2, space, dal: the words turn around, the number reads left to right
+    assert glyph_layout.visual_order("\u0627 \u0661\u0662 \u062f") == [5, 4, 2, 3, 1, 0]
+    assert glyph_layout.visual_order("\u0627 1.5 \u062f") == [6, 5, 2, 3, 4, 1, 0]

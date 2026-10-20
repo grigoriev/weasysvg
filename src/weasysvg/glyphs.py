@@ -68,11 +68,14 @@ def in_context(text: str, index: int) -> str:
     return before + character + after
 
 
+DIGITS = ("EN", "AN")
+
+
 def rtl_runs(text: str) -> list[tuple[int, int]]:
     """The right-to-left runs of text, start and end indices, for a left-to-right line.
 
     A simple form of the bidi algorithm: strong Arabic and Hebrew letters make a run, with the marks after
-    them and the neutrals between two of them.
+    them and the neutrals and numbers between two of them.
     """
     classes = [unicodedata.bidirectional(character) for character in text]
     # The class of the nearest strong letter on each side of each index, None at the ends
@@ -93,7 +96,7 @@ def rtl_runs(text: str) -> list[tuple[int, int]]:
             rtl[index] = True
         elif kind == "NSM" and index:
             rtl[index] = rtl[index - 1]
-        elif kind not in ("L", "EN", "AN"):
+        elif kind != "L":
             rtl[index] = before[index] in ("R", "AL") and after[index] in ("R", "AL")
     runs = []
     index = 0
@@ -109,11 +112,22 @@ def rtl_runs(text: str) -> list[tuple[int, int]]:
     return runs
 
 
+def _in_number(text: str, index: int) -> bool:
+    """Whether text[index] is a digit, or a separator between two digits, as 1.5 or 1,000."""
+    kind = unicodedata.bidirectional(text[index])
+    if kind in DIGITS:
+        return True
+    inside = 0 < index < len(text) - 1
+    return kind in ("CS", "ES", "ET") and inside and unicodedata.bidirectional(text[index - 1]) in DIGITS and unicodedata.bidirectional(text[index + 1]) in DIGITS
+
+
 def reversed_clusters(text: str, start: int, end: int) -> list[int]:
-    """The indices from start to end in visual order: clusters reversed, a mark kept after its letter."""
+    """The indices from start to end in visual order: clusters reversed, a mark kept after its letter, and a
+    number kept whole, left to right."""
     clusters: list[list[int]] = []
     for index in range(start, end):
-        if unicodedata.bidirectional(text[index]) == "NSM" and clusters:
+        joins = unicodedata.bidirectional(text[index]) == "NSM" or (_in_number(text, index) and index > start and _in_number(text, index - 1))
+        if joins and clusters:
             clusters[-1].append(index)
         else:
             clusters.append([index])
