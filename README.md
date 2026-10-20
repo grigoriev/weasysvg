@@ -99,19 +99,21 @@ change between releases.
 
 The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
 Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
-the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (86 SVGs), or an
-English browser where headless Chromium matches no `systemLanguage`. A visual review at full size
-compares each rendering with that reference:
+the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (73 SVGs), or an
+English browser where headless Chromium matches no `systemLanguage`. For the resvg tests the expected
+image of the resvg suite decides between Chromium and resvg where they differ. `make review` compares the
+renderings at twice the resolution of the panels, in an 8 x 8 grid, and a look at each cell that differs
+gives the verdict:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 47 | 110 |
-| 🟡 close to the reference | 15 | 3 |
-| ❌ differs from the reference | 53 | 1 |
+| ✅ matches the reference | 41 | 104 |
+| 🟡 close to the reference | 20 | 9 |
+| ❌ differs from the reference | 54 | 1 |
 
-All 35 diagrams from draw.io, kroki and mermaid.ink match the reference. Each verdict says what
-differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
+Of the 35 diagrams from draw.io, kroki and mermaid.ink, 30 match the reference and 5 are close.
+Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
 shows every SVG in Chromium, your own browser, resvg, WeasyPrint alone and WeasyPrint with weasysvg, in a row,
 with the reference marked and a swipe between any two of them, as GitHub compares images;
 [`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
