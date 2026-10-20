@@ -1,6 +1,6 @@
 """The visual regression bench: render the corpus with WeasyPrint and weasysvg, compare with Chromium.
 
-Usage: bench.py [--only TEXT] [--out DIR]
+Usage: bench.py [--only TEXT] [--out DIR] [--native] [--against FILE | --write-baseline FILE]
 
 1. Each corpus SVG is wrapped in the page the references were made from: an <img> with a data URL,
    sized by the width in corpus/index.json, on a 2000 px page.
@@ -9,6 +9,10 @@ Usage: bench.py [--only TEXT] [--out DIR]
 
 A dev tool, not a CI gate: the numbers guide the eye, the verdicts in corpus/verdicts.json are the judgment.
 Run it through make visual: the visual image has the fonts of the references.
+
+--native renders with WeasyPrint alone. --write-baseline stores the mismatch of each SVG in FILE, under
+the mode; --against compares with it. For an upgrade of WeasyPrint (UPGRADING.md): weasysvg worse than
+its baseline is a regression to fix, WeasyPrint alone better than its baseline may be a gap it closed.
 """
 
 from __future__ import annotations
@@ -18,6 +22,7 @@ import base64
 import html
 import json
 import logging
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -31,6 +36,8 @@ import weasysvg
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS = ROOT / "corpus"
 PANEL = 420  # max panel width in the report, px
+# A change of the mismatch below this many points is noise: antialiasing, font hinting
+TOLERANCE = 1.0
 
 
 def page(svg: bytes, width: float | None) -> str:
@@ -138,16 +145,52 @@ def report(rows: list[dict[str, Any]], verdicts: dict[str, dict[str, Any]], out:
     (out / "report.html").write_text(document)
 
 
-def main() -> None:
+def write_baseline(path: Path, mode: str, rows: list[dict[str, Any]]) -> None:
+    """Store the mismatch of each SVG under mode, next to the other mode already in the file."""
+    baseline = json.loads(path.read_text()) if path.exists() else {}
+    baseline["weasyprint"] = weasyprint.__version__
+    baseline[mode] = {row["name"]: row["mismatch"] for row in rows}
+    path.write_text(json.dumps(baseline, indent=1, sort_keys=True) + "\n")
+
+
+def compare(path: Path, mode: str, rows: list[dict[str, Any]]) -> list[str]:
+    """The SVGs whose mismatch moved past TOLERANCE since the baseline, worse first; the regressions of weasysvg."""
+    baseline = json.loads(path.read_text())
+    before: dict[str, float | None] = baseline.get(mode, {})
+    worse, better = [], []
+    for row in rows:
+        old, new = before.get(row["name"]), row["mismatch"]
+        if old is None or new is None:
+            if old != new:
+                worse.append(f"{row['name']}: {old} -> {new}")
+            continue
+        if new - old > TOLERANCE:
+            worse.append(f"{row['name']}: {old} -> {new}")
+        elif old - new > TOLERANCE:
+            better.append(f"{row['name']}: {old} -> {new}")
+    print(f"against {path.name} ({mode}, WeasyPrint {baseline.get('weasyprint')} -> {weasyprint.__version__}):")
+    for title, lines in (("worse", worse), ("better", better)):
+        print(f"  {title}: {len(lines)}")
+        for line in lines:
+            print(f"    {line}")
+    return worse if mode == "weasysvg" else []
+
+
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--only", default="", help="render only the names that contain this text")
     parser.add_argument("--out", type=Path, default=ROOT / "tools" / "visual" / "out")
+    parser.add_argument("--native", action="store_true", help="render with WeasyPrint alone")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--against", type=Path, help="compare the mismatch with this baseline")
+    group.add_argument("--write-baseline", type=Path, help="store the mismatch in this baseline")
     args = parser.parse_args()
     out: Path = args.out
+    mode = "native" if args.native else "weasysvg"
     (out / "pdf").mkdir(parents=True, exist_ok=True)
     (out / "img").mkdir(parents=True, exist_ok=True)
-    features = weasysvg.install()
-    print("features:", ", ".join(sorted(features)), flush=True)
+    features = frozenset() if args.native else weasysvg.install()
+    print(f"WeasyPrint {weasyprint.__version__}, features:", ", ".join(sorted(features)) or "none", flush=True)
     handler = Warnings()
     for logger in ("weasyprint", "weasysvg"):
         logging.getLogger(logger).addHandler(handler)
@@ -161,7 +204,12 @@ def main() -> None:
     (out / "rows.json").write_text(json.dumps(rows, indent=1) + "\n")
     report(rows, verdicts, out)
     print(f"{len(rows)} SVGs, report at {out / 'report.html'}")
+    if args.write_baseline:
+        write_baseline(args.write_baseline, mode, rows)
+    if args.against:
+        return 1 if compare(args.against, mode, rows) else 0
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
