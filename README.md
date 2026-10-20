@@ -113,8 +113,8 @@ All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromi
 differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
 which has no scrollbar for `overflow: auto` (print has no use for one). The verdicts are in
 [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
-shows every SVG in Chromium, resvg, WeasyPrint alone and WeasyPrint with weasysvg, with large panels, a flip
-between two renderers and a zoom; [`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
+shows every SVG in Chromium, your own browser, resvg, WeasyPrint alone and WeasyPrint with weasysvg, in a row,
+with a swipe between any two of them, as GitHub compares images; [`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
 
 ## Known gaps
 

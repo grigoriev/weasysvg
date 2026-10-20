@@ -69,6 +69,17 @@ def inside(path: Path) -> Path:
 
 def render_resvg(item: dict[str, Any]) -> Image.Image | str:
     """The page of the SVG through resvg, on white, at the width of the page; or why there is none."""
+    image = resvg_image(item)
+    if isinstance(image, str):
+        return image
+    # The <img> of the references sits at the top left of a white page
+    page = Image.new("RGB", tuple(item.get("page_size") or image.size), "white")
+    page.paste(image, (0, 0), mask=image.getchannel("A"))
+    return page
+
+
+def resvg_image(item: dict[str, Any]) -> Image.Image | str:
+    """The SVG through resvg at the width of the page, transparent; or why there is none."""
     svg = inside(CORPUS / "svg" / item["source"])
     try:
         # The families Chromium resolves the generic names to, in the visual image
@@ -87,11 +98,7 @@ def render_resvg(item: dict[str, Any]) -> Image.Image | str:
         if isinstance(error, (KeyboardInterrupt, SystemExit)):
             raise
         return f"resvg error: {error}"[:200]
-    image = Image.open(io.BytesIO(png)).convert("RGBA")
-    # The <img> of the references sits at the top left of a white page
-    page = Image.new("RGB", tuple(item.get("page_size") or image.size), "white")
-    page.paste(image, (0, 0), mask=image.getchannel("A"))
-    return page
+    return Image.open(io.BytesIO(png)).convert("RGBA")
 
 
 def panels(item: dict[str, Any]) -> str | None:
@@ -170,7 +177,7 @@ def page(resvg_errors: dict[str, str]) -> str:
         "rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the "
         "ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see "
         "[`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large "
-        "panels and a flip between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.\n\n"
+        "panels, your own browser and a swipe between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.\n\n"
     )
     return intro + summary(list(verdicts.values()), version) + "\n\n" + contents + "\n\n" + "\n".join(sections)
 
@@ -185,6 +192,16 @@ def html_page(resvg_errors: dict[str, str]) -> str:
         name, verdict = item["name"], verdicts.get(item["name"], {})
         found = {label.lower(): f"{folder}/{name}.png" for label, folder in COLUMNS if (CORPUS / folder / f"{name}.png").exists()}
         size = Image.open(CORPUS / found["chromium"]).size if "chromium" in found else (0, 0)
+        # Where the Chromium panel sits on the page of the references: the browser panel crops the SVG there
+        reference = CORPUS / "reference" / "chromium" / f"{name}.png"
+        box = item.get("reference_box")
+        ink = ink_box([Image.open(reference).convert("RGB")]) if box and reference.exists() else None
+        # The height of the <img> at that width: resvg sizes the SVG as a browser does
+        crop = None
+        if box and ink:
+            drawn = resvg_image(item)
+            if isinstance(drawn, Image.Image):
+                crop = {"x": box[0] + ink[0], "y": box[1] + ink[1], "page": item["width"], "pageHeight": drawn.height}
         items.append(
             {
                 "name": name,
@@ -195,17 +212,20 @@ def html_page(resvg_errors: dict[str, str]) -> str:
                 "what": verdict.get("what") or "",
                 "width": size[0],
                 "height": size[1],
-                "panels": {label.lower(): found.get(label.lower()) for label, _ in COLUMNS},
+                "panels": {label.lower(): found.get(label.lower()) for label, _ in COLUMNS} | {"browser": f"svg/{item['source']}" if crop else None},
+                "crop": crop,
                 "errors": {"resvg": resvg_errors[name]} if name in resvg_errors else {},
             }
         )
     data = {
         "intro": (
             f"Each SVG of the corpus in Chromium, the reference; resvg (resvg-py {importlib.metadata.version('resvg-py')}); "
-            f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. Every panel is cropped to the ink of the "
-            "Chromium reference, so the four line up pixel for pixel. Click a panel for its full size."
+            f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. The browser panel is the SVG itself, drawn by "
+            "the browser you read this page in. Every panel is cropped to the ink of the Chromium reference, so they line up "
+            "pixel for pixel. Click a panel to swipe between two renderers at full size."
         ),
-        "renderers": {label.lower(): label for label, _ in COLUMNS},
+        # The browser panel comes second, next to the other browser
+        "renderers": {"chromium": "Chromium", "browser": "This browser"} | {label.lower(): label for label, _ in COLUMNS[1:]},
         "groups": GROUPS,
         # Every verdict, those no SVG has included: the filter lists them all
         "counts": {key: counts[key] for key in VERDICTS},
