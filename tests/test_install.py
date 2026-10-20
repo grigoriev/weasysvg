@@ -12,7 +12,7 @@ from weasyprint import svg as wp_svg
 import weasysvg
 from weasysvg import _core
 
-ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object"}
+ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object", "markers"}
 
 
 def test_install_returns_every_feature() -> None:

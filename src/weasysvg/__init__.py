@@ -16,6 +16,7 @@ from . import fetch as _fetch
 from . import filters as _filters
 from . import fonts as _fonts
 from . import foreign_object as _foreign_object
+from . import markers as _markers
 from . import paint as _paint
 from . import text as _text
 from .fonts import resolve_families
@@ -46,6 +47,7 @@ def install(
     text: bool = True,
     fonts: bool = True,
     fetch_cache: bool = True,
+    markers: bool = True,
 ) -> frozenset[str]:
     """Install the selected features and return all features installed so far.
 
@@ -62,6 +64,7 @@ def install(
         "fetch": fetch_cache,
         "filters": filters,
         "foreign_object": foreign_object,
+        "markers": markers,
     }
 
     def _install_fonts() -> None:
@@ -79,6 +82,7 @@ def install(
         "fetch": _fetch.install,
         "filters": _filters.install,
         "foreign_object": _foreign_object.install,
+        "markers": _markers.install,
     }
     for name, enabled in wanted.items():
         if enabled and name not in _INSTALLED:

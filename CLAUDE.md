@@ -43,6 +43,8 @@ once.
   levels: the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
   and transfer functions recolor every parsed color (`RECOLOR`).
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
+- `pathdata.py`: path data as segments with tangents and points along them.
+- `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.
 - `text.py`, `fonts.py`: SVG text, Chromium font selection.
 - `fetch.py`: one fetch per URL and SVG.
 

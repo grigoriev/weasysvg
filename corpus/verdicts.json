@@ -554,16 +554,16 @@
  },
  {
   "name": "resvg__painting-marker--on-ArcTo",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Mid marker missing and start/end markers point in wrong directions.",
+  "what": "Start and end markers follow the arc tangents, as in Chromium.",
   "reference_agrees_with": "neither"
  },
  {
   "name": "resvg__painting-marker--orient=auto-on-M-C-C-4",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Start and mid markers rotated about 90 degrees wrong.",
+  "what": "The mid marker bisects the cusp with the angle wrap of Chromium and points right.",
   "reference_agrees_with": "chromium"
  },
  {

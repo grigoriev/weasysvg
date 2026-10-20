@@ -73,6 +73,7 @@ weasysvg.install(filters=False, fonts=False)
 | `text` | `True` | text baselines, decorations, font-size keywords |
 | `fonts` | `True` | font family selection as Chromium does it |
 | `fetch_cache` | `True` | one fetch per URL and SVG |
+| `markers` | `True` | marker orientation as in Chromium |
 
 weasysvg targets WeasyPrint 70.x and warns on any other major version: it patches internals that
 change between releases.
@@ -89,6 +90,7 @@ change between releases.
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
 | Text | `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` from the font, font-size keywords, nested `<text>` ignored. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). |
+| Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
 
 ## How it compares to Chromium
@@ -100,10 +102,10 @@ review:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 97 |
+| same as Chromium | 40 | 99 |
 | minor difference | 10 | 6 |
 | other font only | 11 | 0 |
-| broken | 54 | 12 |
+| broken | 54 | 10 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
 differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
@@ -113,7 +115,6 @@ which has no scrollbar for `overflow: auto` (print has no use for one). The verd
 ## Known gaps
 
 - `textPath` and vertical `writing-mode` are not supported.
-- Markers on arcs and on some curves point in the wrong direction (`orient="auto"`).
 - `clip-path` on the children of a `<clipPath>` and a mask that references itself through its content
   lose the clipped or masked part.
 - `letter-spacing` on Arabic text breaks the joining of the letters.
