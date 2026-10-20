@@ -20,6 +20,7 @@ from xml.etree import ElementTree as ET
 
 from weasyprint import images as wp_images
 from weasyprint import svg as wp_svg
+from weasyprint.pdf import stream as wp_stream
 from weasyprint.svg.utils import alpha_value, parse_url, size
 
 TreePass = Callable[[ET.Element], None]
@@ -39,6 +40,8 @@ MIN_GROUP_EXTENT = 1e4
 
 _ORIGINAL_SVGIMAGE_INIT = wp_images.SVGImage.__init__
 _ORIGINAL_DRAW_NODE = wp_svg.SVG.draw_node
+_ORIGINAL_ADD_GROUP = wp_stream.Stream.add_group
+_ORIGINAL_ADD_PATTERN = wp_stream.Stream.add_pattern
 
 
 def original_draw_node() -> Callable[..., None]:
@@ -239,6 +242,58 @@ def _draw_clipped(self: Any, original: Callable[..., None], node: Any, font_size
         if effects.blend is not None:
             outer.set_blend_mode(effects.blend)
         outer.draw_x_object(group.id)
+
+
+# WeasyPrint draws a page in pt: one CSS px is 0.75 pt
+PX_PER_PT = 4 / 3
+
+
+def _add_group(self: Any, *args: Any, **kwargs: Any) -> Any:
+    group = _ORIGINAL_ADD_GROUP(self, *args, **kwargs)
+    # A group starts with an identity matrix: it keeps the absolute matrix of its parent
+    group.weasysvg_base = absolute_matrix(self)
+    return group
+
+
+def _add_pattern(self: Any, x: float, y: float, width: float, height: float, repeat_width: float, repeat_height: float, matrix: Any) -> Any:
+    pattern = _ORIGINAL_ADD_PATTERN(self, x, y, width, height, repeat_width, repeat_height, matrix)
+    # The pattern matrix maps the tile to the default space of the stream that paints with it
+    base = getattr(self, "weasysvg_base", None)
+    pattern.weasysvg_base = matrix @ base if base is not None else matrix
+    return pattern
+
+
+def absolute_matrix(stream: Any) -> Any:
+    """The matrix from the user space of stream to the page, through the groups and patterns it lies in."""
+    base = getattr(stream, "weasysvg_base", None)
+    return stream.ctm @ base if base is not None else stream.ctm
+
+
+def track_groups() -> None:
+    if wp_stream.Stream.add_group is not _add_group:
+        wp_stream.Stream.add_group = _add_group
+    if wp_stream.Stream.add_pattern is not _add_pattern:
+        wp_stream.Stream.add_pattern = _add_pattern
+
+
+def text_scale(svg: Any) -> float:
+    """The factor Chromium scales SVG text by, in CSS px per user unit: the mean square of the two axes.
+
+    Chromium lays out SVG text at the font size times this factor (CalculateScreenFontSizeScalingFactor).
+    """
+    try:
+        (a, b, _), (c, d, _), _ = absolute_matrix(svg.stream)
+        return math.sqrt((a * a + b * b + c * c + d * d) / 2) * PX_PER_PT or 1.0
+    except (AttributeError, TypeError, ValueError):
+        return 1.0
+
+
+def px_per_unit(svg: Any) -> float:
+    """How many CSS px one user unit spans, through every transform and group."""
+    try:
+        return math.sqrt(abs(absolute_matrix(svg.stream).determinant)) * PX_PER_PT or 1.0
+    except (AttributeError, TypeError):
+        return 1.0
 
 
 def group_box(svg: Any, node: Any, font_size: float) -> tuple[float, float, float, float]:

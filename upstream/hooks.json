@@ -147,7 +147,7 @@
   },
   "weasyprint.pdf.stream:Stream.add_group": {
    "fingerprint": "d8781b7b3242be5e",
-   "used_by": "_core, filters, paint groups"
+   "used_by": "_core._add_group keeps the absolute matrix; _core, filters, paint groups"
   },
   "weasyprint.pdf.stream:Stream.set_alpha_state": {
    "fingerprint": "1c570e0b507a14dd",
@@ -155,7 +155,7 @@
   },
   "weasyprint.pdf.stream:Stream.add_pattern": {
    "fingerprint": "a904666c25081fe1",
-   "used_by": "paint._scaled_add_pattern"
+   "used_by": "paint._scaled_add_pattern; _core._add_pattern keeps the absolute matrix"
   },
   "weasyprint.pdf.stream:Stream.create_interpolation_function": {
    "fingerprint": "b1feacaa57a4e477",
