@@ -334,8 +334,10 @@ def _symbol_marker(marker: Any, kind: str) -> None:
     # The anonymous style is shared with the line box that will wrap the shape: change a copy
     style = shape.style = shape.style.copy()
     # An inline-block with no line sits on the baseline by its bottom margin edge
-    style["margin_left"] = Dimension(1, "px")
-    style["margin_right"] = Dimension(offset + MARKER_PADDING + 1 - 1 - width, "px")
+    # The shape lies 1 px inside the outer edge of the box: the left one, the right one in a right-to-left list
+    outer, inner_side = ("margin_right", "margin_left") if style["direction"] == "rtl" else ("margin_left", "margin_right")
+    style[outer] = Dimension(1, "px")
+    style[inner_side] = Dimension(offset + MARKER_PADDING + 1 - 1 - width, "px")
     style["margin_bottom"] = Dimension(ascent - 3 * (ascent - offset) // 2 - width, "px")
     inner = width
     if kind == "circle":

@@ -340,3 +340,13 @@ def test_the_type_of_the_marker_itself_decides() -> None:
     # A ::marker of its own type wins over the type of the item: a number stays a number
     body = "<style>li::marker{list-style-type:decimal}</style>" + fo("<ul><li>Item</li></ul>", width=200, height=40)
     assert "1." in text_of(render(svg(body, width=200, height=40)))
+
+
+def test_a_marker_of_a_right_to_left_list_is_mirrored() -> None:
+    # Measured in Chromium: the disc lies 1 px inside the outer edge of its box, 13.625 px right of the I
+    html = "<ul style=\"margin:0;padding:0 40px 0 0;direction:rtl;font:16px 'DejaVu Sans';color:#0000ff\"><li>I</li></ul>"
+    image = rasterize(render(svg(fo(html, width=200, height=40), width=200, height=40)), MARKER_SCALE / 0.75)
+    text = ink_box(image, (0, 0, 255), slice(0, 160 * MARKER_SCALE))
+    marker = ink_box(image, (0, 0, 255), slice(160 * MARKER_SCALE, None))
+    assert marker[0] == pytest.approx(text[2] + 13.625, abs=0.25)
+    assert marker[2] - marker[0] == pytest.approx(5, abs=0.25)
