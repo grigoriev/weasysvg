@@ -1,10 +1,11 @@
-"""Write corpus/COMPARISON.md: each corpus SVG in Chromium, resvg, WeasyPrint alone and WeasyPrint with weasysvg.
+"""Write corpus/COMPARISON.md: each corpus SVG in Chromium, WeasyPrint alone and WeasyPrint with weasysvg, and resvg.
 
 Usage: comparison.py
 
 Run it through make comparison: it renders the panels of WeasyPrint and weasysvg with the bench first
 (bench.py --panels), into corpus/render. The Chromium and resvg panels are the references in
-corpus/reference. The page is Markdown, so GitHub shows it in the repository.
+corpus/reference; only the resvg feature tests have a resvg reference. The page is Markdown, so GitHub
+shows it in the repository.
 """
 
 from __future__ import annotations
@@ -75,8 +76,8 @@ def page() -> str:
     intro = (
         "# Corpus comparison\n\n"
         "<!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->\n\n"
-        f"Each SVG of the corpus in four renderings: Chromium, the reference; resvg; WeasyPrint {version} alone; "
-        f"and WeasyPrint {version} with weasysvg. The WeasyPrint panels are PDFium rasterizations at 96 dpi over "
+        f"Each SVG of the corpus in Chromium, the reference; WeasyPrint {version} alone; and WeasyPrint {version} "
+        "with weasysvg. The resvg feature tests also show the resvg reference. The WeasyPrint panels are PDFium rasterizations at 96 dpi over "
         "the box of the Chromium panel. The verdicts come from a visual review, see "
         "[`verdicts.json`](verdicts.json). Click a panel for its full size.\n\n"
     )
