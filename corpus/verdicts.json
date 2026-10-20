@@ -310,7 +310,7 @@
   "reference": "chromium",
   "reference_why": "resvg shows 'Not supported by viewer' fallbacks.",
   "verdict": "close",
-  "what": "The list markers of the MathJax box sit closer to the text, and one AsciiMath label breaks its line at another word.",
+  "what": "One AsciiMath label breaks its line at another word.",
   "native_verdict": "differs",
   "native_what": "Fallback texts in place of the labels."
  },
@@ -327,8 +327,8 @@
   "name": "fo__rich-html",
   "reference": "chromium",
   "reference_why": "resvg has no foreignObject.",
-  "verdict": "close",
-  "what": "Heading, table and the rotated paragraph match; the list markers sit about 2 px closer to their text than in Chromium.",
+  "verdict": "same",
+  "what": "Matches: heading, list with its markers, table and the rotated paragraph.",
   "native_verdict": "differs",
   "native_what": "All HTML content is missing."
  },

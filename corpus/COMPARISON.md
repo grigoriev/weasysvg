@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 41 | 107 |
-| 🟡 close to the reference | 20 | 6 |
+| ✅ matches the reference | 41 | 108 |
+| 🟡 close to the reference | 20 | 5 |
 | ❌ differs from the reference | 54 | 1 |
 
 References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
@@ -506,7 +506,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg shows &#x27;Not supported by viewer&#x27; fallbacks. |
-| 🟡 | weasysvg | **close to the reference** | The list markers of the MathJax box sit closer to the text, and one AsciiMath label breaks its line at another word. |
+| 🟡 | weasysvg | **close to the reference** | One AsciiMath label breaks its line at another word. |
 | ❌ | WeasyPrint | **differs from the reference** | Fallback texts in place of the labels. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -536,7 +536,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg has no foreignObject. |
-| 🟡 | weasysvg | **close to the reference** | Heading, table and the rotated paragraph match; the list markers sit about 2 px closer to their text than in Chromium. |
+| ✅ | weasysvg | **matches the reference** | Matches: heading, list with its markers, table and the rotated paragraph. |
 | ❌ | WeasyPrint | **differs from the reference** | All HTML content is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

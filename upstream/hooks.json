@@ -137,6 +137,10 @@
    "fingerprint": "bb94e03fa11357ef",
    "used_by": "foreign_object draws its pages into the SVG stream"
   },
+  "weasyprint.formatting_structure.build:marker_to_box": {
+   "fingerprint": "a657195c9f6fe508",
+   "used_by": "foreign_object._marker_to_box draws symbol markers as Chromium does"
+  },
   "weasyprint.draw.text:draw_first_line": {
    "fingerprint": "7669a3733dcd8597",
    "used_by": "glyphs.show, text._draw_run; text.carried_shifts moves the shifts of its TJ arrays; ink.run_glyphs places glyphs as it does"

@@ -9,7 +9,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 import weasyprint
-from helpers import SVG_NS, XHTML_NS, RecordingStream, close, content, page_html, render, svg, text_of
+from helpers import SVG_NS, XHTML_NS, RecordingStream, close, content, page_html, rasterize, render, svg, text_of
 from PIL import Image
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
@@ -285,3 +285,97 @@ def test_svg_stylesheet_cannot_close_the_html_style() -> None:
     document = foreign_object._document("p{color:red} /* </style><p>injected</p> */", "", "<p>body</p>")
     assert document.count("</style>") == 1
     assert "<p>injected</p>" not in document.split("</style>", 1)[1]
+
+
+# ---------------- list markers ----------------
+
+MARKER_SCALE = 8  # px per CSS px
+
+
+def ink_box(image: Image.Image, color: tuple[int, int, int], columns: slice) -> tuple[float, float, float, float]:
+    """The box of the pixels near color within columns, in CSS px: left, top, right, bottom."""
+    import numpy as np
+
+    pixels = np.abs(np.asarray(image, dtype=int)[:, columns] - color).max(axis=2) < 100
+    rows, cols = np.where(pixels.any(axis=1))[0], np.where(pixels.any(axis=0))[0]
+    start = columns.start or 0
+    return ((start + cols[0]) / MARKER_SCALE, rows[0] / MARKER_SCALE, (start + cols[-1] + 1) / MARKER_SCALE, (rows[-1] + 1) / MARKER_SCALE)
+
+
+def marker_and_text(style: str, item: str = "I") -> tuple[tuple[float, ...], tuple[float, ...], Image.Image]:
+    html = f"<ul style=\"margin:0;padding-left:40px;font:16px 'DejaVu Sans';color:#0000ff;{style}\"><li>{item}</li></ul>"
+    image = rasterize(render(svg(fo(html, width=200, height=40), width=200, height=40)), MARKER_SCALE / 0.75)
+    left = int(image.width * 0)  # the page starts at the SVG
+    text = ink_box(image, (0, 0, 255), slice(left + 38 * MARKER_SCALE, None))
+    marker = ink_box(image, (0, 0, 255), slice(left, left + 38 * MARKER_SCALE))
+    return marker, text, image
+
+
+def test_a_disc_marker_is_the_shape_of_chromium() -> None:
+    # Measured in Chromium with DejaVu Sans at 16px, ascent 15: a disc 5 px wide, 18.5 px left of the I and
+    # 8 px above its baseline. WeasyPrint draws the bullet glyph 9 px from the text instead
+    marker, text, _ = marker_and_text("")
+    assert marker[0] == pytest.approx(text[0] - 18.5, abs=0.25)
+    assert marker[2] - marker[0] == pytest.approx(5, abs=0.25)
+    assert marker[1] == pytest.approx(text[3] - 8, abs=0.25)
+    assert marker[3] - marker[1] == pytest.approx(5, abs=0.25)
+
+
+@pytest.mark.parametrize(("kind", "hollow"), [("circle", True), ("square", False)])
+def test_circle_and_square_markers_are_shapes(kind: str, hollow: bool) -> None:
+    marker, text, image = marker_and_text(f"list-style-type:{kind}")
+    assert marker[0] == pytest.approx(text[0] - 18.5, abs=0.25)
+    center = image.getpixel((int((marker[0] + marker[2]) / 2 * MARKER_SCALE), int((marker[1] + marker[3]) / 2 * MARKER_SCALE)))
+    assert (center == (255, 255, 255)) == hollow
+
+
+@pytest.mark.parametrize("style", ["list-style-type:decimal", "list-style-position:inside"])
+def test_other_markers_stay_text(style: str) -> None:
+    pdf = render(svg(fo(f'<ul style="{style}"><li>Item</li></ul>', width=200, height=40), width=200, height=40))
+    assert "Item" in text_of(pdf)
+    assert "1." in text_of(pdf) or "\u2022" in text_of(pdf)
+
+
+def test_the_type_of_the_marker_itself_decides() -> None:
+    # A ::marker of its own type wins over the type of the item: a number stays a number
+    body = "<style>li::marker{list-style-type:decimal}</style>" + fo("<ul><li>Item</li></ul>", width=200, height=40)
+    assert "1." in text_of(render(svg(body, width=200, height=40)))
+
+
+def test_a_marker_of_a_right_to_left_list_is_mirrored() -> None:
+    # Measured in Chromium: the disc lies 1 px inside the outer edge of its box, 13.625 px right of the I
+    html = "<ul style=\"margin:0;padding:0 40px 0 0;direction:rtl;font:16px 'DejaVu Sans';color:#0000ff\"><li>I</li></ul>"
+    image = rasterize(render(svg(fo(html, width=200, height=40), width=200, height=40)), MARKER_SCALE / 0.75)
+    text = ink_box(image, (0, 0, 255), slice(0, 160 * MARKER_SCALE))
+    marker = ink_box(image, (0, 0, 255), slice(160 * MARKER_SCALE, None))
+    assert marker[0] == pytest.approx(text[2] + 13.625, abs=0.25)
+    assert marker[2] - marker[0] == pytest.approx(5, abs=0.25)
+
+
+@pytest.mark.parametrize(("content", "shaped"), [("normal", True), ([("string", "-")], False)])
+def test_a_marker_with_content_stays_its_content(monkeypatch: pytest.MonkeyPatch, content: Any, shaped: bool) -> None:
+    # Through the hook alone: WeasyPrint 70 itself fails to lay out a ::marker with content
+    from weasyprint.formatting_structure import boxes
+
+    from weasysvg.fonts import IN_FOREIGN_OBJECT
+
+    glyph = object.__new__(boxes.TextBox)
+    marker = SimpleNamespace(is_outside_marker=True, children=[glyph])
+    monkeypatch.setattr(foreign_object, "_ORIGINAL_MARKER_TO_BOX", lambda *_args: iter([marker]))
+    shapes: list[Any] = []
+    monkeypatch.setattr(foreign_object, "_symbol_marker", lambda box, kind: shapes.append(kind))
+    style = {"content": content, "list_style_type": "disc"}
+    token = IN_FOREIGN_OBJECT.set(True)
+    try:
+        assert list(foreign_object._marker_to_box(None, None, style, lambda *_args: style)) == [marker]
+    finally:
+        IN_FOREIGN_OBJECT.reset(token)
+    assert shapes == (["disc"] if shaped else [])
+
+
+def test_a_marker_image_stays_an_image() -> None:
+    # list-style-image draws the image: red here, where a disc would take the blue of the text
+    square = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Crect width='6' height='6' fill='red'/%3E%3C/svg%3E"
+    html = f"<ul style=\"margin:0;padding-left:40px;font:16px 'DejaVu Sans';color:#0000ff;list-style-image:url(&quot;{square}&quot;)\"><li>I</li></ul>"
+    image = rasterize(render(svg(fo(html, width=200, height=40), width=200, height=40)), MARKER_SCALE / 0.75)
+    assert ink_box(image, (255, 0, 0), slice(0, 38 * MARKER_SCALE))
