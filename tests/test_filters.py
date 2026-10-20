@@ -426,7 +426,9 @@ def test_sampled_stops() -> None:
     offsets = [float(sample.get("offset")) for sample in samples]
     assert offsets == sorted(offsets)
     assert offsets[-1] == 1
-    assert samples[-1].get("stop-opacity") == "0.5"
+    # The opacity sits in the color, where the recolor sees it
+    assert samples[-1].get("stop-color").endswith("/ 0.5)")
+    assert samples[-1].get("stop-opacity") == "1"
 
 
 @pytest.mark.parametrize(
@@ -562,6 +564,14 @@ def test_masked_child_of_a_blurred_group_keeps_its_mask() -> None:
     )
     pdf = render(svg(body, height=120))
     assert near(pixel(pdf, 37, 30), RED, 40)
+
+
+@pytest.mark.parametrize(("slope", "expected"), [("2", RED), ("-1", WHITE)])
+def test_alpha_slopes_out_of_range_are_clamped(slope: str, expected: tuple[int, int, int]) -> None:
+    target = '<rect x="20" y="20" width="60" height="40" fill="red" fill-opacity="0.5" filter="url(#f)"/>'
+    pdf = render(filtered(f'<feComponentTransfer><feFuncA type="linear" slope="{slope}"/></feComponentTransfer>', target=target))
+    assert near(pixel(pdf, 30, 30), expected, 10)
+    assert not re.search(rb"/ca (-|[2-9])", pdf)
 
 
 def test_a_failing_restyle_restores_the_draw_state(monkeypatch: pytest.MonkeyPatch) -> None:

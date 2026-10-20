@@ -345,7 +345,8 @@ def _recolor_layers(layers: list[Layer], function: Recolor) -> list[Layer]:
 
 def _fe_component_transfer(chain: _Chain, child: Any) -> list[Layer]:
     funcs = [f for f in child if f.tag in ("feFuncR", "feFuncG", "feFuncB", "feFuncA")]
-    if all(f.tag == "feFuncA" and f.get("type") == "linear" and _num(f.get("intercept")) == 0 for f in funcs):
+    # An alpha slope in 0..1 fades the layer; outside it the alpha needs the clamp of a recolor
+    if all(f.tag == "feFuncA" and f.get("type") == "linear" and _num(f.get("intercept")) == 0 and 0 <= _num(f.get("slope"), 1) <= 1 for f in funcs):
         # An alpha slope fades the whole layer, images included
         slope = _num(funcs[0].get("slope"), 1) if funcs else 1
         return [replace(layer, opacity=layer.opacity * slope) for layer in chain.source]
@@ -600,6 +601,30 @@ def restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | No
     return saved
 
 
+def recolor_restyle(_svg: Any, node: Any, _font_size: float) -> dict[str, str | None] | None:
+    """Fold fill-opacity and stroke-opacity into the colors while a recolor applies.
+
+    WeasyPrint multiplies the opacity in after it parses the color: the recolor would see a color more
+    opaque than the pixel it changes in Chromium, and clamp too early.
+    """
+    if not RECOLOR.get() or node.tag not in RESTYLED:
+        return None
+    # The children cascade the original style first: they keep their own copy of it
+    list(node)
+    new = {}
+    for paint, opacity, default in (("fill", "fill-opacity", "black"), ("stroke", "stroke-opacity", "none")):
+        value = str(node.get(paint, default)).strip()
+        if value == "none" or value.startswith(("url(", "context-")):
+            continue
+        rgba = _ORIGINAL_COLOR(value)
+        red, green, blue = (_clamp(c) for c in rgba.to("srgb").coordinates)
+        new[paint] = _rgba(red, green, blue, rgba.alpha * alpha_value(node.get(opacity, 1)))
+        new[opacity] = "1"
+    saved = {key: node.attrib.get(key) for key in new}
+    node.attrib.update(new)
+    return saved
+
+
 def _sigma(layer: Layer) -> float:
     """One standard deviation for both axes: a stroke grows a shape evenly."""
     return (layer.blur[0] + layer.blur[1]) / 2
@@ -838,9 +863,13 @@ def sampled_stops(stops: list[Any], font_size: float) -> list[_Stop]:
     return out
 
 
+def _rgba(red: float, green: float, blue: float, alpha: float) -> str:
+    return f"rgb({red * 100}% {green * 100}% {blue * 100}% / {alpha})"
+
+
 def _stop(offset: float, value: Any) -> _Stop:
-    red, green, blue, alpha = (min(max(c, 0.0), 1.0) for c in value)
-    return _Stop({"offset": f"{offset}", "stop-color": f"rgb({red * 100}%,{green * 100}%,{blue * 100}%)", "stop-opacity": f"{alpha}"})
+    # The opacity goes into the color: the recolor applies to both, as Chromium applies it to the pixel
+    return _Stop({"offset": f"{offset}", "stop-color": _rgba(*(min(max(c, 0.0), 1.0) for c in value)), "stop-opacity": "1"})
 
 
 def _recolored_gradient(draw_gradient: Callable[..., Any]) -> Callable[..., Any]:
@@ -863,4 +892,5 @@ def install() -> None:
     wp_svg.color = wp_defs.color = _color
     wp_svg.draw_gradient = _recolored_gradient(wp_svg.draw_gradient)
     _core.add_restyler(restyle)
+    _core.add_restyler(recolor_restyle)
     _core.enable_draw_feature("filters")
