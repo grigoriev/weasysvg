@@ -119,6 +119,8 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 ## Known gaps
 
 - On a `textPath` each character is laid out alone, so Arabic does not join there.
+- An underline or overline skips no ink on text laid out character by character (several `x` or `y`
+  values, `rotate`, `textLength`) or on vertical text.
 - A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
   edge, which knows nothing of the far edge: a filled shape thinner than about two deviations comes out
   darker and sharper than in Chromium, and corners come out mitered inside the shape.
