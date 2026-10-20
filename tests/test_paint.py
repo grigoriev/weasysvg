@@ -86,6 +86,13 @@ def test_gradient_stops_via_href_used_twice() -> None:
     assert near(pixel(pdf, 120, 30), RED)
 
 
+@pytest.mark.parametrize("paint_server", ['<linearGradient id="p"><stop stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>', '<pattern id="p" width="1" height="1"><rect width="200" height="200" fill="red"/></pattern>'])
+def test_paint_server_stroke_has_its_width(paint_server: str) -> None:
+    # The stroke spans 10 to 30 user units around the left edge at x=20
+    pdf = render(svg(f'<defs>{paint_server}</defs><rect x="20" y="20" width="100" height="60" fill="none" stroke="url(#p)" stroke-width="20"/>'))
+    assert near(pixel(pdf, 9, 37), RED, 60)
+
+
 # ---------------- patterns ----------------
 
 

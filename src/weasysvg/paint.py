@@ -3,6 +3,7 @@
 Touches:
 - ``svg.defs.draw_gradient``: a gradient cell of about 1000 units, since Splash and Quartz drop a 1 x 1
   cell; r and fr percentages of a radial gradient refer to the normalized diagonal.
+- ``svg.SVG.set_graphical_state``: a gradient or pattern stroke gets its stroke-width, not 1.
 - ``svg.defs.draw_pattern``: the tile origin in pattern space, x and y included; attributes and tag are
   restored after each use.
 - ``svg.defs.paint_mask``: replaced. Region of an objectBoundingBox mask, maskContentUnits, a cycle
@@ -71,6 +72,7 @@ PRESENTATION = frozenset(
 
 _ORIGINAL_DRAW_GRADIENT = wp_defs.draw_gradient
 _ORIGINAL_DRAW_PATTERN = wp_defs.draw_pattern
+_ORIGINAL_SET_GRAPHICAL_STATE = wp_svg.SVG.set_graphical_state
 
 
 # ---------------- tree pass ----------------
@@ -156,6 +158,14 @@ def _materialized_override_iter(self: Any, iterator: Any) -> None:
     """A list of children: href'd gradient stops and <use> trees are walked more than once."""
     children = list(iterator)
     self.__class__ = type("Node", (wp_svg.Node,), {"__iter__": lambda _: iter(children)})
+
+
+def set_graphical_state(self: Any, node: Any, font_size: float, context: Any = None) -> tuple[Any, Any]:
+    """WeasyPrint sets the line width for a plain color only: a gradient or pattern stroke drew 1 unit wide."""
+    fill, stroke = _ORIGINAL_SET_GRAPHICAL_STATE(self, node, font_size, context=context)
+    if stroke:
+        self.stream.set_line_width(self.length(node.get("stroke-width", "1px"), font_size))
+    return fill, stroke
 
 
 # ---------------- patterns ----------------
@@ -283,6 +293,7 @@ def install(*, blend: bool = True) -> None:
     wp_defs.draw_gradient = wp_svg.draw_gradient = draw_gradient
     wp_defs.draw_pattern = wp_svg.draw_pattern = draw_pattern
     wp_defs.paint_mask = wp_svg.paint_mask = paint_mask
+    wp_svg.SVG.set_graphical_state = set_graphical_state
     wp_svg.Node.override_iter = _materialized_override_iter
     _core.enable_draw_feature("masks")
     if blend:
