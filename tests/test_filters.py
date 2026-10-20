@@ -562,3 +562,19 @@ def test_masked_child_of_a_blurred_group_keeps_its_mask() -> None:
     )
     pdf = render(svg(body, height=120))
     assert near(pixel(pdf, 37, 30), RED, 40)
+
+
+def test_a_failing_restyle_restores_the_draw_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    from weasysvg import _core
+
+    def broken(*_args: Any) -> None:
+        raise RuntimeError("restyle failed")
+
+    fake = FakeSvg()
+    stream = fake.stream
+    monkeypatch.setattr(_core, "restyle", broken)
+    with pytest.raises(RuntimeError):
+        filters._draw_into(fake, failing_original, SimpleNamespace(tag="rect"), 12, None, RecordingStream(), Restyle("fills", 2))
+    assert fake.stream is stream
+    assert filters.RESTYLE.get() is None
+    assert filters.BLURRING.get() is False

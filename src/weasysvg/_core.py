@@ -80,14 +80,17 @@ def add_restyler(function: Restyler) -> None:
         _RESTYLERS.append(function)
 
 
-def restyle(svg: Any, node: Any, font_size: float) -> list[dict[str, str | None]]:
-    """Run every restyler on node; return what to put back, in the order to put it back."""
-    saved = [changed for function in _RESTYLERS if (changed := function(svg, node, font_size)) is not None]
-    return saved[::-1]
+def restyle(svg: Any, node: Any, font_size: float, saved: list[dict[str, str | None]]) -> None:
+    """Run every restyler on node, adding what to put back to saved as each one finishes."""
+    for function in _RESTYLERS:
+        changed = function(svg, node, font_size)
+        if changed is not None:
+            saved.append(changed)
 
 
 def unrestyle(node: Any, saved: list[dict[str, str | None]]) -> None:
-    for changed in saved:
+    """Put back what the restylers changed, the last first."""
+    for changed in reversed(saved):
         for key, value in changed.items():
             if value is None:
                 node.attrib.pop(key, None)
@@ -166,11 +169,15 @@ def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True,
     # closes a cycle. A child that reuses the clip of its parent closes none.
     active = (*_ACTIVE_CLIPS.get(), node) if _is_clip_path(self, node) else _ACTIVE_CLIPS.get()
     token = _ACTIVE_CLIPS.set(active)
-    clip = _clip_of(self, node)
-    saved_clip = node.attrib.pop("clip-path") if clip is not None and any(clip is item for item in active) else None
-    # A blur mask being built draws its shapes grown, a clip mask draws them filled
-    restyled = restyle(self, node, font_size) if fill_stroke else []
+    saved_clip = None
+    restyled: list[dict[str, str | None]] = []
     try:
+        clip = _clip_of(self, node)
+        if clip is not None and any(clip is item for item in active):
+            saved_clip = node.attrib.pop("clip-path")
+        # A blur mask being built draws its shapes grown, a clip mask draws them filled
+        if fill_stroke:
+            restyle(self, node, font_size, restyled)
         _draw_with_effects(self, node, font_size, fill_stroke, context)
     finally:
         unrestyle(node, restyled)

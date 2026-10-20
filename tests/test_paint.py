@@ -474,3 +474,22 @@ def test_a_mask_on_an_empty_group_is_skipped(caplog: pytest.LogCaptureFixture) -
     assert "Failed to render SVG image" not in caplog.text
     assert b"inf" not in pdf.lower().replace(b"/info", b"")
     assert near(pixel(pdf, 20, 20), RED)
+
+
+def test_a_failing_restyler_puts_back_what_others_changed(monkeypatch: pytest.MonkeyPatch) -> None:
+    from weasysvg import _core
+
+    def first(_svg: Any, node: Any, _size: float) -> dict[str, str | None]:
+        node.attrib["fill"] = "blue"
+        return {"fill": "red"}
+
+    def second(*_args: Any) -> None:
+        raise RuntimeError("restyler failed")
+
+    monkeypatch.setattr(_core, "_RESTYLERS", [first, second])
+    node = SimpleNamespace(attrib={"fill": "red"}, get=lambda *_args: None, tag="rect")
+    fake = SimpleNamespace(paths={})
+    with pytest.raises(RuntimeError):
+        _core._draw_node(fake, node, 12)
+    assert node.attrib == {"fill": "red"}
+    assert _core._ACTIVE_CLIPS.get() == ()
