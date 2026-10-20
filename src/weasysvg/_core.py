@@ -240,8 +240,11 @@ TEXT_TAGS = frozenset(("text", "tspan", "textPath"))
 _MEASURING: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_measuring", default=())
 
 
-def _holds_text(node: Any) -> bool:
-    return node.tag in TEXT_TAGS or any(_holds_text(child) for child in node)
+def _unmeasured_text(node: Any) -> bool:
+    """Whether node is or holds a text whose box WeasyPrint does not know yet: another shape may give a box."""
+    if node.tag in TEXT_TAGS:
+        return not is_valid_bounding_box(getattr(node, "text_bounding_box", None))
+    return any(_unmeasured_text(child) for child in node)
 
 
 def measure_text(svg: Any, node: Any, font_size: float) -> None:
@@ -252,7 +255,7 @@ def measure_text(svg: Any, node: Any, font_size: float) -> None:
     the boxes it left on the nodes remain.
     """
     measuring = _MEASURING.get()
-    if any(node is item for item in measuring) or not _holds_text(node) or is_valid_bounding_box(svg.calculate_bounding_box(node, font_size, stroke=False)):
+    if any(node is item for item in measuring) or not _unmeasured_text(node):
         return
     outer = svg.stream
     scratch = outer.add_group(0, 0, 0, 0)
@@ -267,6 +270,8 @@ def measure_text(svg: Any, node: Any, font_size: float) -> None:
         svg.stream = outer
         svg.cursor_position, svg.cursor_d_position = cursor, shift
         _MEASURING.reset(token)
+        # A box cached before the text was measured lacks it
+        node.bounding_box = None
         node.attrib.update(saved)
         del outer._resources["XObject"][scratch.id]
 

@@ -586,3 +586,12 @@ def test_the_scratch_drawing_of_a_text_leaves_nothing_in_the_pdf() -> None:
     drawn = len(re.findall(r"/x\d+ Do", content(pdf)))
     masks = len(re.findall(rb"/SMask\s*<<", pdf))
     assert forms == drawn + masks
+
+
+def test_a_group_with_a_shape_and_text_clips_by_both() -> None:
+    # The rect alone gives the group a box: the text must still be measured into it
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath>'
+    group = '<g clip-path="url(#c)"><rect x="0" y="20" width="10" height="10" fill="blue"/><text x="60" y="70" font-size="60" font-weight="bold" fill="red">HHHH</text></g>'
+    pdf = render(svg(f"<defs>{clip}</defs>{group}"))
+    # pixel() reads pt: user units 64 to 88 lie left of the middle of the group, which spans 0 to about 230
+    assert any(near(pixel(pdf, x, 37), RED) for x in range(48, 66))
