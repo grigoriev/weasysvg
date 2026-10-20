@@ -466,6 +466,20 @@ def test_gamma_on_black_draws() -> None:
     assert near(pixel(pdf, 30, 30), RED)
 
 
+@pytest.mark.parametrize("primitive", ['<feGaussianBlur stdDeviation="1e300"/>', '<feOffset dx="1e300"/>', '<feGaussianBlur stdDeviation="1e9999"/>', '<feDropShadow dy="1e300"/>'])
+def test_unbounded_lengths_draw_unfiltered(primitive: str, caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered(primitive))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert "length out of range" in caplog.text
+
+
+@pytest.mark.parametrize("value", ["blur(1e300px)", "drop-shadow(1e300px 0 0 red)"])
+def test_unbounded_css_function_lengths_draw_unfiltered(value: str) -> None:
+    pdf = render(svg(f'<rect x="20" y="20" width="60" height="40" fill="red" style="filter:{value}"/>', height=120))
+    assert near(pixel(pdf, 30, 30), RED)
+
+
 def test_color_matrix_values() -> None:
     node = SimpleNamespace(get={"type": "matrix", "values": "1 2 3"}.get)
     assert filters._color_matrix_values(node)[0] == 1

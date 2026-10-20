@@ -434,10 +434,18 @@ def _function_layers(value: str) -> list[Layer]:
     return [Layer("alpha", dx=_px(match["dx"]), dy=_px(match["dy"]), blur=(std, std), rgba=rgba), Layer("source")]
 
 
+def _checked(layers: list[Layer]) -> list[Layer]:
+    """Refuse lengths no stroke or offset can carry: inf, nan, or beyond MAX_REGION."""
+    for layer in layers:
+        if not all(math.isfinite(value) and abs(value) <= MAX_REGION for value in (*layer.blur, layer.dx, layer.dy)):
+            raise Unsupported("length out of range")
+    return layers
+
+
 def _function_plan(value: str) -> Plan:
     """The plan of a CSS filter function list."""
     try:
-        return Plan(_function_layers(value), None)
+        return Plan(_checked(_function_layers(value)), None)
     except Unsupported:
         return UNFILTERED  # an invalid function list: browsers draw the element unfiltered
 
@@ -458,7 +466,7 @@ def _reference_plan(svg: Any, node: Any, font_size: float, fragment: str) -> Pla
         return UNFILTERED
     try:
         region = _region(svg, node, filter_node, font_size)
-        return Plan(_evaluate(svg, filter_node, region, font_size, _unit(svg, node, filter_node, font_size)), region)
+        return Plan(_checked(_evaluate(svg, filter_node, region, font_size, _unit(svg, node, filter_node, font_size))), region)
     except Unsupported as error:
         LOGGER.warning("SVG filter %r is drawn unfiltered: %s is not supported", fragment, error)
         return UNFILTERED
