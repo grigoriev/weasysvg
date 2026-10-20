@@ -145,6 +145,14 @@ def report(rows: list[dict[str, Any]], verdicts: dict[str, dict[str, Any]], out:
     (out / "report.html").write_text(document)
 
 
+def inside(path: Path) -> Path:
+    """The path, resolved, if it lies inside the repository; the bench reads and writes nowhere else."""
+    resolved = (ROOT / path).resolve()
+    if not resolved.is_relative_to(ROOT):
+        raise SystemExit(f"{path} lies outside {ROOT}")
+    return resolved
+
+
 def write_baseline(path: Path, mode: str, rows: list[dict[str, Any]]) -> None:
     """Store the mismatch of each SVG under mode, next to the other mode already in the file."""
     baseline = json.loads(path.read_text()) if path.exists() else {}
@@ -185,7 +193,7 @@ def main() -> int:
     group.add_argument("--against", type=Path, help="compare the mismatch with this baseline")
     group.add_argument("--write-baseline", type=Path, help="store the mismatch in this baseline")
     args = parser.parse_args()
-    out: Path = args.out
+    out = inside(args.out)
     mode = "native" if args.native else "weasysvg"
     (out / "pdf").mkdir(parents=True, exist_ok=True)
     (out / "img").mkdir(parents=True, exist_ok=True)
@@ -205,9 +213,9 @@ def main() -> int:
     report(rows, verdicts, out)
     print(f"{len(rows)} SVGs, report at {out / 'report.html'}")
     if args.write_baseline:
-        write_baseline(args.write_baseline, mode, rows)
+        write_baseline(inside(args.write_baseline), mode, rows)
     if args.against:
-        return 1 if compare(args.against, mode, rows) else 0
+        return 1 if compare(inside(args.against), mode, rows) else 0
     return 0
 
 
