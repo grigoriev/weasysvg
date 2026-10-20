@@ -105,8 +105,8 @@ compares each rendering with that reference:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| matches the reference | 47 | 109 |
-| close to the reference | 15 | 5 |
+| matches the reference | 47 | 110 |
+| close to the reference | 15 | 4 |
 | differs from the reference | 53 | 1 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink match the reference. Each verdict says what

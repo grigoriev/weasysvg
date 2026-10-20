@@ -768,10 +768,10 @@
   "name": "resvg__painting-stroke-dasharray--0-n-with-round-caps",
   "reference": "both",
   "reference_why": "",
-  "verdict": "close",
-  "what": "The dots on the bottom and left sides sit up to 1 unit off.",
+  "verdict": "same",
+  "what": "Matches: each dot in its place.",
   "native_verdict": "close",
-  "native_what": "The dots on the bottom and left sides sit up to 1 unit off."
+  "native_what": "The dots on the bottom and left sides sit up to 1 unit off: PDFium moves dashes of length 0 along the path."
  },
  {
   "name": "resvg__painting-stroke-dasharray--odd-count",
