@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
 from types import SimpleNamespace
 from typing import Any
@@ -441,6 +442,28 @@ def test_transfer_functions(function: str, values: list[tuple[float, float]]) ->
     transfer = filters._transfer(node)
     for value, expected in values:
         assert abs(transfer(value) - expected) < 1e-9
+
+
+@pytest.mark.parametrize(
+    ("function", "values"),
+    [
+        ('<feFuncR type="gamma" exponent="-1"/>', [(0.0, math.inf), (0.5, 2.0)]),
+        ('<feFuncR type="gamma" amplitude="-1" exponent="-1"/>', [(0.0, -math.inf)]),
+        ('<feFuncR type="gamma" amplitude="0" exponent="-1" offset="0.25"/>', [(0.0, 0.25)]),
+        ('<feFuncR type="gamma" exponent="1e10"/>', [(2.0, math.inf)]),
+    ],
+)
+def test_gamma_transfer_limits(function: str, values: list[tuple[float, float]]) -> None:
+    import xml.etree.ElementTree as ET
+
+    transfer = filters._transfer(ET.fromstring(function))
+    for value, expected in values:
+        assert transfer(value) == expected
+
+
+def test_gamma_on_black_draws() -> None:
+    pdf = render(filtered('<feComponentTransfer><feFuncR type="gamma" exponent="-1"/></feComponentTransfer>', target='<rect x="20" y="20" width="60" height="40" fill="black" filter="url(#f)"/>'))
+    assert near(pixel(pdf, 30, 30), RED)
 
 
 def test_color_matrix_values() -> None:

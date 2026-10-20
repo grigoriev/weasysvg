@@ -284,7 +284,16 @@ def _transfer(function: Any) -> Callable[[float], float]:
         return lambda c: slope * c + intercept
     if kind == "gamma":
         amplitude, exponent, offset = _num(function.get("amplitude"), 1), _num(function.get("exponent"), 1), _num(function.get("offset"))
-        return lambda c: amplitude * c**exponent + offset
+
+        def gamma(c: float) -> float:
+            try:
+                value: float = amplitude * c**exponent + offset
+                return value
+            except (ZeroDivisionError, OverflowError):
+                # 0 to a negative power, or a power too large: the clamp that follows takes the infinity
+                return math.copysign(math.inf, amplitude) if amplitude else offset
+
+        return gamma
     return _identity
 
 
