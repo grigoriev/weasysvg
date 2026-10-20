@@ -634,3 +634,13 @@ def test_outer_blur_spreads_a_filtered_child() -> None:
     filters_ = '<filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter><filter id="s"><feOffset dx="0"/></filter>'
     body = f'<defs>{filters_}</defs><g filter="url(#b)"><g filter="url(#s)"><rect x="20" y="20" width="60" height="40" fill="red"/></g></g>'
     assert faint(pixel(render(svg(body, height=120)), 13, 30))
+
+
+def test_a_filtered_leaf_in_a_blur_grows_once() -> None:
+    # The pass of the outer blur restyles the leaf once; its own filter must not grow it again
+    def halo(inner: str) -> tuple[int, int, int]:
+        defs = '<filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter><filter id="s"><feOffset dx="0"/></filter>'
+        body = f'<defs>{defs}</defs><g filter="url(#b)"><rect x="40" y="20" width="60" height="40" fill="red"{inner}/></g>'
+        return pixel(render(svg(body, height=120)), 24, 30)
+
+    assert near(halo(' filter="url(#s)"'), halo(""), 6)

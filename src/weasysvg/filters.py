@@ -674,16 +674,19 @@ def _gray(value: float) -> Any:
 
 
 def _draw_into(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, target: Any, mode: Restyle | None, recolor: tuple[Recolor, ...] = ()) -> None:
-    if mode is None:
+    inherited = mode is None
+    if inherited:
         # A filtered element inside another keeps the passes and the recolor of the outer one
         mode, recolor = RESTYLE.get(), (*recolor, *RECOLOR.get())
-    previous, token, colors = svg.stream, RESTYLE.set(mode), RECOLOR.set(recolor)
+    previous, token, colors = svg.stream, RESTYLE.set(None if inherited else mode), RECOLOR.set(recolor)
     blurring = BLURRING.set(True) if mode is not None else None
     svg.stream = target
     restyled: list[dict[str, str | None]] = []
     try:
-        # original is the draw_node of WeasyPrint: the node itself does not pass the wrapper of _core
+        # original is the draw_node of WeasyPrint: the node itself does not pass the wrapper of _core.
+        # An inherited pass has grown the node already, in that wrapper: it must not grow twice.
         _core.restyle(svg, node, font_size, restyled)
+        RESTYLE.set(mode)
         original(svg, node, font_size, True, context)
     finally:
         _core.unrestyle(node, restyled)
@@ -744,7 +747,8 @@ def _blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: fl
 def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, plan_: Plan) -> None:
     layers, region = plan_.layers, plan_.region
     stream = svg.stream
-    if region:
+    # In a pass of an outer blur the shape grows past this region, as the outer blur spreads past it
+    if region and RESTYLE.get() is None:
         stream.rectangle(*region)
         stream.clip()
         stream.end()
