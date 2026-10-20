@@ -588,3 +588,23 @@ def test_a_failing_restyle_restores_the_draw_state(monkeypatch: pytest.MonkeyPat
     assert fake.stream is stream
     assert filters.RESTYLE.get() is None
     assert filters.BLURRING.get() is False
+
+
+def test_nested_filter_fan_out_is_bounded(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    # Three nested filters of 8 layers: 512 drawings of the innermost element without a budget
+    calls = []
+    original = filters._draw_layer
+
+    def counted(*args: Any) -> None:
+        calls.append(1)
+        original(*args)
+
+    monkeypatch.setattr(filters, "_draw_layer", counted)
+    merge = "<feMerge>" + '<feMergeNode in="SourceGraphic"/>' * 8 + "</feMerge>"
+    body = f'<defs><filter id="m">{merge}</filter></defs><g filter="url(#m)"><g filter="url(#m)"><g filter="url(#m)"><rect x="20" y="20" width="60" height="40" fill="red"/></g></g></g>'
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(svg(body, height=120))
+    # 8 outer layers, 64 middle ones, and the innermost element drawn once, unfiltered, in each of those
+    assert len(calls) == 8 + 64 + 64
+    assert near(pixel(pdf, 30, 30), RED)
+    assert "too many nested layers" in caplog.text

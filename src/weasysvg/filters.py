@@ -391,6 +391,8 @@ def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, flo
 
 # The most layers one chain may have: feMerge and feComposite can double them at each primitive
 MAX_LAYERS = 64
+# The layers of the filters being drawn, multiplied: nested filters may not exceed MAX_LAYERS together
+FAN_OUT: ContextVar[int] = ContextVar("weasysvg_fan_out", default=1)
 # The largest filter region coordinate, in user units
 MAX_REGION = 1e7
 
@@ -743,15 +745,24 @@ def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: 
         stream.clip()
         stream.end()
     big = region or _core.group_box(svg, node, font_size)
-    for layer in layers:
-        stream = svg.stream
-        stream.push_state()
-        # A failure while drawing must leave svg.stream and the state depth as they were
-        try:
-            _draw_layer(svg, original, node, font_size, context, layer, stream, big)
-        finally:
-            svg.stream = stream
-            stream.pop_state()
+    # Each layer draws the element again, nested filters included: their layers multiply
+    fan_out = FAN_OUT.get() * len(layers)
+    if fan_out > MAX_LAYERS:
+        LOGGER.warning("SVG filter is drawn unfiltered: too many nested layers")
+        layers, fan_out = UNFILTERED.layers, FAN_OUT.get()
+    token = FAN_OUT.set(fan_out)
+    try:
+        for layer in layers:
+            stream = svg.stream
+            stream.push_state()
+            # A failure while drawing must leave svg.stream and the state depth as they were
+            try:
+                _draw_layer(svg, original, node, font_size, context, layer, stream, big)
+            finally:
+                svg.stream = stream
+                stream.pop_state()
+    finally:
+        FAN_OUT.reset(token)
 
 
 def _draw_layer(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region) -> None:
