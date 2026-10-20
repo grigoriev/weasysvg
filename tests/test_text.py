@@ -79,6 +79,22 @@ def test_ex_without_an_x_height_is_half_an_em(monkeypatch: pytest.MonkeyPatch) -
     assert node.attrib == {"font-size": "32.0px"}
 
 
+def test_text_in_a_clip_path_inherits_from_its_own_ancestors() -> None:
+    # CSS inherits along the document: the clip path lies in an svg of 10 px, whatever uses it
+    body = '<clipPath id="c"><text x="10" y="20">Clip</text></clipPath><g font-size="40"><rect clip-path="url(#c)" width="200" height="50"/></g>'
+    pdf = render(svg(body, extra=' font-size="10"'))
+    assert font_sizes(pdf) == [10]
+
+
+def test_ex_holds_where_a_size_is_read_before_drawing() -> None:
+    # A textPath measures its tspans before they draw: 4ex must place the glyphs as its size in px does
+    def placed(size: str) -> list[str]:
+        body = f'<path id="p" d="M 10 50 H 190" fill="none"/><text font-family="Liberation Sans"><textPath href="#p"><tspan font-size="{size}">AVA</tspan></textPath></text>'
+        return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body))))
+
+    assert placed("4ex") == placed(f"{4 * 16 * 1082 / 2048}px")
+
+
 def test_a_word_ending_in_ex_is_no_size() -> None:
     node = SimpleNamespace(attrib={"font-size": "complex"})
     assert text.ex_restyle(None, node, 16) is None

@@ -60,6 +60,7 @@ DECORATION_LINES = ("underline", "overline", "line-through")
 SKIP_INK = frozenset(("underline", "overline"))
 GLYPHS = "_weasysvg_glyphs"
 FEATURES = {"fonts": True, "baseline": True, "decoration": True}
+DEFAULT_FONT_PX = 16.0  # px, the 12pt WeasyPrint draws an SVG with
 
 _ORIGINAL_CASCADE = wp_svg.Node.cascade
 _ORIGINAL_TEXT = wp_svg.TAGS["text"]
@@ -68,11 +69,28 @@ _ORIGINAL_TEXT = wp_svg.TAGS["text"]
 # ---------------- font sizes ----------------
 
 
+# The font size of a node as computed along the document, in px
+FONT_PX = "_weasysvg_font_px"
+# Drawn where they are used, with the size of the user: their text inherits from their own ancestors
+RESOURCES = frozenset(("clipPath", "mask", "marker", "pattern"))
+
+
+def _font_px(node: Any) -> float:
+    """The computed font size of node: noted by the cascade, or of the root, against the 12pt of WeasyPrint."""
+    noted = getattr(node, FONT_PX, None)
+    if noted is None:
+        noted = size(node.attrib.get("font-size", "1em"), DEFAULT_FONT_PX, DEFAULT_FONT_PX)
+        setattr(node, FONT_PX, noted)
+    return float(noted)
+
+
 def cascade(self: Any, child: Any) -> None:
     """Cascade the attributes to child, with the font size inherited as computed, not as written.
 
     WeasyPrint copies the font-size of the parent to the child as text: a relative size such as "2em" then
     applies again to the size it made. Without it the child takes "1em", the computed size of the parent.
+    A resource gets its computed size written out: it draws with the size of the element that uses it,
+    and its text must still inherit from its own ancestors.
     """
     parent = self.attrib.pop("font-size", None) if self is not child else None
     try:
@@ -81,13 +99,19 @@ def cascade(self: Any, child: Any) -> None:
         if parent is not None:
             self.attrib["font-size"] = parent
     value = child.attrib.get("font-size")
-    if value is None:
-        return
-    keyword = value.strip().lower()
+    keyword = (value or "").strip().lower()
     if keyword in ("unset", "revert", "revert-layer"):
         del child.attrib["font-size"]
     elif keyword in FONT_SIZE_KEYWORDS:
         child.attrib["font-size"] = FONT_SIZE_KEYWORDS[keyword]
+    if self is child:
+        return
+    parent_px = _font_px(self)
+    own = child.attrib.get("font-size", "1em")
+    setattr(child, FONT_PX, size(own, parent_px, parent_px))
+    # A size in ex waits for the font of the drawing: ex_restyle measures it
+    if child.tag in RESOURCES and not normalize(own).split(" ", 1)[0].endswith("ex"):
+        child.attrib["font-size"] = f"{getattr(child, FONT_PX)}px"
 
 
 def ex_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:
