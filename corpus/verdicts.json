@@ -409,7 +409,7 @@
   "reference": "both",
   "reference_why": "",
   "verdict": "close",
-  "what": "The shadow under the lens ring shows faint steps: a blur of anything but a plain rect is drawn in levels.",
+  "what": "The shadow of the lens ring is darker and sharper than in Chromium: the ring is a filled shape thinner than two deviations, and the levels of a blur know only the nearest edge.",
   "native_verdict": "differs",
   "native_what": "No shadows, and the handle is a flat dark shape."
  },
