@@ -155,7 +155,8 @@ function panel(item, key, caption, onOpen) {
 function flipPanel(item) {
   // Both renderers need a panel: otherwise the caption would name an image that is not there
   if (!item.panels[state.left] || !item.panels[state.right]) return null;
-  const caption = element("figcaption", {}, []);
+  // The text inside the figcaption panel() makes: a figcaption must not hold another
+  const caption = element("span", {}, []);
   let showing = state.left;
   let touch = false;
   const show = (key) => {
@@ -163,6 +164,7 @@ function flipPanel(item) {
     caption.replaceChildren(element("strong", { text: renderers[key] }), " - hover or tap to see " + renderers[key === state.left ? state.right : state.left]);
     const image = figure.querySelector("img");
     image.src = item.panels[key];
+    image.alt = item.name + " in " + renderers[key];
     image.parentElement.href = item.panels[key];
   };
   // A tap flips, a click or Enter opens the renderer on show. A scroll makes no click, so it flips nothing.
