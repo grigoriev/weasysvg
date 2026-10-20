@@ -185,22 +185,31 @@ def _radial_percentages(gradient: Any) -> dict[str, str | None]:
 TRANSPARENT_STOP = "1e-9"
 
 
-def _visible_stops(gradient: Any) -> list[tuple[Any, str]]:
-    """Give each fully transparent stop a tiny opacity; return the stops and values to put back."""
-    changed = []
+def _visible_stops(gradient: Any, changed: list[tuple[Any, str]]) -> None:
+    """Give each fully transparent stop a tiny opacity, and an invalid one 1, as Chromium reads it.
+
+    Each stop goes into changed before it changes, so that a failure leaves nothing changed behind.
+    """
     for stop in gradient:
         value = stop.get("stop-opacity")
-        if value is not None and wp_utils.alpha_value(value) == 0:
+        if value is None:
+            continue
+        try:
+            replacement = TRANSPARENT_STOP if wp_utils.alpha_value(value) == 0 else None
+        except ValueError:
+            replacement = "1"  # WeasyPrint raised ValueError and lost the whole SVG
+        if replacement is not None:
             changed.append((stop, value))
-            stop.attrib["stop-opacity"] = TRANSPARENT_STOP
-    return changed
+            stop.attrib["stop-opacity"] = replacement
 
 
 def draw_gradient(svg: Any, node: Any, gradient: Any, font_size: float, opacity: float, stroke: bool) -> Any:
     stream = svg.stream
-    changed = _radial_percentages(gradient)
-    stops = _visible_stops(gradient)
+    changed: dict[str, str | None] = {}
+    stops: list[tuple[Any, str]] = []
     try:
+        changed = _radial_percentages(gradient)
+        _visible_stops(gradient, stops)
         cell = _gradient_cell(svg, node, gradient, font_size, stroke)
         with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
             return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)

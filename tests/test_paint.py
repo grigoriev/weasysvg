@@ -493,3 +493,11 @@ def test_a_failing_restyler_puts_back_what_others_changed(monkeypatch: pytest.Mo
         _core._draw_node(fake, node, 12)
     assert node.attrib == {"fill": "red"}
     assert _core._ACTIVE_CLIPS.get() == ()
+
+
+def test_invalid_stop_opacity_counts_as_opaque() -> None:
+    # WeasyPrint raised ValueError on it and lost the whole SVG; Chromium takes 1
+    gradient = '<linearGradient id="g"><stop stop-color="red" stop-opacity="0"/><stop offset="0.01" stop-color="red" stop-opacity="abc"/><stop offset="1" stop-color="red" stop-opacity="abc"/></linearGradient>'
+    pdf = render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/><rect y="50" width="200" height="50" fill="url(#g)"/>'))
+    assert near(pixel(pdf, 75, 30), RED)
+    assert near(pixel(pdf, 75, 60), RED)
