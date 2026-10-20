@@ -802,3 +802,12 @@ def test_a_vertical_arabic_run_keeps_its_place() -> None:
     assert ys[dal] == pytest.approx(20)
     assert min(ys.values()) == pytest.approx(20)
     assert max(ys.values()) > 25
+
+
+def test_a_positioned_letter_keeps_its_place_in_a_vertical_run() -> None:
+    # A y of its own starts a new chunk: the dal stays at 80, below the alef at 20
+    pdf = render(svg('<text x="50" y="20 80" writing-mode="tb" font-size="20">\u0627\u062f</text>', height=200))
+    dal = re.findall(r"\[<([0-9a-f]+)>", content(render(svg('<text x="50" y="20" writing-mode="tb" font-size="20">\u062f</text>', height=200))))[0]
+    ys = {glyph: float(y) for y, glyph in re.findall(r"[-\d.]+ ([-\d.]+) Tm\n(?:[^\n]*Tf\n)?\[<([0-9a-f]+)>", content(pdf))}
+    assert ys[dal] == pytest.approx(80)
+    assert min(ys.values()) == pytest.approx(20)

@@ -150,13 +150,17 @@ def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances:
         places.append([x, y, step])
         y += step
     svg.cursor_position = x, y
-    # A right-to-left run turned sideways fills its span from its end: its last letter at the top
+    # A right-to-left run turned sideways fills its span from its end: its last letter at the top. A letter
+    # with a position of its own starts a new span, as it starts a new text chunk
     text = "".join(glyphs.base(character) for character, _ in advances)
-    for start, end in glyphs.rtl_runs(text):
-        top = places[start][1]
-        for index in glyphs.reversed_clusters(text, start, end):
-            places[index][1] = top
-            top += places[index][2]
+    positioned = {index for index in range(len(advances)) if index < len(xs) or index < len(ys) or (index < len(dys) and dys[index])}
+    for run_start, run_end in glyphs.rtl_runs(text):
+        starts = [run_start, *sorted(index for index in positioned if run_start < index < run_end), run_end]
+        for start, end in zip(starts, starts[1:], strict=False):
+            top = places[start][1]
+            for index in glyphs.reversed_clusters(text, start, end):
+                places[index][1] = top
+                top += places[index][2]
     items = []
     for index, (character, width) in enumerate(advances):
         if character.strip():
