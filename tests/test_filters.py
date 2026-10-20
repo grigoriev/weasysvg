@@ -676,3 +676,11 @@ def test_invalid_css_filter_lengths_plan_unfiltered(value: str) -> None:
     node = SimpleNamespace(get={"filter": value}.get, tag="rect")
     fake = SimpleNamespace(tree=object())
     assert filters.plan(fake, node, 12) is filters.UNFILTERED
+
+
+@pytest.mark.parametrize("primitive", ['<feFlood flood-opacity="abc"/>', '<feDropShadow flood-opacity="x"/>', '<feGaussianBlur stdDeviation="2"/><feFlood flood-color="red" flood-opacity="1e"/>'])
+def test_malformed_filter_values_draw_unfiltered(primitive: str, caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered(primitive))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert "drawn unfiltered" in caplog.text
