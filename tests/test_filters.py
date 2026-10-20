@@ -551,3 +551,14 @@ def test_layer_fan_out_is_capped(caplog: pytest.LogCaptureFixture) -> None:
         pdf = render(filtered(merges))
     assert near(pixel(pdf, 30, 30), RED)
     assert "too many layers" in caplog.text
+
+
+def test_masked_child_of_a_blurred_group_keeps_its_mask() -> None:
+    # The mask content must not be grown or turned black by the passes of the blur
+    body = (
+        '<defs><filter id="b"><feGaussianBlur stdDeviation="2"/></filter>'
+        '<mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="120"><rect width="200" height="120" fill="white"/></mask></defs>'
+        '<g filter="url(#b)"><rect x="20" y="20" width="60" height="40" fill="red" mask="url(#m)"/></g>'
+    )
+    pdf = render(svg(body, height=120))
+    assert near(pixel(pdf, 37, 30), RED, 40)

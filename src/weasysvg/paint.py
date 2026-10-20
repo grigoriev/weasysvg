@@ -313,6 +313,7 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
     saved_mask = mask.attrib.pop("mask", None)
     tag = mask._etree_node.tag
     token = _ACTIVE_MASKS.set((*_ACTIVE_MASKS.get(), mask))
+    styles = _plain_content()
     svg_stream = svg.stream
     try:
         if box is not None:
@@ -323,6 +324,7 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
     finally:
         svg.stream = svg_stream
         _ACTIVE_MASKS.reset(token)
+        _restore_content(styles)
         # Without this the walk later meets a <g> where the <mask> was, and draws its content
         mask._etree_node.tag = tag
         if saved_mask is not None:
@@ -331,6 +333,20 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
             mask.attrib.pop("transform", None)
         else:
             mask.attrib["transform"] = saved_transform
+
+
+def _plain_content() -> tuple[Any, Any]:
+    """Draw mask or clip content as written: a blur pass around it must not grow or recolor it."""
+    from . import filters
+
+    return filters.RESTYLE.set(None), filters.RECOLOR.set(())
+
+
+def _restore_content(tokens: tuple[Any, Any]) -> None:
+    from . import filters
+
+    filters.RESTYLE.reset(tokens[0])
+    filters.RECOLOR.reset(tokens[1])
 
 
 # ---------------- complex clip paths ----------------
@@ -380,6 +396,7 @@ def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
         mask.transform(a=box[2], d=box[3], e=box[0], f=box[1])
     tag = clip._etree_node.tag
     token = _CLIPPING.set(True)
+    styles = _plain_content()
     try:
         svg.stream = mask
         clip._etree_node.tag = "g"
@@ -388,6 +405,7 @@ def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
         clip._etree_node.tag = tag
         svg.stream = stream
         _CLIPPING.reset(token)
+        _restore_content(styles)
 
 
 # ---------------- draw_node helpers, used by _core ----------------
