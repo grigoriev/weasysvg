@@ -158,14 +158,19 @@ def _to_srgb(component: float) -> float:
     return component * 12.92 if component <= 0.0031308 else 1.055 * component ** (1 / 2.4) - 0.055
 
 
-@lru_cache(maxsize=8)
-def image(spec: Turbulence, region: tuple[float, float, float, float], scale: float, linear: bool) -> Image.Image:
-    """The noise over region, at scale pixels per user unit, sampled at pixel centers, as straight RGBA."""
-    x, y, width, height = region
+def size(region: tuple[float, float, float, float], scale: float) -> tuple[int, int]:
+    """The columns and rows of the image of region, at most MAX_PIXELS in all."""
+    width, height = region[2], region[3]
     scale = min(scale, math.sqrt(MAX_PIXELS / max(width * height, 1e-9)))
     # A thin region gets one pixel across: the cap must hold for the other side alone
     columns = max(1, min(round(width * scale), MAX_PIXELS))
-    rows = max(1, min(round(height * scale), MAX_PIXELS // columns))
+    return columns, max(1, min(round(height * scale), MAX_PIXELS // columns))
+
+
+def image(spec: Turbulence, region: tuple[float, float, float, float], scale: float, linear: bool) -> Image.Image:
+    """The noise over region, at scale pixels per user unit, sampled at pixel centers, as straight RGBA."""
+    x, y, width, height = region
+    columns, rows = size(region, scale)
     step_x, step_y = width / columns, height / rows
     pixels = []
     for row in range(rows):
