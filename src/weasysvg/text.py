@@ -3,7 +3,7 @@
 Touches:
 - ``svg.TAGS`` text entries and the global ``svg.text``, with one replacement ``draw_text``:
   font family resolved as Chromium does (fonts.py), dominant-baseline from real font metrics,
-  text-decoration from the font. ``draw_node`` recognizes text nodes by that global, so both change together.
+  text-decoration placed as in Chromium. ``draw_node`` recognizes text nodes by that global, so both change together.
 - ``svg.Node.cascade``: font-size keywords. ``size()`` knows none, so "initial" or "medium" gave 0.
   The cascade rewrites the attribute once, so every reader of font-size sees a length.
 - a tree pass: a <text> inside a <text> is not rendered, as in browsers.
@@ -153,6 +153,27 @@ def baseline_shift(value: str, ascent: float, descent: float, x_height: float) -
 # ---------------- text-decoration ----------------
 
 
+def chromium_lines(lines: list[str], font_size: float, ascent: float, underline_position: float, underline_thickness: float) -> list[tuple[float, float]]:
+    """Top, below the baseline, and thickness of each decoration line, as Chromium places them.
+
+    Measured in Chromium: every line is font-size / 10 thick, one px at least. The underline starts below
+    the baseline by the center of the underline of the font, truncated. The overline ends above the rounded
+    ascent by the truncated thickness. The line-through is centered a third of the rounded ascent up.
+    """
+    thickness = max(1.0, font_size / 10)
+    rounded = math.floor(ascent + 0.5)
+    out = []
+    if "underline" in lines:
+        # Pango gives the top of the font underline, above the baseline: its center lies half a thickness lower
+        gap = math.trunc(underline_thickness / 2 - underline_position) if underline_position else max(1, math.ceil(thickness / 2))
+        out.append((float(gap), thickness))
+    if "overline" in lines:
+        out.append((-float(rounded + math.trunc(thickness)), thickness))
+    if "line-through" in lines:
+        out.append((-rounded / 3 - thickness / 2, thickness))
+    return out
+
+
 def _decorate(svg: Any, node: Any, font_size: float) -> None:
     """Draw the lines over the run text() just laid out, with the position and thickness of the font.
 
@@ -170,13 +191,7 @@ def _decorate(svg: Any, node: Any, font_size: float) -> None:
     ascent = pango.pango_layout_get_baseline(layout.layout) * FROM_UNITS
     x, y, width, _ = node.text_bounding_box
     baseline = y + ascent
-    rects = []
-    if "underline" in lines:
-        rects.append((baseline - layout.underline_position, layout.underline_thickness))
-    if "overline" in lines:
-        rects.append((baseline - layout.ascent, layout.underline_thickness))
-    if "line-through" in lines:
-        rects.append((baseline - layout.strikethrough_position, layout.strikethrough_thickness))
+    rects = [(baseline + top, thickness) for top, thickness in chromium_lines(lines, font_size, layout.ascent, layout.underline_position, layout.underline_thickness)]
     layout.deactivate()
     _draw_lines(svg, node, font_size, x, width, rects)
 
@@ -336,13 +351,7 @@ def _path_decorations(svg: Any, node: Any, font_size: float) -> list[tuple[float
     style["text_decoration_line"] = set(lines)
     layout = Layout(style)
     layout.set_text(node.text or "x")
-    out = []
-    if "underline" in lines:
-        out.append((-layout.underline_position, layout.underline_thickness))
-    if "overline" in lines:
-        out.append((-layout.ascent, layout.underline_thickness))
-    if "line-through" in lines:
-        out.append((-layout.strikethrough_position, layout.strikethrough_thickness))
+    out = chromium_lines(lines, font_size, layout.ascent, layout.underline_position, layout.underline_thickness)
     layout.deactivate()
     return out
 

@@ -773,7 +773,7 @@
   "name": "resvg__text-textPath--with-underline",
   "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Text follows the path as in Chromium; the underline is a little thinner and closer to the glyphs.",
+  "what": "Text follows the path and the underline has the position and thickness of Chromium; it does not skip the descender of the g (no skip-ink).",
   "reference_agrees_with": "chromium"
  },
  {

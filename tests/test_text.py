@@ -127,6 +127,28 @@ def test_decoration_lines(value: str, lines: int) -> None:
     assert rectangles(pdf) == lines
 
 
+@pytest.mark.parametrize(
+    ("font_size", "ascent", "underline_position", "underline_thickness", "expected"),
+    [
+        # Measured in Chromium: Liberation Serif at 24 px, Liberation Sans at 37 px
+        (24, 21.39, -1.441, 1.172, [(2.0, 2.4), (-23.0, 2.4), (-8.2, 2.4)]),
+        (37, 33.495, -1.210, 2.710, [(2.0, 3.7), (-36.0, 3.7), (-12.85, 3.7)]),
+        # A font without an underline position: a gap of half the thickness, one at least
+        (8, 7.0, 0.0, 0.5, [(1.0, 1.0), (-8.0, 1.0), (-2.833, 1.0)]),
+    ],
+)
+def test_decoration_lines_sit_where_chromium_puts_them(font_size: float, ascent: float, underline_position: float, underline_thickness: float, expected: list[tuple[float, float]]) -> None:
+    lines = text.chromium_lines(["underline", "overline", "line-through"], font_size, ascent, underline_position, underline_thickness)
+    assert lines == [pytest.approx(line, abs=1e-3) for line in expected]
+
+
+def test_decoration_lines_are_a_tenth_of_the_font_size() -> None:
+    pdf = render(svg('<text x="10" y="50" font-size="30" text-decoration="underline">Decor</text>'))
+    heights = [float(height) for height in re.findall(r"[-\d.]+ [-\d.]+ [-\d.]+ ([-\d.]+) re", content(pdf))]
+    # The decoration is the one thin rectangle: the others are backgrounds
+    assert [height for height in heights if height < 10] == [pytest.approx(3.0)]
+
+
 def test_decoration_skips_positioned_glyphs_and_blank_runs() -> None:
     pdf = render(svg('<text x="10" y="50 60" text-decoration="underline">AB</text><text x="10" y="80" dy="1 2" text-decoration="underline">CD</text><text x="10" y="90" text-decoration="underline"> </text>'))
     assert rectangles(pdf) == 0

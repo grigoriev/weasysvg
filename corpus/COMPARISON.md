@@ -909,7 +909,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-textPath--with-underline
 
-[`resvg/text-textPath--with-underline.svg`](svg/resvg/text-textPath--with-underline.svg). WeasyPrint: broken, weasysvg: **minor**. Text follows the path as in Chromium; the underline is a little thinner and closer to the glyphs.
+[`resvg/text-textPath--with-underline.svg`](svg/resvg/text-textPath--with-underline.svg). WeasyPrint: broken, weasysvg: **minor**. Text follows the path and the underline has the position and thickness of Chromium; it does not skip the descender of the g (no skip-ink).
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
