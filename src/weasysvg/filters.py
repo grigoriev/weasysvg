@@ -458,7 +458,7 @@ def _function_layers(value: str) -> list[Layer]:
 def _checked(layers: list[Layer]) -> list[Layer]:
     """Refuse lengths no stroke or offset can carry: inf, nan, or beyond MAX_REGION."""
     for layer in layers:
-        if not all(math.isfinite(value) and abs(value) <= MAX_REGION for value in (*layer.blur, layer.dx, layer.dy)):
+        if not all(math.isfinite(value) and abs(value) <= MAX_REGION for value in (*layer.blur, layer.dx, layer.dy, *(layer.region or ()))):
             raise Unsupported("length out of range")
     return layers
 

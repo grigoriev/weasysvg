@@ -614,3 +614,10 @@ def test_nan_in_a_recolor_stays_a_color() -> None:
     pdf = render(filtered('<feComponentTransfer><feFuncR type="linear" slope="nan"/></feComponentTransfer>'))
     assert near(pixel(pdf, 30, 30), (0, 0, 0), 10)
     assert b"nan" not in pdf.lower()
+
+
+def test_unbounded_flood_region_draws_unfiltered(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered('<feFlood width="1e999" flood-color="blue"/>', ' filterUnits="userSpaceOnUse" x="0" y="0" width="200" height="120"'))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert "length out of range" in caplog.text
