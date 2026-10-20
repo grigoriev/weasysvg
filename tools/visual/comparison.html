@@ -83,7 +83,9 @@ figure img { display: block; width: min(calc(var(--w) + 2px), 100%, calc((70vh -
 #lightbox .close { margin-left: auto; }
 /* Swipe as on GitHub: the right drawing lies over the left one in a box that ends at the line. Only the
    width of that box changes: the drawings keep their size and are not painted again, so nothing flickers. */
-.compare { position: relative; flex: none; background: #fff; touch-action: none; user-select: none; }
+/* Safari selects a dragged image and tints it blue: the prefixed rules keep it from selecting or dragging */
+.compare { position: relative; flex: none; background: #fff; touch-action: none; user-select: none; -webkit-user-select: none; }
+.compare img { -webkit-user-drag: none; }
 .compare img, .compare svg { display: block; width: 100%; height: 100%; will-change: transform; }
 .compare .over { position: absolute; top: 0; right: 0; bottom: 0; overflow: hidden; background: #fff; }
 .compare .over > * { position: absolute; top: 0; right: 0; }
@@ -425,6 +427,8 @@ function setup() {
   };
   compare.addEventListener("pointerdown", (event) => {
     if (view.mode !== "swipe") return;
+    // No selection starts under a drag of the line
+    event.preventDefault();
     dragging = true;
     compare.setPointerCapture(event.pointerId);
     follow(event);
