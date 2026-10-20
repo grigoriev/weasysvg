@@ -40,14 +40,18 @@ article h2 { font-size: 15px; margin: 0; word-break: break-all; }
 .same { color: var(--same); } .minor { color: var(--minor); } .broken { color: var(--broken); } .font { color: var(--font); }
 .panels { display: grid; gap: 12px; align-items: start; }
 .panels.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.panels.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* In a row, to compare on one screen: a panel shrinks to its column, a click shows it at full size */
+.panels.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .panels.one { grid-template-columns: minmax(0, 1fr); }
-.panels.wide.two, .panels.wide.four { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1100px) {
+  .panels.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 figure { margin: 0; }
 figcaption { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
 figure a { display: inline-block; max-width: 100%; }
 figure a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-figure img { display: block; max-width: 100%; height: auto; background: #fff; border: 1px solid var(--line); cursor: zoom-in; image-rendering: auto; }
+/* A tall drawing fits the screen too: the four of one SVG stay in view, a click shows the full size */
+figure img { display: block; max-width: 100%; max-height: 70vh; width: auto; height: auto; object-fit: contain; background: #fff; border: 1px solid var(--line); cursor: zoom-in; image-rendering: auto; }
 .missing { color: var(--muted); font-style: italic; padding: 12px; border: 1px dashed var(--line); border-radius: 4px; }
 .flip figcaption strong { color: var(--accent); }
 .hint { color: var(--muted); font-size: 12px; }
@@ -73,9 +77,9 @@ figure img { display: block; max-width: 100%; height: auto; background: #fff; bo
   <div class="controls">
     <fieldset class="segmented" id="mode">
       <legend>Layout</legend>
-      <button type="button" data-mode="two">Side by side</button>
-      <button type="button" data-mode="flip">Flip</button>
       <button type="button" data-mode="four">All four</button>
+      <button type="button" data-mode="two">Two</button>
+      <button type="button" data-mode="flip">Flip</button>
     </fieldset>
     <fieldset class="segmented" id="zoom">
       <legend>Panel size</legend>
@@ -114,14 +118,14 @@ const data = JSON.parse(document.getElementById("data").textContent);
 const renderers = data.renderers;
 const groups = data.groups;
 const labels = { same: "same as Chromium", minor: "minor difference", font: "other font only", broken: "broken" };
-const state = { mode: "two", zoom: 1, left: "chromium", right: "weasysvg", group: "", verdict: "", search: "" };
+const state = { mode: "four", zoom: 1, left: "chromium", right: "weasysvg", group: "", verdict: "", search: "" };
 let lightboxZoom = "1";
 
 function load() {
-  try { Object.assign(state, JSON.parse(localStorage.getItem("weasysvg-comparison") || "{}")); } catch (error) { /* storage unavailable */ }
+  try { Object.assign(state, JSON.parse(localStorage.getItem("weasysvg-comparison-v2") || "{}")); } catch (error) { /* storage unavailable */ }
 }
 function save() {
-  try { localStorage.setItem("weasysvg-comparison", JSON.stringify({ mode: state.mode, zoom: state.zoom, left: state.left, right: state.right })); } catch (error) { /* storage unavailable */ }
+  try { localStorage.setItem("weasysvg-comparison-v2", JSON.stringify({ mode: state.mode, zoom: state.zoom, left: state.left, right: state.right })); } catch (error) { /* storage unavailable */ }
 }
 function element(tag, attributes, children) {
   const node = document.createElement(tag);
@@ -187,12 +191,11 @@ function card(item) {
   const meta = element("p", { class: "meta" }, [source, " · WeasyPrint ", badge(item.native), " weasysvg ", badge(item.verdict)]);
   const children = [element("h2", { text: item.name }), meta];
   if (item.what) children.push(element("p", { class: "meta", text: item.what }));
-  const wide = item.width >= 2 * item.height;
   let panels;
   const flip = state.mode === "flip" ? flipPanel(item) : null;
   if (flip) panels = element("div", { class: "panels one" }, [flip]);
-  else if (state.mode === "four") panels = element("div", { class: "panels four" + (wide ? " wide" : "") }, ["chromium", "weasysvg", "resvg", "weasyprint"].map((key) => panel(item, key)));
-  else panels = element("div", { class: "panels two" + (wide ? " wide" : "") }, [panel(item, state.left), panel(item, state.right)]);
+  else if (state.mode === "four") panels = element("div", { class: "panels four" }, Object.keys(renderers).map((key) => panel(item, key)));
+  else panels = element("div", { class: "panels two" }, [panel(item, state.left), panel(item, state.right)]);
   children.push(panels);
   return element("article", { id: item.name }, children);
 }
