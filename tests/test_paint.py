@@ -75,6 +75,38 @@ def test_radial_gradient_attributes_are_restored() -> None:
     assert near(pixel(pdf, 112, 37), RED, 60)
 
 
+@pytest.mark.parametrize("units", ["", ' gradientUnits="userSpaceOnUse" x1="0" x2="200"'])
+@pytest.mark.parametrize("opacity", ["1", "0.999"])
+def test_rotated_gradient_covers_the_shape(units: str, opacity: str) -> None:
+    # WeasyPrint sizes the cell from two corners of the box: rotated by 45 degrees, the cell is a sliver
+    gradient = f'<linearGradient id="g"{units} gradientTransform="rotate(45 100 50)"><stop stop-color="red"/><stop offset="1" stop-color="red" stop-opacity="{opacity}"/></linearGradient>'
+    pdf = render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/>'))
+    for x, y in ((10, 10), (75, 37), (140, 65)):
+        assert near(pixel(pdf, x, y), RED, 30)
+
+
+def test_degenerate_gradient_transforms() -> None:
+    # A singular transform and a shape without a box: no cell, the rendering of WeasyPrint
+    gradient = '<linearGradient id="g" gradientTransform="scale(0)"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><linearGradient id="h" gradientTransform="rotate(45)" href="#g"/>'
+    render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/><path d="" fill="url(#h)"/>'))
+
+
+def test_gradient_cell_needs_a_box() -> None:
+    gradient = SimpleNamespace(attrib={"gradientTransform": "rotate(45)"}, get={"gradientTransform": "rotate(45)"}.get)
+    fake = SimpleNamespace(calculate_bounding_box=lambda *_args: None)
+    assert paint._gradient_cell(fake, object(), gradient, 12, False) is None
+
+
+def test_gradient_interpolates_unpremultiplied() -> None:
+    # Chromium mixes transparent white and black into half transparent gray: 0.75 over white, not 0.5
+    gradient = '<linearGradient id="g"><stop stop-color="white" stop-opacity="0"/><stop offset="1" stop-color="black"/></linearGradient>'
+    mask = '<mask id="m"><rect width="200" height="100" fill="url(#g)"/></mask>'
+    pdf = render(svg(f'<defs>{gradient}{mask}</defs><rect width="200" height="50" fill="url(#g)"/><rect y="50" width="200" height="50" fill="red" mask="url(#m)"/>'))
+    assert near(pixel(pdf, 75, 18), (191, 191, 191), 12)
+    # In a mask the gray of the middle shows, so the red does too
+    assert pixel(pdf, 75, 55) != WHITE
+
+
 def test_gradient_stops_via_href_used_twice() -> None:
     body = (
         '<defs><linearGradient id="base"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>'
@@ -84,6 +116,13 @@ def test_gradient_stops_via_href_used_twice() -> None:
     pdf = render(svg(body))
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 120, 30), RED)
+
+
+@pytest.mark.parametrize("paint_server", ['<linearGradient id="p"><stop stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>', '<pattern id="p" width="1" height="1"><rect width="200" height="200" fill="red"/></pattern>'])
+def test_paint_server_stroke_has_its_width(paint_server: str) -> None:
+    # The stroke spans 10 to 30 user units around the left edge at x=20
+    pdf = render(svg(f'<defs>{paint_server}</defs><rect x="20" y="20" width="100" height="60" fill="none" stroke="url(#p)" stroke-width="20"/>'))
+    assert near(pixel(pdf, 9, 37), RED, 60)
 
 
 # ---------------- patterns ----------------
@@ -103,6 +142,22 @@ def test_pattern_in_bounding_box_units_used_twice() -> None:
     assert near(pixel(pdf, 50, 30), RED)
     assert near(pixel(pdf, 50, 105), RED)
     assert near(pixel(pdf, 15, 30), WHITE)
+
+
+def test_user_space_pattern_starts_at_the_user_origin() -> None:
+    # The tiles start at x=0 of the user space, not at the box of the shape: 50 to 100 is white
+    body = '<defs><pattern id="p" patternUnits="userSpaceOnUse" width="100" height="100"><rect width="50" height="100" fill="red"/></pattern></defs><rect x="50" width="150" height="100" fill="url(#p)"/>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 45, 30), WHITE)
+    assert near(pixel(pdf, 80, 30), RED)
+
+
+def test_pattern_transform_applies_to_the_tile_origin() -> None:
+    # The box origin x=50 lies in pattern space: scale(2) moves the tiles to 100, 200 and so on
+    body = '<defs><pattern id="p" width="0.5" height="1" patternContentUnits="userSpaceOnUse" patternTransform="scale(2)"><rect width="25" height="100" fill="red"/></pattern></defs><rect x="50" width="100" height="50" fill="url(#p)"/>'
+    pdf = render(svg(body, width=400))
+    assert near(pixel(pdf, 60, 15), WHITE)
+    assert near(pixel(pdf, 80, 15), RED)
 
 
 def test_pattern_on_a_shape_without_box() -> None:
@@ -142,6 +197,107 @@ def test_mask_that_references_itself() -> None:
     pdf = render(svg(body))
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 120, 30), WHITE)
+
+
+@pytest.mark.parametrize("cycle", [False, True])
+def test_mask_attribute_on_a_mask_is_ignored(cycle: bool) -> None:
+    # Chromium ignores mask on a <mask>: the black half of b would hide the whole left half otherwise
+    other = ' mask="url(#a)"' if cycle else ""
+    defs = f'<mask id="a" mask="url(#b)"><rect width="200" height="100" fill="white"/></mask><mask id="b"{other}><rect width="100" height="100" fill="black"/></mask>'
+    pdf = render(svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="red" mask="url(#a)"/>'))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 120, 30), RED)
+
+
+# ---------------- clip paths ----------------
+
+
+def test_clip_rule_evenodd_leaves_a_hole() -> None:
+    clip = '<clipPath id="c"><path d="M0 0H200V100H0Z M50 25H150V75H50Z" clip-rule="evenodd"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 15, 10), RED)
+    assert near(pixel(pdf, 75, 37), WHITE)
+
+
+def test_clip_children_keep_their_own_clip_paths() -> None:
+    clip = '<clipPath id="c"><rect width="50" height="50"/><rect x="100" width="100" height="100" clip-path="url(#d)"/></clipPath><clipPath id="d"><circle cx="150" cy="50" r="30"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 15, 15), RED)
+    assert near(pixel(pdf, 112, 37), RED)
+    assert near(pixel(pdf, 80, 5), WHITE)
+    assert near(pixel(pdf, 60, 60), WHITE)
+
+
+def test_clip_ignores_opacity_and_paint_of_its_content() -> None:
+    clip = '<clipPath id="c"><use href="#r" style="opacity:.25;fill:none"/></clipPath>'
+    defs = f'<rect id="r" width="100" height="100" fill="none"/>{clip}'
+    pdf = render(svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 30, 30), RED, 5)
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+@pytest.mark.parametrize("complex_clip", ["", "<text>x</text>"])
+def test_clip_cycles_are_ignored(complex_clip: str) -> None:
+    # Chromium ignores the reference that closes a cycle; WeasyPrint recursed until the SVG was lost
+    clips = (
+        f'<clipPath id="c"><rect width="50" height="50" clip-path="url(#c)"/>{complex_clip}</clipPath>'
+        '<clipPath id="d"><rect x="100" width="50" height="100" clip-path="url(#e)"/></clipPath>'
+        '<clipPath id="e"><rect x="100" width="100" height="50" clip-path="url(#d)"/></clipPath>'
+        '<clipPath id="f" clip-path="url(#f)"><rect y="60" width="50" height="40"/></clipPath>'
+    )
+    body = f'<defs>{clips}</defs><rect width="100" height="100" fill="red" clip-path="url(#c)"/><rect x="100" width="100" height="100" fill="red" clip-path="url(#d)"/><rect width="100" height="100" fill="red" clip-path="url(#f)"/>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 15, 15), RED)
+    assert near(pixel(pdf, 85, 15), RED)
+    assert near(pixel(pdf, 85, 60), WHITE)
+    assert near(pixel(pdf, 15, 60), RED)
+    assert near(pixel(pdf, 60, 30), WHITE)
+
+
+@pytest.mark.parametrize("complex_clip", ["", "<text>x</text>"])
+def test_a_clip_reused_by_children_is_no_cycle(complex_clip: str) -> None:
+    # The left half of each box: the group keeps 0..100, the children 0..50 and 100..150, so 50..200 is empty
+    clip = f'<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/>{complex_clip}</clipPath>'
+    body = f'<defs>{clip}</defs><g clip-path="url(#c)"><rect width="100" height="100" fill="red" clip-path="url(#c)"/><rect x="100" width="100" height="100" fill="red" clip-path="url(#c)"/></g>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 15, 30), RED)
+    assert near(pixel(pdf, 56, 30), WHITE)
+
+
+def test_missing_and_foreign_clip_references() -> None:
+    references = ("url(#m)", "url(#nowhere)", "inset(1px)")
+    body = "<defs><mask id='m'/></defs>" + "".join(f'<rect x="{20 * i}" width="10" height="10" fill="red" clip-path="{value}"/>' for i, value in enumerate(references))
+    render(svg(body))
+
+
+def test_complex_clip_in_bounding_box_units_without_a_box() -> None:
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><text>x</text></clipPath>'
+    render(svg(f'<defs>{clip}</defs><g clip-path="url(#c)"/>'))
+
+
+@pytest.mark.parametrize("shape", ['<g clip-path="url(#c)"><rect width="200" height="100" fill="red"/></g>', '<circle cx="100" cy="50" r="50" fill="red" clip-path="url(#c)"/>'])
+def test_bounding_box_clip_on_any_element(shape: str) -> None:
+    # The left half of the box, for a group or a circle as for a rect
+    pdf = render(svg(f'<defs><clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath></defs>{shape}'))
+    assert near(pixel(pdf, 56, 30), RED)
+    assert near(pixel(pdf, 90, 30), WHITE)
+
+
+def test_text_in_a_clip_path_clips() -> None:
+    clip = '<clipPath id="c"><text x="10" y="80" font-size="80" font-weight="bold">II</text></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    colors = {pixel(pdf, x, 40) for x in range(0, 150, 2)}
+    assert any(near(color, RED) for color in colors)
+    assert not any(near(color, (0, 0, 0), 60) for color in colors)
+
+
+def test_complex_clip_in_bounding_box_units_with_a_mask() -> None:
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/><text y="1" font-size="0.5">x</text></clipPath>'
+    mask = '<mask id="m"><rect width="200" height="50" fill="white"/></mask>'
+    pdf = render(svg(f'<defs>{clip}{mask}</defs><rect x="100" width="100" height="100" fill="red" clip-path="url(#c)" mask="url(#m)"/>'))
+    assert near(pixel(pdf, 80, 15), RED)
+    assert near(pixel(pdf, 130, 15), WHITE)
+    assert near(pixel(pdf, 80, 60), WHITE)
 
 
 def test_mask_on_an_empty_group_is_skipped() -> None:
@@ -318,3 +474,37 @@ def test_a_mask_on_an_empty_group_is_skipped(caplog: pytest.LogCaptureFixture) -
     assert "Failed to render SVG image" not in caplog.text
     assert b"inf" not in pdf.lower().replace(b"/info", b"")
     assert near(pixel(pdf, 20, 20), RED)
+
+
+def test_a_failing_restyler_puts_back_what_others_changed(monkeypatch: pytest.MonkeyPatch) -> None:
+    from weasysvg import _core
+
+    def first(_svg: Any, node: Any, _size: float) -> dict[str, str | None]:
+        node.attrib["fill"] = "blue"
+        return {"fill": "red"}
+
+    def second(*_args: Any) -> None:
+        raise RuntimeError("restyler failed")
+
+    monkeypatch.setattr(_core, "_RESTYLERS", [first, second])
+    node = SimpleNamespace(attrib={"fill": "red"}, get=lambda *_args: None, tag="rect")
+    fake = SimpleNamespace(paths={})
+    with pytest.raises(RuntimeError):
+        _core._draw_node(fake, node, 12)
+    assert node.attrib == {"fill": "red"}
+    assert _core._ACTIVE_CLIPS.get() == ()
+
+
+def test_invalid_stop_opacity_counts_as_opaque() -> None:
+    # WeasyPrint raised ValueError on it and lost the whole SVG; Chromium takes 1
+    gradient = '<linearGradient id="g"><stop stop-color="red" stop-opacity="0"/><stop offset="0.01" stop-color="red" stop-opacity="abc"/><stop offset="1" stop-color="red" stop-opacity="abc"/></linearGradient>'
+    pdf = render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/><rect y="50" width="200" height="50" fill="url(#g)"/>'))
+    assert near(pixel(pdf, 75, 30), RED)
+    assert near(pixel(pdf, 75, 60), RED)
+
+
+def test_blend_mode_with_a_complex_clip_blends_with_the_backdrop() -> None:
+    # Blue multiplied over red is black; inside the isolated clip group it blended with nothing
+    clip = '<clipPath id="c"><path d="M0 0H200V100H0Z" clip-rule="evenodd"/></clipPath>'
+    body = f'<defs>{clip}</defs><rect width="200" height="100" fill="red"/><rect width="200" height="100" fill="blue" style="mix-blend-mode:multiply" clip-path="url(#c)"/>'
+    assert near(pixel(render(svg(body)), 30, 30), (0, 0, 0), 20)

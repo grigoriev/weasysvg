@@ -316,9 +316,9 @@
  },
  {
   "name": "real__wm-Openstreetmap_logo",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Magnifier handle is drawn only as its blurred shadow; the black handle and yellow ferrules are missing.",
+  "what": "Handle and ferrules drawn: the rotated gradient cells cover the shapes. The blurred shadow of the lens ring is a little darker than in Chromium.",
   "reference_agrees_with": "n/a"
  },
  {
@@ -372,9 +372,9 @@
  },
  {
   "name": "resvg__filters-feComposite--operator=arithmetic-with-large-k1-4",
-  "verdict": "same",
+  "verdict": "broken",
   "native_verdict": "broken",
-  "what": "",
+  "what": "feComposite arithmetic has no vector form: drawn unfiltered.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -421,9 +421,9 @@
  },
  {
   "name": "resvg__filters-feGaussianBlur--stdDeviation=0-5",
-  "verdict": "same",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "",
+  "what": "Blurred along x as well: the vector blur uses the mean of the two deviations.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -442,16 +442,16 @@
  },
  {
   "name": "resvg__filters-feTurbulence--baseFrequency=0.01",
-  "verdict": "same",
+  "verdict": "broken",
   "native_verdict": "broken",
-  "what": "",
+  "what": "feTurbulence has no vector form: drawn unfiltered.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__filters-feTurbulence--type=invalid",
-  "verdict": "same",
+  "verdict": "broken",
   "native_verdict": "broken",
-  "what": "",
+  "what": "feTurbulence has no vector form: drawn unfiltered.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -484,9 +484,9 @@
  },
  {
   "name": "resvg__masking-clipPath--clip-path-on-children",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Only the small center square shows; the clipped star is missing.",
+  "what": "The clip path becomes a soft mask: each child keeps its own clip-path and clip-rule.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -505,9 +505,9 @@
  },
  {
   "name": "resvg__masking-mask--recursive-on-self",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Frame draws but the masked green gradient is missing.",
+  "what": "mask on a <mask> is ignored, as in Chromium; gradient colors mix unpremultiplied.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -533,9 +533,9 @@
  },
  {
   "name": "resvg__paint-servers-pattern--text-child",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif pattern text instead of reference sans; tiles now show full 'Text', grid matches.",
+  "what": "Tiles start at the user space origin, patternTransform included. Glyph antialiasing differs slightly.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -554,30 +554,30 @@
  },
  {
   "name": "resvg__painting-marker--on-ArcTo",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Mid marker missing and start/end markers point in wrong directions.",
+  "what": "Start and end markers follow the arc tangents, as in Chromium.",
   "reference_agrees_with": "neither"
  },
  {
   "name": "resvg__painting-marker--orient=auto-on-M-C-C-4",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Start and mid markers rotated about 90 degrees wrong.",
+  "what": "The mid marker bisects the cusp with the angle wrap of Chromium and points right.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__painting-mix-blend-mode--screen",
-  "verdict": "minor",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Screen blend present but the overlap is more saturated teal than the reference's pale tones.",
+  "what": "Gradient colors mix unpremultiplied, as in Chromium.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__painting-mix-blend-mode--xor",
-  "verdict": "minor",
+  "verdict": "same",
   "native_verdict": "minor",
-  "what": "Overlap gradient slightly more saturated yellow-green than reference.",
+  "what": "Gradient colors mix unpremultiplied, as in Chromium.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -708,30 +708,30 @@
  },
  {
   "name": "resvg__text-dominant-baseline--auto",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface instead of reference sans; baseline matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "n/a"
  },
  {
   "name": "resvg__text-dominant-baseline--reset-size",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface instead of reference sans; baseline matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "n/a"
  },
  {
   "name": "resvg__text-letter-spacing--0",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface, narrower; position matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-letter-spacing--on-Arabic",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Arabic letters unjoined and spaced apart instead of connected words.",
+  "what": "Letters joined, right to left, in the fallback font of Chromium. letter-spacing widens the spaces only; PDFium shows half of it (it drops the shift before the first glyph of a TJ array), Quartz all of it.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -743,65 +743,65 @@
  },
  {
   "name": "resvg__text-text--x-and-y-with-less-values-than-characters",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface; per-character positions match.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-text-decoration--line-through",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Serif typeface; line-through present.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-text-decoration--style-resolving-3",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Serif typeface; line-through present with correct fill and stroke.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-textPath--with-invalid-path-and-xlink-href",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Extra text drawn at the top edge, partly outside the frame; reference shows no text.",
+  "what": "Neither the path attribute nor the href resolves: nothing is drawn, as in Chromium.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-textPath--with-underline",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Text not laid on the path; it sits underlined at the top edge, clipped.",
+  "what": "Text follows the path as in Chromium; the underline is a little thinner and closer to the glyphs.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-tspan--mixed",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface; colors and positions match.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "n/a"
  },
  {
   "name": "resvg__text-tspan--only-with-y",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface; position matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Vertical writing mode ignored: text horizontal with overlapping glyphs.",
+  "what": "Vertical, BCA top to bottom as in Chromium. Chromium anchors the run by its extent after dy, so its columns sit about 40 px lower.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-writing-mode--tb-with-rotate",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Vertical writing mode ignored: text laid out horizontally.",
+  "what": "Vertical: CJK upright, Latin and Arabic sideways, each turned by rotate. The test marks the result as undefined; the run is longer than in Chromium.",
   "reference_agrees_with": "neither"
  }
 ]

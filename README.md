@@ -31,12 +31,10 @@ must be present: zopfli, which WeasyPrint needs, has no PyPy wheel and builds fr
 The package is not on PyPI yet. Install a release from GitHub:
 
 ```sh
-pip install "weasysvg[resvg] @ git+https://github.com/grigoriev/weasysvg@v0.1.0"
+pip install "weasysvg @ git+https://github.com/grigoriev/weasysvg@v0.1.0"
 ```
 
-The `resvg` extra adds [resvg-py](https://pypi.org/project/resvg-py/). It rasterizes only the filter
-subtrees that PDF cannot express, such as blur, turbulence and color matrices. Without it, weasysvg
-keeps a vector approximation: a blur is dropped, other filters draw the element unfiltered.
+weasysvg depends on WeasyPrint only. Every SVG feature it adds stays vector in the PDF, blur included.
 
 WeasyPrint needs Pango, see its
 [installation guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html).
@@ -62,7 +60,7 @@ weasyprint.HTML("report.html").write_pdf("report.pdf")
 names of the installed features. Each feature can be turned off:
 
 ```python
-weasysvg.install(filters=False, raster_scale=3.0)
+weasysvg.install(filters=False, fonts=False)
 ```
 
 | Argument | Default | Effect |
@@ -70,13 +68,12 @@ weasysvg.install(filters=False, raster_scale=3.0)
 | `conditional_processing` | `True` | `<switch>`, `requiredExtensions`, `systemLanguage` (as Chromium in `en-US`) |
 | `foreign_object` | `True` | `<foreignObject>` content laid out by WeasyPrint |
 | `filters` | `True` | filter chains, `drop-shadow()` and `blur()` |
-| `raster_filters` | `True` | resvg for the filters PDF cannot express, if installed |
-| `raster_scale` | `2.0` | raster resolution, in pixels per CSS px |
 | `paint` | `True` | gradients, patterns and masks |
 | `blend` | `True` | `mix-blend-mode` (needs `paint`) |
 | `text` | `True` | text baselines, decorations, font-size keywords |
 | `fonts` | `True` | font family selection as Chromium does it |
 | `fetch_cache` | `True` | one fetch per URL and SVG |
+| `markers` | `True` | marker orientation as in Chromium |
 
 weasysvg targets WeasyPrint 70.x and warns on any other major version: it patches internals that
 change between releases.
@@ -87,12 +84,13 @@ change between releases.
 |---|---|
 | `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. |
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
-| Filters | `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over and in, `feComponentTransfer` alpha slope, `luminanceToAlpha`, and the CSS `drop-shadow()` and `blur()` functions, in vector. Blurred layers and other primitives go through resvg. |
-| Masks | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, and self-referencing masks. |
-| Gradients and patterns | Pattern `x` and `y`, patterns used twice, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
+| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over and in, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. A blur is a soft mask that steps through the Gaussian profile of the edge. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
+| Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
+| Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
-| Text | `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` from the font, font-size keywords, nested `<text>` ignored. |
-| Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). |
+| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright, other scripts sideways. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` from the font, font-size keywords, nested `<text>` ignored. |
+| Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
+| Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
 
 ## How it compares to Chromium
@@ -104,10 +102,10 @@ review:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 92 |
-| minor difference | 10 | 4 |
-| other font only | 11 | 9 |
-| broken | 54 | 10 |
+| same as Chromium | 40 | 104 |
+| minor difference | 10 | 8 |
+| other font only | 11 | 0 |
+| broken | 54 | 3 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
 differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
@@ -116,16 +114,14 @@ which has no scrollbar for `overflow: auto` (print has no use for one). The verd
 
 ## Known gaps
 
-- `textPath` and vertical `writing-mode` are not supported.
-- Markers on arcs and on some curves point in the wrong direction (`orient="auto"`).
-- `clip-path` on the children of a `<clipPath>` and a mask that references itself through its content
-  lose the clipped or masked part.
-- `letter-spacing` on Arabic text breaks the joining of the letters.
-- A blurred shadow can hide the shape it belongs to (the OpenStreetMap logo).
-- `mix-blend-mode` colors can be more saturated than in Chromium.
+- Vertical text anchors a run that `dy` moves backwards by its advance, not by its extent as Chromium does.
+- On a `textPath` each character is laid out alone, so Arabic does not join there. Underlines skip no ink.
+- A blur treats every point by its distance to the nearest edge: sharp corners and thin filled shapes
+  come out a little darker than in Chromium.
+- `feTurbulence`, `feComposite` arithmetic, lighting, morphology, convolution and displacement have no
+  vector form: the element draws unfiltered, with a warning.
+- A blur with two different deviations uses their mean.
 - `overflow: auto` inside a `<foreignObject>` shows no scrollbar, so text reflows into the full width.
-- The "font" verdicts are resvg tests that expect a sans-serif default. weasysvg uses serif, as Chromium
-  does.
 
 ## Development
 

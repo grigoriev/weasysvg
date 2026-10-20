@@ -34,9 +34,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-resvg = [
-    "resvg-py>=0.5",
-]
 dev = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
@@ -106,7 +103,7 @@ warn_no_return = true
 follow_imports = "normal"
 show_error_codes = true
 
-# WeasyPrint and resvg-py ship no type information
+# WeasyPrint ships no type information
 [[tool.mypy.overrides]]
-module = ["weasyprint.*", "weasyprint", "resvg_py.*", "pypdfium2.*", "numpy.*"]
+module = ["weasyprint.*", "weasyprint", "pypdfium2.*", "numpy.*"]
 ignore_missing_imports = true
