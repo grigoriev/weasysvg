@@ -127,12 +127,12 @@ function element(tag, attributes, children) {
 function badge(verdict) {
   return element("span", { class: "badge " + (verdict || ""), text: labels[verdict] || "n/a" });
 }
-function panel(item, key, caption) {
+function panel(item, key, caption, onOpen) {
   const path = item.panels[key];
   const children = [element("figcaption", {}, caption || [renderers[key]])];
   if (path) {
     const image = element("img", { src: path, alt: item.name + " in " + renderers[key], loading: "lazy", width: item.width * state.zoom, height: item.height * state.zoom });
-    image.addEventListener("click", () => openLightbox(item, key));
+    image.addEventListener("click", onOpen || (() => openLightbox(item, key)));
     children.push(image);
   } else {
     children.push(element("div", { class: "missing", text: item.errors[key] || "no panel" }));
@@ -141,9 +141,14 @@ function panel(item, key, caption) {
 }
 function flipPanel(item) {
   const caption = element("figcaption", {}, []);
-  const figure = panel(item, state.left, [caption]);
-  figure.classList.add("flip");
   let showing = state.left;
+  let touched = false;
+  // A click opens the renderer on show; a tap only flips, and its click must not open the full view
+  const figure = panel(item, state.left, [caption], () => {
+    if (touched) { touched = false; return; }
+    openLightbox(item, showing);
+  });
+  figure.classList.add("flip");
   const show = (key) => {
     showing = key;
     caption.replaceChildren(element("strong", { text: renderers[key] }), " - hover or tap to see " + renderers[key === state.left ? state.right : state.left]);
@@ -151,9 +156,10 @@ function flipPanel(item) {
     if (image && item.panels[key]) image.src = item.panels[key];
   };
   show(state.left);
-  figure.addEventListener("mouseenter", () => show(state.right));
-  figure.addEventListener("mouseleave", () => show(state.left));
-  figure.addEventListener("touchstart", () => show(showing === state.left ? state.right : state.left), { passive: true });
+  // Hover for a mouse only: a touch fires mouse events of its own, which would flip back
+  figure.addEventListener("pointerenter", (event) => { if (event.pointerType === "mouse") show(state.right); });
+  figure.addEventListener("pointerleave", (event) => { if (event.pointerType === "mouse") show(state.left); });
+  figure.addEventListener("touchstart", () => { touched = true; show(showing === state.left ? state.right : state.left); }, { passive: true });
   return figure;
 }
 function card(item) {

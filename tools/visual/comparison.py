@@ -169,6 +169,7 @@ def html_page(resvg_errors: dict[str, str]) -> str:
     """The interactive page: the template with the panels, verdicts and notes of every SVG as JSON."""
     verdicts = {v["name"]: v for v in json.loads((CORPUS / "verdicts.json").read_text())}
     version = json.loads((CORPUS / "baseline.json").read_text()).get("weasyprint", "")
+    counts = Counter(v.get("verdict") for v in verdicts.values())
     items = []
     for item in json.loads((CORPUS / "index.json").read_text()):
         name, verdict = item["name"], verdicts.get(item["name"], {})
@@ -196,7 +197,8 @@ def html_page(resvg_errors: dict[str, str]) -> str:
         ),
         "renderers": {label.lower(): label for label, _ in COLUMNS},
         "groups": GROUPS,
-        "counts": dict(Counter(v.get("verdict") for v in verdicts.values())),
+        # Every verdict, those no SVG has included: the filter lists them all
+        "counts": {key: counts[key] for key in VERDICTS},
         "items": items,
     }
     # "</" inside the JSON would end the script element
