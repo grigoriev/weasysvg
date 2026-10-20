@@ -576,3 +576,13 @@ def test_bounding_box_mask_on_text() -> None:
     pdf = render(svg(f'<defs>{mask}</defs><text x="10" y="70" font-size="60" font-weight="bold" fill="red" mask="url(#m)">HHHH</text>'))
     assert any(near(pixel(pdf, x, 50), RED) for x in range(10, 60))
     assert not any(near(pixel(pdf, x, 50), RED) for x in range(110, 180))
+
+
+def test_the_scratch_drawing_of_a_text_leaves_nothing_in_the_pdf() -> None:
+    # The text is drawn once to measure it: every form left in the PDF is drawn, or is a soft mask
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><text x="100" y="70" font-size="60" text-anchor="middle" clip-path="url(#c)">HHHH</text>'))
+    forms = len(re.findall(rb"/Subtype\s*/Form", pdf))
+    drawn = len(re.findall(r"/x\d+ Do", content(pdf)))
+    masks = len(re.findall(rb"/SMask\s*<<", pdf))
+    assert forms == drawn + masks
