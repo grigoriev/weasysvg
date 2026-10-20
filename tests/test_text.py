@@ -453,6 +453,18 @@ class TextNode(list[Any]):
         return self.attrib.get(key, default)
 
 
+@pytest.mark.parametrize("extra", ["", '<tspan x="150" font-size="10pt" dy="16">and more</tspan>'])
+def test_the_space_after_a_chunk_belongs_to_that_chunk(extra: str) -> None:
+    # The white space between the tspans of a chunk, after it, must not widen the chunk before it: the
+    # title is anchored alike with one line under it or two
+    def title_shift(lines: tuple[str, ...]) -> str:
+        body = '<text y="40" x="150" text-anchor="middle">\n  ' + "\n  ".join(lines) + "\n</text>"
+        return str(re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))[-1])
+
+    two = ("<tspan>Transport</tspan>", '<tspan x="150" font-size="10pt" dy="16">End-to-End</tspan>')
+    assert title_shift((*two, extra) if extra else two) == title_shift(two[:1] + ('<tspan x="150" font-size="10pt" dy="16">End</tspan>',))
+
+
 def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
     # Drawn inside out: the chunk "H" one level down, the tspan around it, then the text
     chunk = TextNode("tspan", (90, 45, 20, 25), attrib={"x": "90"})
