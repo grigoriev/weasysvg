@@ -86,6 +86,11 @@ def test_text_in_a_clip_path_inherits_from_its_own_ancestors() -> None:
     assert font_sizes(pdf) == [10]
 
 
+def test_a_resource_under_a_size_in_ex_takes_the_x_height() -> None:
+    body = '<g font-family="Liberation Sans" font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g>'
+    assert font_sizes(render(svg(body))) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
+
+
 def test_ex_holds_where_a_size_is_read_before_drawing() -> None:
     # A textPath measures its tspans before they draw: 4ex must place the glyphs as its size in px does
     def placed(size: str) -> list[str]:
@@ -93,6 +98,15 @@ def test_ex_holds_where_a_size_is_read_before_drawing() -> None:
         return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body))))
 
     assert placed("4ex") == placed(f"{4 * 16 * 1082 / 2048}px")
+
+
+def test_a_resource_under_a_word_ending_in_ex_takes_the_parent_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    # WeasyPrint cannot read "complex" as a size: the clip path takes the size around it instead
+    monkeypatch.setattr(text, "_ORIGINAL_CASCADE", lambda self, child: None)
+    group = SimpleNamespace(tag="g", attrib={"font-size": "complex"})
+    clip = SimpleNamespace(tag="clipPath", attrib={})
+    text.cascade(group, clip)
+    assert clip.attrib == {"font-size": "16.0px"}
 
 
 def test_a_word_ending_in_ex_is_no_size() -> None:

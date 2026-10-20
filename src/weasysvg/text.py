@@ -24,6 +24,7 @@ import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -33,6 +34,7 @@ from weasyprint.matrix import Matrix
 from weasyprint.svg.bounding_box import EMPTY_BOUNDING_BOX, extend_bounding_box, is_valid_bounding_box
 from weasyprint.svg.utils import normalize, size
 from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
+from weasyprint.text.fonts import FontConfiguration
 from weasyprint.text.line_break import Layout
 
 from . import _core, ink, textpath, vertical
@@ -75,11 +77,39 @@ FONT_PX = "_weasysvg_font_px"
 RESOURCES = frozenset(("clipPath", "mask", "marker", "pattern"))
 
 
+_SHARED_FONTS: list[Any] = []
+
+
+def _ex_count(value: str) -> float | None:
+    """How many ex value is, or None if it is no size in ex."""
+    word = normalize(value).split(" ", 1)[0]
+    if not word.endswith("ex"):
+        return None
+    try:
+        return float(word[:-2])
+    except ValueError:
+        return None
+
+
+def _resolved_px(node: Any, value: str, parent_px: float) -> float:
+    """The font size value of node in px: ex from the x-height of its font, as ex_restyle draws it."""
+    if normalize(value).split(" ", 1)[0].endswith("ex"):
+        count = _ex_count(value)
+        if count is None:
+            return parent_px  # a word that ends in ex, which WeasyPrint cannot read either
+        # The fonts of the system: the cascade knows no document, @font-face rules apart
+        if not _SHARED_FONTS:
+            _SHARED_FONTS.append(FontConfiguration())
+        x_height = _metrics(SimpleNamespace(font_config=_SHARED_FONTS[0]), node, parent_px)[2] or parent_px / 2
+        return count * x_height
+    return float(size(value, parent_px, parent_px))
+
+
 def _font_px(node: Any) -> float:
     """The computed font size of node: noted by the cascade, or of the root, against the 12pt of WeasyPrint."""
     noted = getattr(node, FONT_PX, None)
     if noted is None:
-        noted = size(node.attrib.get("font-size", "1em"), DEFAULT_FONT_PX, DEFAULT_FONT_PX)
+        noted = _resolved_px(node, node.attrib.get("font-size", "1em"), DEFAULT_FONT_PX)
         setattr(node, FONT_PX, noted)
     return float(noted)
 
@@ -108,20 +138,15 @@ def cascade(self: Any, child: Any) -> None:
         return
     parent_px = _font_px(self)
     own = child.attrib.get("font-size", "1em")
-    setattr(child, FONT_PX, size(own, parent_px, parent_px))
-    # A size in ex waits for the font of the drawing: ex_restyle measures it
-    if child.tag in RESOURCES and not normalize(own).split(" ", 1)[0].endswith("ex"):
+    setattr(child, FONT_PX, _resolved_px(child, own, parent_px))
+    if child.tag in RESOURCES:
         child.attrib["font-size"] = f"{getattr(child, FONT_PX)}px"
 
 
 def ex_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:
     """A font-size in ex becomes px: one ex is the x-height of the font, as in Chromium, not half the em."""
-    value = normalize(node.attrib.get("font-size", "")).split(" ", 1)[0]
-    if not value.endswith("ex"):
-        return None
-    try:
-        count = float(value[:-2])
-    except ValueError:
+    count = _ex_count(node.attrib.get("font-size", ""))
+    if count is None:
         return None
     saved = {"font-size": node.attrib["font-size"]}
     # A font with no ink for "x" has no x-height: CSS then takes half an em
