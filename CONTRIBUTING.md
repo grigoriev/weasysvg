@@ -44,8 +44,8 @@ a CI gate. The mismatch guides the eye; the verdicts in `corpus/verdicts.json` a
 a verdict when a change makes a rendering better or worse.
 
 A change that alters a rendering or a verdict also runs `make comparison` and commits
-`corpus/COMPARISON.md` and `corpus/render`. The page shows each SVG in Chromium, WeasyPrint alone and
-WeasyPrint with weasysvg, and resvg where it has a reference.
+`corpus/COMPARISON.md` and `corpus/render`. The page shows each SVG in Chromium, resvg (rendered by
+resvg-py of the `visual` extra), WeasyPrint alone and WeasyPrint with weasysvg.
 
 Never judge a rendering with poppler (`pdftoppm`, Evince, Okular). Its Splash backend drops WeasyPrint
 gradients, and its cairo backend drops soft masks that PDFium and Quartz apply. Use PDFium, which is the

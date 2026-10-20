@@ -1,20 +1,27 @@
-"""Write corpus/COMPARISON.md: each corpus SVG in Chromium, WeasyPrint alone and WeasyPrint with weasysvg, and resvg.
+"""Write corpus/COMPARISON.md: each corpus SVG in Chromium, resvg, WeasyPrint alone and WeasyPrint with weasysvg.
 
 Usage: comparison.py
 
 Run it through make comparison: it renders the panels of WeasyPrint and weasysvg with the bench first
-(bench.py --panels), into corpus/render. The Chromium and resvg panels are the references in
-corpus/reference; only the resvg feature tests have a resvg reference. The page is Markdown, so GitHub
-shows it in the repository.
+(bench.py --panels), into corpus/render. This script renders the resvg panels into corpus/render/resvg, at
+the width of the page and with the fonts Chromium picks. The Chromium panels are the references in
+corpus/reference/chromium. The page is Markdown, so GitHub shows it in the repository.
 """
 
 from __future__ import annotations
 
 import html
+import importlib.metadata
+import io
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+import resvg_py
+from imaging import ink_box, padded
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS = ROOT / "corpus"
@@ -29,7 +36,48 @@ GROUPS = {
 }
 VERDICTS = ("same", "minor", "font", "broken")
 LABELS = {"same": "same as Chromium", "minor": "minor difference", "font": "other font only", "broken": "broken"}
-COLUMNS = (("Chromium", "reference/chromium"), ("resvg", "reference/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
+COLUMNS = (("Chromium", "reference/chromium"), ("resvg", "render/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
+
+
+UNITS = {"pt": 4 / 3, "pc": 16, "mm": 96 / 25.4, "cm": 96 / 2.54, "in": 96}
+ROOT_SIZE = re.compile(r'(<svg\b[^>]*?\s(?:width|height)=")([\d.]+)(pt|pc|mm|cm|in)(")')
+
+
+def in_px(svg: str) -> str:
+    """The root width and height in px: resvg-py 0.5 refuses a root sized in absolute units ("invalid size")."""
+    for _ in range(2):
+        svg = ROOT_SIZE.sub(lambda m: f"{m[1]}{float(m[2]) * UNITS[m[3]]:g}{m[4]}", svg, count=1)
+    return svg
+
+
+def render_resvg(item: dict[str, Any], target: Path) -> None:
+    """The SVG through resvg on white, at the width of the page, cropped to its ink as the references are."""
+    target.unlink(missing_ok=True)
+    svg = CORPUS / "svg" / item["source"]
+    try:
+        # The families Chromium resolves the generic names to, in the visual image
+        png = bytes(
+            resvg_py.svg_to_bytes(
+                svg_string=in_px(svg.read_text()),
+                resources_dir=str(svg.parent),
+                width=int(item["width"]) if item.get("width") else None,
+                font_family="Liberation Serif",
+                serif_family="Liberation Serif",
+                sans_serif_family="Liberation Sans",
+                monospace_family="DejaVu Sans Mono",
+            )
+        )
+    except BaseException as error:  # noqa: BLE001  a resvg panic surfaces as a BaseException
+        if isinstance(error, (KeyboardInterrupt, SystemExit)):
+            raise
+        print(f"{item['name']}: resvg failed: {repr(error)[:200]}")
+        return
+    image = Image.open(io.BytesIO(png)).convert("RGBA")
+    flat = Image.new("RGB", image.size, "white")
+    flat.paste(image, mask=image.getchannel("A"))
+    box = ink_box([flat])
+    if box is not None:
+        flat.crop(padded(box, flat.size)).save(target, optimize=True)
 
 
 def anchor(title: str) -> str:
@@ -65,6 +113,7 @@ def page() -> str:
     index = json.loads((CORPUS / "index.json").read_text())
     verdicts = {v["name"]: v for v in json.loads((CORPUS / "verdicts.json").read_text())}
     version = json.loads((CORPUS / "baseline.json").read_text()).get("weasyprint", "")
+    resvg_version = importlib.metadata.version("resvg-py")
     groups: dict[str, list[dict[str, Any]]] = {}
     for item in index:
         groups.setdefault(item["group"], []).append(item)
@@ -76,8 +125,9 @@ def page() -> str:
     intro = (
         "# Corpus comparison\n\n"
         "<!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->\n\n"
-        f"Each SVG of the corpus in Chromium, the reference; WeasyPrint {version} alone; and WeasyPrint {version} "
-        "with weasysvg. The resvg feature tests also show the resvg reference. The WeasyPrint panels are PDFium rasterizations at 96 dpi over "
+        f"Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg-py {resvg_version}); "
+        f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. resvg renders the SVG alone, at the width of the page, cropped "
+        "to its ink. The WeasyPrint panels are PDFium rasterizations at 96 dpi over "
         "the box of the Chromium panel. The verdicts come from a visual review, see "
         "[`verdicts.json`](verdicts.json). Click a panel for its full size.\n\n"
     )
@@ -85,6 +135,10 @@ def page() -> str:
 
 
 def main() -> None:
+    panels = CORPUS / "render" / "resvg"
+    panels.mkdir(parents=True, exist_ok=True)
+    for item in json.loads((CORPUS / "index.json").read_text()):
+        render_resvg(item, panels / f"{item['name']}.png")
     PAGE.write_text(page())
     print(f"wrote {PAGE.relative_to(ROOT)}")
 
