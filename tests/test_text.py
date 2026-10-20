@@ -282,6 +282,15 @@ def test_text_path_offsets_anchors_and_tspans() -> None:
     assert 180 < sum(xs) / len(xs) < 240
 
 
+@pytest.mark.parametrize("effect", ['clip-path="url(#c)"', 'filter="url(#f)"'])
+def test_an_effect_on_a_tspan_keeps_its_place_on_the_path(effect: str) -> None:
+    # The tspan is measured before its effect: that draw must not move the text along the path
+    defs = f'{WAVE}<clipPath id="c"><rect width="440" height="160"/></clipPath><filter id="f"><feOffset/></filter>'
+    plain = f'<defs>{defs}</defs><text font-size="12"><textPath href="#w">ab <tspan>cd</tspan> ef</textPath></text>'
+    pdf = render(svg(plain.replace("<tspan>", f"<tspan {effect}>"), width=440, height=160))
+    assert glyph_matrices(pdf) == glyph_matrices(render(svg(plain, width=440, height=160)))
+
+
 def test_text_path_from_the_path_attribute_and_a_transform() -> None:
     body = '<defs><path id="t" d="M 0 0 H 100" transform="translate(20 50)"/></defs><text><textPath href="#t">A</textPath></text><text><textPath path="M 20 90 H 120">B</textPath></text>'
     pdf = render(svg(body, height=120))
@@ -436,14 +445,17 @@ def test_each_text_chunk_is_anchored_by_its_own_width(anchor: str, inner: str) -
 class TextNode(list[Any]):
     """A text node as chunk_boxes sees it: tag, attributes, children and the box WeasyPrint drew."""
 
-    def __init__(self, tag: str, box: tuple[float, float, float, float], children: tuple[Any, ...] = (), **attrib: str) -> None:
+    def __init__(self, tag: str, box: tuple[float, float, float, float], children: tuple[Any, ...] = (), attrib: dict[str, str] | None = None) -> None:
         super().__init__(children)
-        self.tag, self.attrib, self.text_bounding_box = tag, attrib, box
+        self.tag, self.attrib, self.text_bounding_box = tag, attrib or {}, box
+
+    def get(self, key: str, default: str | None = None) -> str | None:
+        return self.attrib.get(key, default)
 
 
 def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
     # Drawn inside out: the chunk "H" one level down, the tspan around it, then the text
-    chunk = TextNode("tspan", (90, 45, 20, 25), x="90")
+    chunk = TextNode("tspan", (90, 45, 20, 25), attrib={"x": "90"})
     middle = TextNode("tspan", (10, 20, 10, 25), (chunk,))
     root = TextNode("text", (10, 20, 10, 25), (middle,))
     for node in (chunk, middle, root):
@@ -453,6 +465,14 @@ def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
     assert chunk.text_bounding_box == (90, 45, 20, 25)
     assert middle.text_bounding_box == (10, 20, 10, 25)
     assert all(text.CHUNK_BOX not in vars(node) for node in (chunk, middle, root))
+
+
+@pytest.mark.parametrize(("anchor", "direction", "x"), [("start", "ltr", 50), ("middle", "ltr", 40), ("end", "ltr", 30), ("start", "rtl", 30), ("end", "rtl", 50)])
+def test_the_box_of_a_text_lies_where_its_anchor_puts_it(anchor: str, direction: str, x: float) -> None:
+    # WeasyPrint keeps the box before the anchor shift: effects of the text need the box as drawn
+    node = TextNode("text", (50, 20, 20, 25), attrib={"text-anchor": anchor, "direction": direction})
+    text.chunk_boxes(None, node)
+    assert node.text_bounding_box == (x, 20, 20, 25)
 
 
 # ---------------- leading shifts ----------------

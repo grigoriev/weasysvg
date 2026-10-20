@@ -191,6 +191,13 @@ def test_bounding_box_clip_works_on_rects_only() -> None:
     still_broken(near(pixel(pdf, 56, 30), WHITE), "objectBoundingBox clips on any element", "paint.complex_clip")
 
 
+def test_link_has_no_bounding_box() -> None:
+    # A clip in objectBoundingBox units on an <a> keeps nothing: WeasyPrint has no box for it
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="1" height="1"/></clipPath>'
+    pdf, _ = render(svg(f'<defs>{clip}</defs><a clip-path="url(#c)"><rect width="200" height="100" fill="red"/></a>'))
+    still_broken(near(pixel(pdf, 56, 30), WHITE), "the bounding box of <a>", "_core.bounding_box_a")
+
+
 def test_clip_cycle_loses_the_svg() -> None:
     clip = '<clipPath id="c"><rect width="50" height="50" clip-path="url(#c)"/></clipPath>'
     _, errors = render(svg(f'<defs>{clip}</defs><rect width="100" height="100" fill="red" clip-path="url(#c)"/>'))

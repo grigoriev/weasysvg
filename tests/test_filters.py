@@ -978,3 +978,14 @@ def test_a_rect_in_one_paint_is_blurred_exactly(stroke: str, exact: bool) -> Non
     assert (" sh" in "".join(streams(pdf))) == exact
     if exact:
         assert gray_at(pdf, 45, 45) == pytest.approx(0.25, abs=0.06)
+
+
+def test_a_filter_on_anchored_text_covers_the_drawn_text() -> None:
+    # The region of a filter on text: the box of the text where text-anchor puts it, plus 10 percent
+    flood = '<filter id="f"><feFlood flood-color="black"/></filter>'
+    pdf = render(svg(f'<defs>{flood}</defs><text x="100" y="60" font-size="40" text-anchor="middle" filter="url(#f)">HH</text>'))
+    # Below the baseline only the flood is black: it spans the text, centered on x=100 as the text is
+    image = rasterize(pdf, 96 / 72).convert("L")
+    black = [x for x in range(200) if cast(int, image.getpixel((x, 65))) < 26]
+    assert black, "the filter is drawn"
+    assert abs((black[0] + black[-1]) / 2 - 100) < 3
