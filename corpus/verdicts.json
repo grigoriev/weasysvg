@@ -1,807 +1,1037 @@
 [
  {
   "name": "diagrams__kroki-blockdiag",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "Checked at full size in PDFium, cairo and Quartz: the shadows are blurred, as in Chromium. The thumbnail is too small to show it.",
-  "reference_agrees_with": "n/a"
+  "what": "Matches: boxes, arrows and the blurred shadows.",
+  "native_verdict": "close",
+  "native_what": "Shadows are hard offset copies instead of blurred ones."
  },
  {
   "name": "diagrams__kroki-bpmn",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__kroki-c4plantuml",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "",
-  "reference_agrees_with": "n/a"
- },
- {
-  "name": "diagrams__kroki-d2",
-  "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, fonts included.",
+  "native_verdict": "close",
+  "native_what": "Same drawing in another font."
  },
  {
   "name": "diagrams__kroki-d2-arch",
+  "reference": "chromium",
+  "reference_why": "resvg ignores the @font-face fonts the SVG embeds and falls back to a serif.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, with the embedded fonts.",
+  "native_verdict": "differs",
+  "native_what": "Nothing but a black rectangle: the SVG is lost."
+ },
+ {
+  "name": "diagrams__kroki-d2",
+  "reference": "chromium",
+  "reference_why": "resvg ignores the embedded @font-face fonts.",
+  "verdict": "same",
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Two black bars instead of the diagram."
  },
  {
   "name": "diagrams__kroki-erd",
+  "reference": "chromium",
+  "reference_why": "resvg draws the sans-serif labels in a serif.",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, underlined keys included.",
+  "native_verdict": "close",
+  "native_what": "The key fields name and id lose their underline; the font differs."
  },
  {
   "name": "diagrams__kroki-excalidraw",
+  "reference": "chromium",
+  "reference_why": "resvg ignores the embedded hand-drawn font.",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, hand-drawn font included.",
+  "native_verdict": "close",
+  "native_what": "Wider gap between the words."
  },
  {
   "name": "diagrams__kroki-graphviz",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "close",
+  "native_what": "Same drawing in another font."
  },
  {
   "name": "diagrams__kroki-mermaid-er",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, labels included.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "diagrams__kroki-mermaid-mindmap",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "diagrams__kroki-mermaid-state",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "diagrams__kroki-nomnoml",
+  "reference": "chromium",
+  "reference_why": "resvg draws no text at all here.",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__kroki-pikchr",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All text is missing."
  },
  {
   "name": "diagrams__kroki-plantuml-activity",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, the underlined word included.",
+  "native_verdict": "close",
+  "native_what": "The underline under 'waiting' is missing."
  },
  {
   "name": "diagrams__kroki-plantuml-sequence",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__kroki-structurizr",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__kroki-svgbob",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__kroki-vegalite",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__kroki-wavedrom",
+  "reference": "chromium",
+  "reference_why": "resvg drops the lane labels and the fills of the data cells.",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__mermaid-ink-class",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "diagrams__mermaid-ink-er",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "diagrams__mermaid-ink-flowchart",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "diagrams__mermaid-ink-gantt",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "close",
+  "native_what": "The axis dates lose their year: 01-05 instead of 2014-01-05."
  },
  {
   "name": "diagrams__mermaid-ink-gitgraph",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__mermaid-ink-journey",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__mermaid-ink-mindmap",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "diagrams__mermaid-ink-pie",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__mermaid-ink-sequence",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "diagrams__mermaid-ink-state",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: every label is missing.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All labels are missing."
  },
  {
   "name": "drawio__connect-shapes",
+  "reference": "chromium",
+  "reference_why": "resvg draws the labels in a serif.",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "Remote GIFs are blocked in all three renderings (policy).",
-  "reference_agrees_with": "n/a"
+  "what": "Matches. The remote GIFs are blocked in every rendering, by policy.",
+  "native_verdict": "close",
+  "native_what": "The links lose their underline."
  },
  {
   "name": "drawio__flowchart.drawio",
+  "reference": "chromium",
+  "reference_why": "resvg ignores the switch with requiredFeatures and shows the fallback text 'Text is not SVG'.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Labels are cut to 'Lamp...' and the fallback text 'Text is not SVG' shows."
  },
  {
   "name": "drawio__infographic",
+  "reference": "chromium",
+  "reference_why": "resvg shows raw HTML source in place of the foreignObject text.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Most text is missing, raw HTML shows."
  },
  {
   "name": "drawio__infographic2",
+  "reference": "chromium",
+  "reference_why": "resvg shows 'Not supported by viewer' fallbacks.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "'Not supported by viewer' fallbacks show in large orange type."
  },
  {
   "name": "drawio__notion-template.drawio",
+  "reference": "chromium",
+  "reference_why": "resvg shows the fallback 'Click Here to...'.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Shows the fallback 'Click Here to...'."
  },
  {
   "name": "drawio__svgfile",
+  "reference": "chromium",
+  "reference_why": "resvg shows 'Not supported by viewer' fallbacks.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Fallback texts in place of the labels."
  },
  {
   "name": "fo__mdn-foreignobject",
-  "verdict": "minor",
-  "native_verdict": "broken",
-  "what": "No scrollbar on the overflow:auto box, so text reflows into that width; harmless in print.",
-  "reference_agrees_with": "n/a"
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject: the box stays empty.",
+  "verdict": "close",
+  "what": "Text as in Chromium, but no scrollbar for overflow: auto, so the text reflows into the full width of the box. A print has no use for a scrollbar.",
+  "native_verdict": "differs",
+  "native_what": "The box is empty."
  },
  {
   "name": "fo__rich-html",
+  "reference": "chromium",
+  "reference_why": "resvg has no foreignObject.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches: heading, list, table and the rotated paragraph.",
+  "native_verdict": "differs",
+  "native_what": "All HTML content is missing."
  },
  {
   "name": "real__wm-Bitmap_VS_SVG",
+  "reference": "browser",
+  "reference_why": "Chromium of the references ran with no English language: the switch has no fallback child, so it drew no title. An English browser shows Raster and Vector, as weasysvg does (see the browser panel).",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Shows 'Raster'/'Vector' via switch, spec-correct for English; Chromium shows no heading.",
-  "reference_agrees_with": "weasyprint"
+  "what": "Matches an English browser: Raster and Vector titles.",
+  "native_verdict": "differs",
+  "native_what": "All translations of the titles are drawn on top of each other."
  },
  {
   "name": "real__wm-Flag_of_Brazil",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-Flag_of_Switzerland",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-Flag_of_the_United_Kingdom",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-Git-logo",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-Inkscape_Logo",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-Kubernetes_logo_without_workmark",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-OSI_Model_v1",
+  "reference": "chromium",
+  "reference_why": "resvg drops the second line of every label.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "All translations of every label are drawn on top of each other."
  },
  {
   "name": "real__wm-Openstreetmap_logo",
-  "verdict": "minor",
-  "native_verdict": "broken",
-  "what": "Handle and ferrules drawn: the rotated gradient cells cover the shapes. The blurred shadow of the lens ring is a little darker than in Chromium.",
-  "reference_agrees_with": "n/a"
+  "reference": "both",
+  "reference_why": "",
+  "verdict": "close",
+  "what": "The shadow under the lens ring shows faint steps: a blur of anything but a plain rect is drawn in levels.",
+  "native_verdict": "differs",
+  "native_what": "No shadows, and the handle is a flat dark shape."
  },
  {
   "name": "real__wm-Python-logo-notext",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-SVG_Logo",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "real__wm-Simple_Periodic_Table_Chart-blocks",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches: each number and symbol is centered in its cell.",
+  "native_verdict": "differs",
+  "native_what": "All translations of every label are drawn on top of each other."
  },
  {
   "name": "real__wm-Tux",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, the blurred shading of the feet included.",
+  "native_verdict": "close",
+  "native_what": "The soft shading under the feet is missing: hard edges instead."
  },
  {
   "name": "real__wm-Wikimedia-logo",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "n/a"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__filters-feColorMatrix--type=luminanceToAlpha",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The filter is dropped: the rainbow gradient shows in colour."
  },
  {
   "name": "resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The filter is dropped: the rainbow gradient shows in colour."
  },
  {
   "name": "resvg__filters-feComposite--operator=arithmetic-with-large-k1-4",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The filter is dropped: a plain green square."
  },
  {
   "name": "resvg__filters-feComposite--operator=over",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The filter is dropped: a plain green square."
  },
  {
   "name": "resvg__filters-feDropShadow--hsla-color",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches: the blue glow.",
+  "native_verdict": "differs",
+  "native_what": "No shadow."
  },
  {
   "name": "resvg__filters-feDropShadow--with-percent-offset",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "No shadow."
  },
  {
   "name": "resvg__filters-feFlood--seagreen",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "A black square instead of the seagreen flood."
  },
  {
   "name": "resvg__filters-feFlood--with-opacity-on-target-element",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Grey and dark green instead of the pale flood."
  },
  {
   "name": "resvg__filters-feGaussianBlur--small-stdDeviation",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "close",
+  "native_what": "Not blurred; the blur is small."
  },
  {
   "name": "resvg__filters-feGaussianBlur--stdDeviation=0-5",
-  "verdict": "minor",
-  "native_verdict": "broken",
-  "what": "Blurred along x as well: the vector blur uses the mean of the two deviations.",
-  "reference_agrees_with": "chromium"
+  "reference": "both",
+  "reference_why": "",
+  "verdict": "same",
+  "what": "Matches: blurred along y only, the left and right edges stay sharp.",
+  "native_verdict": "differs",
+  "native_what": "Not blurred at all."
  },
  {
   "name": "resvg__filters-feOffset--complex-transform",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The offset is taken in the wrong space: the shape lands lower and larger."
  },
  {
   "name": "resvg__filters-feOffset--fractional-offset",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "resvg__filters-feTurbulence--baseFrequency=0.01",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Noise is drawn as an image over the filter region: it has no vector form.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "A black square instead of the noise."
  },
  {
   "name": "resvg__filters-feTurbulence--type=invalid",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Noise is drawn as an image over the filter region: it has no vector form.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "A black square instead of the noise."
  },
  {
   "name": "resvg__filters-filter--in=SourceAlpha",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches: the blurred black silhouette.",
+  "native_verdict": "differs",
+  "native_what": "The filter is dropped: the green square."
  },
  {
   "name": "resvg__filters-filter--on-the-root-svg",
-  "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "reference": "both",
+  "reference_why": "",
+  "verdict": "close",
+  "what": "The blurred square has mitered corners, not round ones: a blur of anything but a plain rect is drawn in levels.",
+  "native_verdict": "differs",
+  "native_what": "Not blurred."
  },
  {
   "name": "resvg__filters-filter-functions--blur-function-two-values",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches: an invalid blur() leaves the element unfiltered.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__filters-filter-functions--drop-shadow-function-comma-separated",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches: the invalid function is ignored.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__masking-clipPath--clip-path-on-children",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "The clip path becomes a soft mask: each child keeps its own clip-path and clip-rule.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Only the small centre piece shows."
  },
  {
   "name": "resvg__masking-clipPath--on-a-horizontal-line",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__masking-mask--invalid-child",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches: nothing is drawn.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__masking-mask--recursive-on-self",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "mask on a <mask> is ignored, as in Chromium; gradient colors mix unpremultiplied.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The SVG is lost: blank."
  },
  {
   "name": "resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__paint-servers-pattern--nested-objectBoundingBox",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The inner pattern is shrunk to small fragments."
  },
  {
   "name": "resvg__paint-servers-pattern--text-child",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "Tiles start at the user space origin, patternTransform included. Glyph antialiasing differs slightly.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "close",
+  "native_what": "The text tiles are spaced differently, in another font."
  },
  {
   "name": "resvg__paint-servers-radialGradient--fr=0.2",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches: the gray levels agree within 2 of 255.",
+  "native_verdict": "close",
+  "native_what": "The gradient is cut to a square with dark corners."
  },
  {
   "name": "resvg__paint-servers-radialGradient--gradientTransform-via-href",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The lower two squares are missing."
  },
  {
   "name": "resvg__painting-marker--on-ArcTo",
+  "reference": "chromium",
+  "reference_why": "The path is one arc, so it has no middle vertex. resvg splits the arc into curves and puts a marker-mid between them.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Start and end markers follow the arc tangents, as in Chromium.",
-  "reference_agrees_with": "neither"
+  "what": "Matches: a start and an end marker.",
+  "native_verdict": "differs",
+  "native_what": "The markers point the wrong way."
  },
  {
   "name": "resvg__painting-marker--orient=auto-on-M-C-C-4",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "The mid marker bisects the cusp with the angle wrap of Chromium and points right.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches: the middle marker at the cusp points left.",
+  "native_verdict": "differs",
+  "native_what": "The start marker points down instead of along the curve."
  },
  {
   "name": "resvg__painting-mix-blend-mode--screen",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Gradient colors mix unpremultiplied, as in Chromium.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The blend mode is ignored: the colours are plain over."
  },
  {
   "name": "resvg__painting-mix-blend-mode--xor",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "minor",
-  "what": "Gradient colors mix unpremultiplied, as in Chromium.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "The blend is ignored."
  },
  {
   "name": "resvg__painting-paint-order--duplicates",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__painting-paint-order--invalid",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__painting-stroke-dasharray--0-n-with-round-caps",
-  "verdict": "same",
-  "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "reference": "both",
+  "reference_why": "",
+  "verdict": "close",
+  "what": "The dots on the bottom and left sides sit up to 1 unit off.",
+  "native_verdict": "close",
+  "native_what": "The dots on the bottom and left sides sit up to 1 unit off."
  },
  {
   "name": "resvg__painting-stroke-dasharray--odd-count",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "close",
+  "native_what": "The dashes drift along the circle: WeasyPrint draws it a little too large."
  },
  {
   "name": "resvg__shapes-path--M-H-H-implicit",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__shapes-path--M-T",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-style--class-selector",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-style--iD-selector",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-switch--single-child",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-switch--with-attributes",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "differs",
+  "native_what": "Red: the switch is ignored and every child draws."
  },
  {
   "name": "resvg__structure-symbol--with-transform",
+  "reference": "chromium",
+  "reference_why": "The resvg suite follows SVG 1.1, where a symbol has no transform; SVG 2 and browsers apply it.",
   "verdict": "same",
+  "what": "Matches Chromium: skewed as SVG 2 says.",
   "native_verdict": "same",
-  "what": "Matches Chromium (SVG 2 applies symbol transform); the SVG 1.1 reference ignores it.",
-  "reference_agrees_with": "neither"
+  "native_what": "Matches Chromium."
  },
  {
   "name": "resvg__structure-symbol--with-viewBox-and-custom-use-size",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-systemLanguage--on-clipPath",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-systemLanguage--on-defs",
+  "reference": "resvg",
+  "reference_why": "Chromium draws nothing; systemLanguage on defs does not hide what is defined there, so the gradient square shows, as in the resvg suite.",
   "verdict": "same",
+  "what": "Matches the resvg suite: the gradient square.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "weasyprint"
+  "native_what": "Matches the resvg suite."
  },
  {
   "name": "resvg__structure-transform--scale-without-Y",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-transform--skewY",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-use--with-size",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__structure-use--xlink-to-svg-element-with-rect",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
+  "what": "Matches.",
   "native_verdict": "same",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "native_what": "Matches."
  },
  {
   "name": "resvg__text-dominant-baseline--auto",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, in the Noto Sans the test asks for.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "resvg__text-dominant-baseline--reset-size",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "n/a"
+  "what": "Matches, in the Noto Sans the test asks for.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "resvg__text-letter-spacing--0",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches, in the Noto Sans the test asks for.",
+  "native_verdict": "close",
+  "native_what": "The word is a little wider."
  },
  {
   "name": "resvg__text-letter-spacing--on-Arabic",
-  "verdict": "minor",
-  "native_verdict": "broken",
-  "what": "Letters joined, right to left, in the fallback font of Chromium. letter-spacing widens the spaces only; PDFium shows half of it (it drops the shift before the first glyph of a TJ array), Quartz all of it.",
-  "reference_agrees_with": "chromium"
+  "reference": "both",
+  "reference_why": "",
+  "verdict": "same",
+  "what": "Matches: letter-spacing widens the spaces only.",
+  "native_verdict": "differs",
+  "native_what": "The letters are not joined and stand apart."
  },
  {
   "name": "resvg__text-text--nested",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches: a text inside a text draws nothing.",
+  "native_verdict": "differs",
+  "native_what": "The nested text draws, in red."
  },
  {
   "name": "resvg__text-text--x-and-y-with-less-values-than-characters",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "resvg__text-text-decoration--line-through",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches, the line-through included.",
+  "native_verdict": "differs",
+  "native_what": "No line-through."
  },
  {
   "name": "resvg__text-text-decoration--style-resolving-3",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches, the line-through included.",
+  "native_verdict": "differs",
+  "native_what": "No line-through."
  },
  {
   "name": "resvg__text-textPath--with-invalid-path-and-xlink-href",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "Neither the path attribute nor the href resolves: nothing is drawn, as in Chromium.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches: no text.",
+  "native_verdict": "differs",
+  "native_what": "Text drawn at the top."
  },
  {
   "name": "resvg__text-textPath--with-underline",
-  "verdict": "minor",
-  "native_verdict": "broken",
-  "what": "Text follows the path and the underline has the position and thickness of Chromium; it does not skip the descender of the g (no skip-ink).",
-  "reference_agrees_with": "chromium"
+  "reference": "both",
+  "reference_why": "",
+  "verdict": "close",
+  "what": "The underline runs under the descenders too: Chromium breaks it around them.",
+  "native_verdict": "differs",
+  "native_what": "No text on the path."
  },
  {
   "name": "resvg__text-tspan--mixed",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "n/a"
+  "what": "Matches.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "resvg__text-tspan--only-with-y",
+  "reference": "both",
+  "reference_why": "",
   "verdict": "same",
-  "native_verdict": "font",
-  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
-  "reference_agrees_with": "chromium"
+  "what": "Matches.",
+  "native_verdict": "same",
+  "native_what": "Matches."
  },
  {
   "name": "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor",
+  "reference": "chromium",
+  "reference_why": "SVG 2 anchors a text chunk by the extent of its glyph positions, dy included, as Chromium does. resvg anchors by the advance.",
   "verdict": "same",
-  "native_verdict": "broken",
-  "what": "",
-  "reference_agrees_with": "chromium"
+  "what": "Matches: each column is anchored with B moved up.",
+  "native_verdict": "differs",
+  "native_what": "Laid out horizontally."
  },
  {
   "name": "resvg__text-writing-mode--tb-with-rotate",
-  "verdict": "minor",
-  "native_verdict": "broken",
-  "what": "Vertical: CJK upright, Latin and Arabic sideways, each turned by rotate. The test marks the result as undefined; the run is longer than in Chromium.",
-  "reference_agrees_with": "neither"
+  "reference": "resvg",
+  "reference_why": "The test is undefined behavior; the resvg suite shows its expected result.",
+  "verdict": "differs",
+  "what": "The Arabic word is not shaped: its letters stand apart in isolated forms, so the column runs longer.",
+  "native_verdict": "differs",
+  "native_what": "Laid out horizontally."
  }
 ]

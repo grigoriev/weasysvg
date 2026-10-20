@@ -8,12 +8,12 @@
 <style>
 :root {
   --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --card: #f6f8fa;
-  --accent: #0969da; --same: #1a7f37; --minor: #9a6700; --broken: #cf222e; --font: #8250df;
+  --accent: #0969da; --same: #1a7f37; --close: #9a6700; --differs: #cf222e;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --card: #151b23;
-    --accent: #4493f8; --same: #3fb950; --minor: #d29922; --broken: #f85149; --font: #ab7df8;
+    --accent: #4493f8; --same: #3fb950; --close: #d29922; --differs: #f85149;
   }
 }
 * { box-sizing: border-box; }
@@ -37,7 +37,10 @@ article h2 { font-size: 15px; margin: 0; word-break: break-all; }
 .meta { color: var(--muted); margin: 2px 0 8px; }
 .meta a { color: var(--accent); }
 .badge { display: inline-block; border-radius: 10px; padding: 0 8px; font-size: 12px; border: 1px solid currentColor; margin-right: 4px; }
-.same { color: var(--same); } .minor { color: var(--minor); } .broken { color: var(--broken); } .font { color: var(--font); }
+.v-same { color: var(--same); } .v-close { color: var(--close); } .v-differs { color: var(--differs); }
+.verdict { margin: 2px 0; }
+/* The panel of the reference: the one the verdicts compare against */
+figcaption .ref { color: var(--accent); font-weight: 600; }
 .panels { display: grid; gap: 12px; align-items: start; }
 /* In a row, to compare on one screen: a panel shrinks to its column, a click shows it at full size */
 .panels.all { grid-template-columns: repeat(5, minmax(0, 1fr)); }
@@ -125,7 +128,9 @@ figure img { display: block; max-width: 100%; max-height: 70vh; width: auto; hei
 const data = JSON.parse(document.getElementById("data").textContent);
 const renderers = data.renderers;
 const groups = data.groups;
-const labels = { same: "same as Chromium", minor: "minor difference", font: "other font only", broken: "broken" };
+const labels = data.labels;
+// The panels each reference names
+const referencePanels = { chromium: ["chromium"], resvg: ["resvg"], both: ["chromium", "resvg"], browser: ["browser"] };
 const state = { zoom: 1, group: "", verdict: "", search: "" };
 
 function load() {
@@ -143,7 +148,7 @@ function element(tag, attributes, children) {
   return node;
 }
 function badge(verdict) {
-  return element("span", { class: "badge " + (verdict || ""), text: labels[verdict] || "n/a" });
+  return element("span", { class: "badge v-" + (verdict || "none"), text: labels[verdict] || "n/a" });
 }
 const SVG_NS = "http://www.w3.org/2000/svg";
 // The SVG itself, drawn by this browser: placed as the <img> of the reference page, with its width, and
@@ -182,7 +187,9 @@ function browserName() {
 
 function panel(item, key) {
   const path = item.panels[key];
-  const children = [element("figcaption", { text: renderers[key] })];
+  const caption = element("figcaption", { text: renderers[key] });
+  if ((referencePanels[item.reference] || []).includes(key)) caption.append(" ", element("span", { class: "ref", text: "reference" }));
+  const children = [caption];
   if (path) {
     const image = drawing(item, key, state.zoom, true);
     // A link: Enter opens the full view, and "open in new tab" still shows the PNG or the SVG
@@ -200,9 +207,12 @@ function panel(item, key) {
 }
 function card(item) {
   const source = element("a", { href: "svg/" + item.source, text: item.source });
-  const meta = element("p", { class: "meta" }, [source, " · WeasyPrint ", badge(item.native), " weasysvg ", badge(item.verdict)]);
+  const reference = data.references[item.reference] || "n/a";
+  const meta = element("p", { class: "meta" }, [source, " · reference: " + reference + (item.referenceWhy ? ". " + item.referenceWhy : "")]);
   const children = [element("h2", { text: item.name }), meta];
-  if (item.what) children.push(element("p", { class: "meta", text: item.what }));
+  for (const [label, verdict, what] of [["weasysvg", item.verdict, item.what], ["WeasyPrint", item.native, item.nativeWhat]]) {
+    children.push(element("p", { class: "verdict" }, [label + " ", badge(verdict), what ? " " + what : ""]));
+  }
   children.push(element("div", { class: "panels all" }, Object.keys(renderers).map((key) => panel(item, key))));
   return element("article", { id: item.name }, children);
 }

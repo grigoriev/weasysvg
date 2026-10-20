@@ -97,30 +97,30 @@ change between releases.
 
 ## How it compares to Chromium
 
-The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs and compares each result with
-Chromium. The corpus holds draw.io, Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world
-files from Wikimedia Commons, and tests of the resvg suite. Each pair carries a verdict from a visual
-review:
+The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
+Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
+the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (86 SVGs), or an
+English browser where headless Chromium matches no `systemLanguage`. A visual review at full size
+compares each rendering with that reference:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 109 |
-| minor difference | 10 | 6 |
-| other font only | 11 | 0 |
-| broken | 54 | 0 |
+| matches the reference | 47 | 109 |
+| close to the reference | 15 | 5 |
+| differs from the reference | 53 | 1 |
 
-All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
-differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
-which has no scrollbar for `overflow: auto` (print has no use for one). The verdicts are in
-[`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
+All 35 diagrams from draw.io, kroki and mermaid.ink match the reference. Each verdict says what
+differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
 shows every SVG in Chromium, your own browser, resvg, WeasyPrint alone and WeasyPrint with weasysvg, in a row,
-with a swipe between any two of them, as GitHub compares images; [`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
+with the reference marked and a swipe between any two of them, as GitHub compares images;
+[`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
 
 ## Known gaps
 
 - On a `textPath` each character is laid out alone, so Arabic does not join there. Underlines skip no ink.
-- A blur treats every point by its distance to the nearest edge: sharp corners and thin filled shapes
-  come out a little darker than in Chromium.
+- A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
+  edge: corners come out mitered, and a wide shadow shows faint steps.
+- `rotate` on vertical text lays out each character alone, so Arabic does not join there.
 - Lighting, morphology, convolution and displacement have no vector form: the element draws
   unfiltered, with a warning.
 - `feComposite` arithmetic needs one input to be a flood of the whole filter region, or both inputs to
