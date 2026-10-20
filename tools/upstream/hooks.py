@@ -27,6 +27,7 @@ SNAPSHOT = ROOT / "upstream" / "hooks.json"
 
 # module:qualified.name -> what in weasysvg depends on it
 HOOKS: dict[str, str] = {
+    "weasyprint.images:RasterImage": "filters._draw_image draws the pixels of feTurbulence through it",
     "weasyprint.images:SVGImage.__init__": "_core: tree passes and fetcher wrappers run before it",
     "weasyprint.svg:SVG.__init__": "_core, paint: svg.paths, svg.masks, svg.filters, cursor state",
     "weasyprint.svg:SVG.draw_node": "_core._draw_node and _draw_with_effects mirror its order of effects",

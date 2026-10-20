@@ -6,12 +6,13 @@ import logging
 import math
 import re
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
-from helpers import RecordingStream, content, pixel, render, svg
+from helpers import RecordingStream, content, pixel, rasterize, render, svg
+from PIL import ImageStat
 
-from weasysvg import filters
+from weasysvg import filters, turbulence
 from weasysvg.filters import HIDDEN, Layer, Restyle, Unsupported
 
 RED = (255, 0, 0)
@@ -158,7 +159,7 @@ def test_bad_references() -> None:
 @pytest.mark.parametrize(
     "primitives",
     [
-        '<feTurbulence baseFrequency="0.05"/>',
+        '<feMorphology radius="2"/>',
         '<feBlend mode="multiply" in2="SourceGraphic"/>',
         '<feComposite operator="xor" in2="SourceGraphic"/>',
         '<feColorMatrix type="unknown"/>',
@@ -683,4 +684,148 @@ def test_malformed_filter_values_draw_unfiltered(primitive: str, caplog: pytest.
     with caplog.at_level(logging.WARNING, logger="weasysvg"):
         pdf = render(filtered(primitive))
     assert near(pixel(pdf, 30, 30), RED)
+    assert "drawn unfiltered" in caplog.text
+
+
+# ---------------- turbulence and arithmetic ----------------
+
+
+def colors(pdf: bytes, box: tuple[int, int, int, int]) -> set[tuple[int, int, int]]:
+    """The distinct colors of the page inside box, in pixels at 72 dpi."""
+    found = rasterize(pdf, 1).crop(box).getcolors(1 << 24) or []
+    return {cast("tuple[int, int, int]", value) for _, value in found}
+
+
+def test_turbulence_draws_noise_over_the_filter_region() -> None:
+    pdf = render(filtered('<feTurbulence baseFrequency="0.05"/>'))
+    assert images(pdf) == 1
+    assert len(colors(pdf, (12, 13, 63, 47))) > 50
+    assert pixel(pdf, 70, 30) == WHITE
+
+
+def test_an_invalid_turbulence_type_is_turbulence() -> None:
+    plain = rasterize(render(filtered('<feTurbulence baseFrequency="0.05"/>')), 1)
+    invalid = rasterize(render(filtered('<feTurbulence baseFrequency="0.05" type="invalid"/>')), 1)
+    fractal = rasterize(render(filtered('<feTurbulence baseFrequency="0.05" type="fractalNoise"/>')), 1)
+    assert plain.tobytes() == invalid.tobytes()
+    assert plain.tobytes() != fractal.tobytes()
+
+
+@pytest.mark.parametrize("frequency", ["-0.05", "0.1 0.2 0.3", "abc"])
+def test_an_invalid_base_frequency_is_zero(frequency: str) -> None:
+    # Turbulence of frequency 0 is transparent everywhere
+    pdf = render(filtered(f'<feTurbulence baseFrequency="{frequency}"/>'))
+    assert colors(pdf, (12, 13, 63, 47)) == {WHITE}
+
+
+def test_turbulence_values() -> None:
+    # Noise is 0 on the lattice: turbulence is 0 there, fractal noise is 0.5
+    assert turbulence.value(turbulence.Turbulence(1, 1, 2, 0, False, False), (3, 4), (0, 0, 10, 10)) == (0, 0, 0, 0)
+    assert turbulence.value(turbulence.Turbulence(1, 1, 2, -5, True, False), (3, 4), (0, 0, 10, 10)) == (0.5, 0.5, 0.5, 0.5)
+    stitched = turbulence.Turbulence(0.13, 0.27, 3, 2, True, True)
+    # Stitched noise meets itself across the tile: its right edge continues its left edge
+    assert turbulence.value(stitched, (9.9999, 3.3), (0, 0, 10, 10)) == pytest.approx(turbulence.value(stitched, (0.0, 3.3), (0, 0, 10, 10)), abs=1e-3)
+    assert turbulence.value(stitched, (3.3, 9.9999), (0, 0, 10, 10)) == pytest.approx(turbulence.value(stitched, (3.3, 0.0), (0, 0, 10, 10)), abs=1e-3)
+    assert turbulence.value(turbulence.Turbulence(0.0, 0.0, 1, 0, False, True), (1, 1), (0, 0, 10, 10)) == (0, 0, 0, 0)
+
+
+def test_stitched_frequencies() -> None:
+    # The nearest frequency that fits a whole number of cells into the tile
+    assert turbulence._stitched_frequency(0.13, 10) == pytest.approx(0.1)
+    assert turbulence._stitched_frequency(0.18, 10) == pytest.approx(0.2)
+    assert turbulence._stitched_frequency(0.05, 10) == pytest.approx(0.1)
+
+
+def test_turbulence_in_srgb_is_darker() -> None:
+    linear = render(filtered('<feTurbulence baseFrequency="0.05"/>'))
+    srgb = render(filtered('<feTurbulence baseFrequency="0.05"/>', ' color-interpolation-filters="sRGB"'))
+    # linearRGB values turned into sRGB come out lighter
+    assert sum(ImageStat.Stat(rasterize(srgb, 1).crop((12, 13, 63, 47))).mean) < sum(ImageStat.Stat(rasterize(linear, 1).crop((12, 13, 63, 47))).mean)
+
+
+def test_turbulence_image_is_capped() -> None:
+    picture = turbulence.image(turbulence.Turbulence(0.05, 0.05, 1, 0, False, False), (0, 0, 1000, 1000), 4, True)
+    assert picture.width * picture.height <= turbulence.MAX_PIXELS
+    assert picture.mode == "RGBA"
+
+
+def test_turbulence_through_offset_blur_recolor_and_shadow() -> None:
+    chains = [
+        '<feTurbulence baseFrequency="0.05"/><feOffset dx="5"/><feGaussianBlur stdDeviation="2"/>',
+        '<feTurbulence baseFrequency="0.05"/><feColorMatrix type="saturate" values="0"/>',
+        '<feTurbulence baseFrequency="0.05" result="t"/><feFlood flood-color="blue"/><feComposite in2="t" operator="in"/>',
+        '<feTurbulence baseFrequency="0.05" x="0" y="0" width="0"/>',
+        '<feTurbulence baseFrequency="0.05"/><feComponentTransfer><feFuncA type="linear" slope="0.5"/></feComponentTransfer>',
+    ]
+    gray = colors(render(filtered(chains[1])), (12, 13, 63, 47))
+    assert all(abs(red - green) < 4 and abs(green - blue) < 4 for red, green, blue in gray)
+    shadow = colors(render(filtered(chains[2])), (12, 13, 63, 47))
+    assert all(blue >= red and red == green for red, green, blue in shadow)
+    assert colors(render(filtered(chains[3])), (12, 13, 63, 47)) == {WHITE}
+    for chain in (chains[0], chains[4]):
+        assert len(colors(render(filtered(chain)), (12, 13, 63, 47))) > 50
+
+
+def test_arithmetic_of_a_flood_and_the_source() -> None:
+    target = '<rect x="20" y="20" width="160" height="80" fill="seagreen" filter="url(#f)"/>'
+    pdf = render(filtered('<feFlood flood-color="blue"/><feComposite operator="arithmetic" in2="SourceGraphic" k1="0" k2="1.5" k3="3" k4="0"/>', target=target))
+    # The flood alone outside the shape, 3 seagreen + 1.5 blue in linearRGB inside it
+    assert near(pixel(pdf, 12, 12), (0, 0, 255), 4)
+    assert near(pixel(pdf, 75, 45), (81, 228, 255), 4)
+    pdf = render(filtered('<feFlood flood-color="blue" result="f"/><feComposite in="SourceGraphic" in2="f" operator="arithmetic" k3="1" k4="0"/>', target=target))
+    assert near(pixel(pdf, 75, 45), (0, 0, 255), 4)
+
+
+@pytest.mark.parametrize(
+    ("primitives", "inside", "outside"),
+    [
+        # k2 + k3 = 1: the source itself
+        ('<feComposite operator="arithmetic" in2="SourceGraphic" k2="0.5" k3="0.5"/>', RED, WHITE),
+        # k4 adds to each premultiplied channel: half transparent white on nothing
+        ('<feComposite operator="arithmetic" in2="SourceGraphic" k2="1" k4="0.5"/>', (255, 128, 128), WHITE),
+        # k1 squares the source
+        ('<feComposite operator="arithmetic" in2="SourceGraphic" k1="1"/>', RED, WHITE),
+    ],
+)
+def test_arithmetic_of_the_source_with_itself(primitives: str, inside: tuple[int, int, int], outside: tuple[int, int, int]) -> None:
+    pdf = render(filtered(primitives, ' color-interpolation-filters="sRGB"'))
+    assert near(pixel(pdf, 30, 30), inside, 4)
+    assert near(pixel(pdf, 12, 13), outside, 4)
+
+
+def test_arithmetic_of_floods_and_silhouettes() -> None:
+    flood = '<feFlood flood-color="#808080" result="f"/>'
+    pdf = render(filtered(f'{flood}<feFlood flood-color="red"/><feComposite in2="f" operator="arithmetic" k1="1"/>', ' color-interpolation-filters="sRGB"'))
+    assert near(pixel(pdf, 12, 13), (128, 0, 0), 4)
+    partial = '<feFlood flood-color="red" x="0" y="0" width="30" height="30"/>'
+    pdf = render(filtered(f'{flood}{partial}<feComposite in2="f" operator="arithmetic" k1="1" k4="0.25"/>', ' color-interpolation-filters="sRGB"'))
+    assert near(pixel(pdf, 15, 15), (191, 64, 64), 4)
+    assert pixel(pdf, 40, 40) == WHITE
+    # Opaque black times gray is opaque black
+    pdf = render(filtered(f'{flood}<feComposite in="SourceAlpha" in2="f" operator="arithmetic" k1="1"/>', ' color-interpolation-filters="sRGB"'))
+    assert near(pixel(pdf, 30, 30), (0, 0, 0), 4)
+    assert pixel(pdf, 12, 13) == WHITE
+
+
+def test_arithmetic_of_turbulence_and_a_flood() -> None:
+    pdf = render(filtered('<feTurbulence baseFrequency="0.05" result="t"/><feFlood flood-color="white"/><feComposite in2="t" operator="arithmetic" k3="1" k4="0.5"/>'))
+    assert len(colors(pdf, (12, 13, 63, 47))) > 20
+    assert pixel(pdf, 70, 30) == WHITE
+
+
+@pytest.mark.parametrize(
+    "primitives",
+    [
+        '<feComposite operator="arithmetic" in="SourceAlpha" in2="SourceGraphic" k1="1"/>',
+        '<feGaussianBlur stdDeviation="2" result="b"/><feFlood/><feComposite operator="arithmetic" in2="b" k1="1"/>',
+        '<feComponentTransfer result="b"><feFuncA type="linear" slope="0.5"/></feComponentTransfer><feFlood/><feComposite operator="arithmetic" in2="b" k1="1"/>',
+        '<feMerge result="m"><feMergeNode in="SourceGraphic"/><feMergeNode in="SourceAlpha"/></feMerge><feFlood/><feComposite operator="arithmetic" in2="m" k1="1"/>',
+        '<feTurbulence baseFrequency="0.05" x="0" width="50" result="t"/><feFlood/><feComposite operator="arithmetic" in2="t" k1="1" k4="0.5"/>',
+        '<feFlood x="0" width="50" result="f"/><feComposite operator="arithmetic" in="SourceGraphic" in2="f" k1="1"/>',
+    ],
+)
+def test_unsupported_arithmetic_draws_the_element(primitives: str, caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered(primitives))
+    assert near(pixel(pdf, 30, 30), RED, 60)
     assert "drawn unfiltered" in caplog.text

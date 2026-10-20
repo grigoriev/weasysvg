@@ -4,9 +4,14 @@ Touches: ``svg.SVG.draw_node`` through the shared wrapper of ``_core``. WeasyPri
 element for feOffset and drops the rest, so shadows came out as the element itself, offset.
 
 A chain is evaluated into layers: source (the element, offset, faded or recolored), alpha (its
-silhouette in one color) and flood (a rectangle). Supported: feOffset, feGaussianBlur, feFlood,
-feDropShadow, feMerge, feBlend normal, feComposite over and in, feColorMatrix, feComponentTransfer.
-A chain with any other primitive draws the element unfiltered, with a warning.
+silhouette in one color), flood (a rectangle) and image (the noise of feTurbulence, see turbulence.py).
+Supported: feOffset, feGaussianBlur, feFlood, feDropShadow, feMerge, feBlend normal, feComposite over,
+in and arithmetic, feColorMatrix, feComponentTransfer, feTurbulence. A chain with any other primitive
+draws the element unfiltered, with a warning.
+
+feComposite arithmetic needs one input to be a flood of the whole region, or both inputs to be the
+same layer: the result is then a recolor of the other input, over a flood of its value on nothing.
+Where the recolored element is translucent it composites over that flood, which is approximate.
 
 feColorMatrix and feComponentTransfer recolor: each color the element paints with goes through the
 functions, in linearRGB unless color-interpolation-filters says sRGB. Touches ``svg.color`` and
@@ -20,6 +25,7 @@ of its edge: outside, the shape grown by a stroke; inside, bands along the edge 
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import math
 import re
@@ -29,13 +35,15 @@ from dataclasses import dataclass, field, replace
 from statistics import NormalDist
 from typing import Any, cast
 
+from PIL import Image, ImageFilter
 from weasyprint import svg as wp_svg
+from weasyprint.images import RasterImage
 from weasyprint.svg import defs as wp_defs
 from weasyprint.svg import utils as wp_utils
 from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, color, parse_url, size
 
-from . import _core
+from . import _core, turbulence
 
 LOGGER = logging.getLogger("weasysvg")
 Region = tuple[float, float, float, float]
@@ -49,7 +57,7 @@ class Unsupported(Exception):
 
 @dataclass(frozen=True)
 class Layer:
-    kind: str  # source | alpha | flood
+    kind: str  # source | alpha | flood | image
     dx: float = 0
     dy: float = 0
     rgba: Any = None
@@ -57,6 +65,7 @@ class Layer:
     blur: tuple[float, float] = (0.0, 0.0)  # standard deviation along x and y
     region: tuple[float, float, float, float] | None = None
     recolor: tuple[Recolor, ...] = ()  # for a source: applied to every color it paints with
+    image: Any = None  # for an image: a Pillow image of straight RGBA pixels over region
 
 
 @dataclass(frozen=True)
@@ -100,6 +109,8 @@ def _silhouette(layers: list[Layer], rgba: Any, opacity: float) -> list[Layer]:
     for layer in layers:
         if layer.kind == "flood":
             out.append(replace(layer, rgba=rgba, opacity=layer.opacity * opacity))
+        elif layer.kind == "image":
+            out.append(replace(layer, image=_image_silhouette(layer.image, rgba), opacity=layer.opacity * opacity))
         else:
             out.append(replace(layer, kind="alpha", rgba=rgba, opacity=layer.opacity * opacity, recolor=()))
     return out
@@ -145,23 +156,27 @@ def _fe_gaussian_blur(chain: _Chain, child: Any) -> list[Layer]:
     return [replace(layer, blur=_add_blur(layer.blur, std)) for layer in chain.source]
 
 
+def _subregion(chain: _Chain, child: Any) -> Region:
+    """The primitive subregion: x, y, width and height of the primitive, the filter region otherwise."""
+    if all(child.get(key) is None for key in ("x", "y", "width", "height")):
+        return chain.region
+    svg, font_size = chain.svg, chain.font_size
+    rx, ry, rw, rh = chain.region
+    ux, uy, uw, uh = chain.unit
+    relative = chain.unit != (0.0, 0.0, 1.0, 1.0)
+    width, height = (1, 1) if relative else (svg.inner_width, svg.inner_height)
+    x, y = child.get("x"), child.get("y")
+    return (
+        ux + size(x, font_size, width) * uw if x is not None else rx,
+        uy + size(y, font_size, height) * uh if y is not None else ry,
+        size(child.get("width"), font_size, width) * uw if child.get("width") is not None else rw,
+        size(child.get("height"), font_size, height) * uh if child.get("height") is not None else rh,
+    )
+
+
 def _fe_flood(chain: _Chain, child: Any) -> list[Layer]:
     rgba, opacity = _flood(child)
-    sub = chain.region
-    if any(child.get(key) is not None for key in ("x", "y", "width", "height")):
-        svg, font_size = chain.svg, chain.font_size
-        rx, ry, rw, rh = chain.region
-        ux, uy, uw, uh = chain.unit
-        relative = chain.unit != (0.0, 0.0, 1.0, 1.0)
-        width, height = (1, 1) if relative else (svg.inner_width, svg.inner_height)
-        x, y = child.get("x"), child.get("y")
-        sub = (
-            ux + size(x, font_size, width) * uw if x is not None else rx,
-            uy + size(y, font_size, height) * uh if y is not None else ry,
-            size(child.get("width"), font_size, width) * uw if child.get("width") is not None else rw,
-            size(child.get("height"), font_size, height) * uh if child.get("height") is not None else rh,
-        )
-    return [Layer("flood", rgba=rgba, opacity=opacity, region=sub)]
+    return [Layer("flood", rgba=rgba, opacity=opacity, region=_subregion(chain, child))]
 
 
 def _fe_drop_shadow(chain: _Chain, child: Any) -> list[Layer]:
@@ -194,7 +209,80 @@ def _fe_composite(chain: _Chain, child: Any) -> list[Layer]:
     if operator == "in" and len(chain.source) == 1 and chain.source[0].kind == "flood":
         # Colorize a silhouette: the common shadow idiom
         return _silhouette(backdrop, chain.source[0].rgba, chain.source[0].opacity)
+    if operator == "arithmetic":
+        return _arithmetic(chain, child, backdrop)
     raise Unsupported(f"feComposite {operator}")
+
+
+Coefficients = tuple[tuple[float, float, float], ...]  # per premultiplied channel: of x squared, of x, constant
+
+
+def _straight(premultiplied: list[float]) -> RGBA:
+    alpha = premultiplied[3]
+    if alpha <= 0:
+        return 0.0, 0.0, 0.0, 0.0
+    # A color above its alpha is clamped to it, as Chromium does
+    red, green, blue = (min(value, alpha) / alpha for value in premultiplied[:3])
+    return red, green, blue, alpha
+
+
+def _polynomial(coefficients: Coefficients) -> Recolor:
+    """A recolor that maps each premultiplied channel x to clamp(a x^2 + b x + c)."""
+
+    def apply(rgba: RGBA) -> RGBA:
+        alpha = rgba[3]
+        premultiplied = (rgba[0] * alpha, rgba[1] * alpha, rgba[2] * alpha, alpha)
+        return _straight([_clamp(a * x * x + b * x + c) for (a, b, c), x in zip(coefficients, premultiplied, strict=True)])
+
+    return apply
+
+
+def _linear_space(chain: _Chain, child: Any) -> bool:
+    return (child.get("color-interpolation-filters") or chain.filter_node.get("color-interpolation-filters") or "linearRGB").lower() != "srgb"
+
+
+def _premultiplied_flood(chain: _Chain, child: Any, layer: Layer) -> tuple[float, float, float, float]:
+    """The color of a flood, premultiplied, in the space of the primitive."""
+    rgba = _with_alpha(layer.rgba, layer.opacity)
+    channels = [_clamp(value) for value in rgba.to("srgb").coordinates]
+    if _linear_space(chain, child):
+        channels = [_to_linear(value) for value in channels]
+    alpha = rgba.alpha
+    return channels[0] * alpha, channels[1] * alpha, channels[2] * alpha, alpha
+
+
+def _whole(chain: _Chain, layers: list[Layer]) -> bool:
+    """One flood over the whole filter region: a constant input."""
+    return len(layers) == 1 and layers[0].kind == "flood" and layers[0].region == chain.region and not layers[0].dx and not layers[0].dy
+
+
+def _arithmetic(chain: _Chain, child: Any, backdrop: list[Layer]) -> list[Layer]:
+    """k1 i1 i2 + k2 i1 + k3 i2 + k4, with i1 the input and i2 in2, on premultiplied colors."""
+    k1, k2, k3, k4 = (_num(child.get(name)) for name in ("k1", "k2", "k3", "k4"))
+    first, second = chain.source, backdrop
+    if first == second and len(first) == 1:
+        coefficients: Coefficients = ((k1, k2 + k3, k4),) * 4
+        other = first
+    elif _whole(chain, first):
+        flood = _premultiplied_flood(chain, child, first[0])
+        coefficients, other = tuple((0.0, k1 * value + k3, k2 * value + k4) for value in flood), second
+    elif _whole(chain, second):
+        flood = _premultiplied_flood(chain, child, second[0])
+        coefficients, other = tuple((0.0, k1 * value + k2, k3 * value + k4) for value in flood), first
+    else:
+        raise Unsupported("feComposite arithmetic of two variable inputs")
+    function = _in_space(_polynomial(coefficients), chain, child)
+    if len(other) != 1 or other[0].blur != (0.0, 0.0) or (other[0].kind == "source" and other[0].opacity < 1):
+        raise Unsupported("feComposite arithmetic of a blurred, faded or merged input")
+    layer = other[0]
+    nothing = function((0.0, 0.0, 0.0, 0.0))
+    under = [Layer("flood", rgba=color(_rgba(*nothing)), region=chain.region)] if nothing[3] > 0 else []
+    if layer.region == chain.region and layer.kind in ("flood", "image"):
+        # It covers the region: its transparent pixels map to the value on nothing themselves
+        return _recolor_layers(other, function)
+    if layer.kind == "image" and under:
+        raise Unsupported("feComposite arithmetic of a partial image")
+    return under + _recolor_layers(other, function)
 
 
 # ---------------- recoloring ----------------
@@ -215,8 +303,7 @@ def _clamp(value: float) -> float:
 
 def _in_space(function: Recolor, chain: _Chain, child: Any) -> Recolor:
     """The function, run in linearRGB unless color-interpolation-filters says sRGB."""
-    space = (child.get("color-interpolation-filters") or chain.filter_node.get("color-interpolation-filters") or "linearRGB").lower()
-    if space == "srgb":
+    if not _linear_space(chain, child):
         return function
 
     def linear(rgba: RGBA) -> RGBA:
@@ -338,10 +425,47 @@ def _recolor_layers(layers: list[Layer], function: Recolor) -> list[Layer]:
     for layer in layers:
         if layer.kind == "source":
             out.append(replace(layer, recolor=(*layer.recolor, function)))
+        elif layer.kind == "image":
+            out.append(replace(layer, image=_recolor_image(layer.image, function)))
         else:
             # A flood or a silhouette has one color: recolor it now
             out.append(replace(layer, rgba=recolored(_with_alpha(layer.rgba, layer.opacity), (function,)), opacity=1))
     return out
+
+
+def _recolor_image(picture: Image.Image, function: Recolor) -> Image.Image:
+    out = Image.new("RGBA", picture.size)
+    data = picture.tobytes()
+    pixels = (cast(RGBA, tuple(c / 255 for c in data[i : i + 4])) for i in range(0, len(data), 4))
+    out.putdata([tuple(round(_clamp(value) * 255) for value in function(pixel)) for pixel in pixels])
+    return out
+
+
+def _image_silhouette(picture: Image.Image, rgba: Any) -> Image.Image:
+    """The alpha of picture, in the one color rgba."""
+    red, green, blue = (round(_clamp(value) * 255) for value in rgba.to("srgb").coordinates)
+    out = Image.new("RGBA", picture.size, (red, green, blue, 255))
+    out.putalpha(picture.getchannel("A").point(lambda value: round(value * _clamp(rgba.alpha))))
+    return out
+
+
+def _fe_turbulence(chain: _Chain, child: Any) -> list[Layer]:
+    numbers = [_num(value, -1) for value in (child.get("baseFrequency") or "0").replace(",", " ").split()]
+    if not numbers or len(numbers) > 2 or any(number < 0 for number in numbers):
+        numbers = [0.0]  # an invalid or negative frequency is 0
+    octaves = max(0, min(int(_num(child.get("numOctaves"), 1)), turbulence.MAX_OCTAVES))
+    spec = turbulence.Turbulence(
+        numbers[0] / chain.unit[2],
+        numbers[-1] / chain.unit[3],
+        octaves,
+        round(_num(child.get("seed"))),
+        child.get("type") == "fractalNoise",  # any other type, an invalid one too, is turbulence
+        child.get("stitchTiles") == "stitch",
+    )
+    region = _subregion(chain, child)
+    if region[2] <= 0 or region[3] <= 0:
+        return []
+    return [Layer("image", region=region, image=turbulence.image(spec, region, _px_per_unit(chain.svg), _linear_space(chain, child)))]
 
 
 def _fe_component_transfer(chain: _Chain, child: Any) -> list[Layer]:
@@ -371,6 +495,7 @@ _PRIMITIVES: dict[str, Callable[[_Chain, Any], list[Layer]]] = {
     "feComposite": _fe_composite,
     "feComponentTransfer": _fe_component_transfer,
     "feColorMatrix": _fe_color_matrix,
+    "feTurbulence": _fe_turbulence,
 }
 
 
@@ -749,7 +874,7 @@ def _blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: fl
 
 def _cost(layer: Layer) -> int:
     """The draws of the element one layer makes."""
-    blurred = layer.kind != "flood" and not BLURRING.get() and _sigma(layer)
+    blurred = layer.kind not in ("flood", "image") and not BLURRING.get() and _sigma(layer)
     return 3 * MAX_STEPS + 2 if blurred else 1
 
 
@@ -789,10 +914,27 @@ def _draw_layer(svg: Any, original: Callable[..., None], node: Any, font_size: f
         stream.set_color(_with_alpha(layer.rgba, layer.opacity))
         stream.rectangle(*cast(Region, layer.region))
         stream.fill()
+    elif layer.kind == "image":
+        _draw_image(stream, layer, sigma)
     elif layer.kind == "alpha":
         _draw_silhouette(svg, original, node, font_size, context, layer, stream, big, sigma)
     else:
         _draw_source(svg, original, node, font_size, context, layer, stream, big, sigma)
+
+
+def _draw_image(stream: Any, layer: Layer, sigma: float) -> None:
+    """The pixels of an image layer over its region, blurred by Pillow when sigma is set."""
+    picture = layer.image
+    x, y, width, height = cast(Region, layer.region)
+    if sigma:
+        # Blur premultiplied, so transparent pixels lend no color
+        radius = sigma * picture.width / width
+        picture = picture.convert("RGBa").filter(ImageFilter.GaussianBlur(radius)).convert("RGBA")
+    if layer.opacity < 1:
+        stream.set_alpha(layer.opacity, stroke=True, fill=True)
+    stream.transform(e=x, f=y)
+    digest = hashlib.sha1(picture.tobytes(), usedforsecurity=False).hexdigest()[:20]
+    RasterImage(picture, f"weasysvg{digest}", None).draw(stream, width, height, {"image_rendering": "auto"})
 
 
 def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:

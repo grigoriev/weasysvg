@@ -1,6 +1,10 @@
 {
  "weasyprint": "70.0",
  "hooks": {
+  "weasyprint.images:RasterImage": {
+   "fingerprint": "5aa8c1bb464cb1d9",
+   "used_by": "filters._draw_image draws the pixels of feTurbulence through it"
+  },
   "weasyprint.images:SVGImage.__init__": {
    "fingerprint": "3b9638a1dd917a25",
    "used_by": "_core: tree passes and fetcher wrappers run before it"
