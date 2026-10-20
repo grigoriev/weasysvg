@@ -87,6 +87,8 @@ def resvg_image(item: dict[str, Any]) -> Image.Image | str:
             resvg_py.svg_to_bytes(
                 svg_string=in_px(svg.read_text()),
                 resources_dir=str(svg.parent),
+                # resvg reads no fontconfig: it gets the fonts of the corpus by their directory
+                font_dirs=[str(CORPUS / "fonts")],
                 width=int(item["width"]) if item.get("width") else None,
                 font_family="Liberation Serif",
                 serif_family="Liberation Serif",

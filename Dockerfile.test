@@ -24,15 +24,24 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
     UV_LINK_MODE=copy \
     UV_CACHE_DIR=/opt/uv-cache
 WORKDIR /src
-COPY pyproject.toml uv.lock README.md ./
+# Only the dependency files: an edit of the README must not rebuild the environment
+COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --all-extras --no-install-project
 CMD ["uv", "run", "--frozen", "--all-extras", "pytest", "--cov", "--cov-report=term-missing", "--cov-report=xml"]
 
 FROM test AS visual
-# The fonts of the weasyprint-service image, where the Chromium references were rendered
+# The fonts of the weasyprint-service image. Chromium prints the references in this same image.
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         fonts-dejavu fonts-freefont-ttf fonts-ipafont-gothic fonts-noto-cjk \
         fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei \
+    && rm -rf /var/lib/apt/lists/*
+# The fonts the corpus asks for by name (Noto Sans, Amiri, Mplus 1p...), the very files of the resvg suite,
+# live in corpus/fonts of the mounted source: Chromium, WeasyPrint and resvg all find them through fontconfig
+RUN printf '<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n<fontconfig><dir>/src/corpus/fonts</dir></fontconfig>\n' \
+    > /etc/fonts/conf.d/99-weasysvg-corpus.conf
+# The headless Chromium of Playwright, for make references, with the libraries it needs
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN uv run --frozen --all-extras --no-sync playwright install --with-deps --only-shell chromium \
     && rm -rf /var/lib/apt/lists/*
 CMD ["uv", "run", "--frozen", "--all-extras", "python", "tools/visual/bench.py"]
