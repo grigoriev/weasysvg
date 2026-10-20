@@ -26,7 +26,7 @@ from xml.etree import ElementTree as ET
 from weasyprint import svg as wp_svg
 from weasyprint.css.properties import INITIAL_VALUES
 from weasyprint.matrix import Matrix
-from weasyprint.svg.bounding_box import extend_bounding_box, is_valid_bounding_box
+from weasyprint.svg.bounding_box import EMPTY_BOUNDING_BOX, extend_bounding_box, is_valid_bounding_box
 from weasyprint.svg.utils import normalize, size
 from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.line_break import Layout
@@ -148,6 +148,33 @@ def baseline_shift(value: str, ascent: float, descent: float, x_height: float) -
         "ideographic": -descent,
         "mathematical": ascent / 2,
     }.get(value, 0)
+
+
+# ---------------- text chunks ----------------
+
+CHUNK_BOX = "_weasysvg_chunk_box"
+TEXT_TAGS_WITH_CHUNKS = frozenset(("text", "tspan", "a"))
+
+
+def chunk_boxes(_svg: Any, node: Any) -> None:
+    """Keep the box of a text chunk out of the anchor of its parent, and give it back afterwards.
+
+    A tspan with its own x or y starts a text chunk, which text-anchor places on its own. WeasyPrint draws it
+    so, but then adds its box to the box of the parent, which anchors its own chunk by the width of both.
+    The box of a chunk is hidden from the parent until the parent is drawn, then added back to it: a
+    gradient or a filter of the text still spans every chunk.
+    """
+    if node.tag not in TEXT_TAGS_WITH_CHUNKS:
+        return
+    for child in node:
+        box = child.__dict__.pop(CHUNK_BOX, None)
+        if box is not None:
+            child.text_bounding_box = box
+            x, y, width, height = box
+            node.text_bounding_box = extend_bounding_box(node.text_bounding_box, ((x, y), (x + width, y + height)))
+    if node.tag != "text" and ("x" in node.attrib or "y" in node.attrib) and is_valid_bounding_box(getattr(node, "text_bounding_box", None)):
+        node.__dict__[CHUNK_BOX] = node.text_bounding_box
+        node.text_bounding_box = EMPTY_BOUNDING_BOX
 
 
 # ---------------- text-decoration ----------------
@@ -446,6 +473,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
     _core.add_restyler(anchor_restyle)
+    _core.add_after_draw(chunk_boxes)
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:
             wp_svg.TAGS[tag] = draw_text

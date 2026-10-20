@@ -410,3 +410,23 @@ def test_a_broken_rotate_is_ignored(mode: str, value: str) -> None:
     matrices = glyph_matrices(render(svg(f'<text x="50 60" y="30"{mode} rotate="{value}">AB</text><g rotate="x"/>')))
     assert len(matrices) == 2
     assert [round(matrix[1], 3) for matrix in matrices] == ([1, 1] if mode else [0, 0])
+
+
+# ---------------- text chunks ----------------
+
+
+@pytest.mark.parametrize("anchor", ["middle", "end"])
+def test_each_text_chunk_is_anchored_by_its_own_width(anchor: str) -> None:
+    # A tspan with its own x starts a chunk: "1" is anchored by its width alone, "H" by its own
+    body = f'<text x="50" y="40" font-size="20" text-anchor="{anchor}"><tspan>1</tspan><tspan x="50" dy="25">H</tspan></text>'
+    single = f'<text x="50" y="40" font-size="20" text-anchor="{anchor}">1</text><text x="50" y="65" font-size="20" text-anchor="{anchor}">H</text>'
+    shifts = re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, height=120))))
+    expected = re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(single, height=120))))
+    assert sorted(shifts) == sorted(expected)
+
+
+def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
+    # The gradient spans both chunks: its box is that of the whole text
+    gradient = '<linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>'
+    body = f'<defs>{gradient}</defs><text x="20" y="40" font-size="20" fill="url(#g)" text-anchor="middle"><tspan>1</tspan><tspan x="100" dy="25">HHHH</tspan></text>'
+    assert render(svg(body, height=120))

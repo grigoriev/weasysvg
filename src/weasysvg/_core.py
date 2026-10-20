@@ -32,6 +32,9 @@ Restyler = Callable[[Any, Any, float], "dict[str, str | None] | None"]
 _TREE_PASSES: list[tuple[int, str, TreePass]] = []
 _FETCHER_WRAPPERS: list[FetcherWrapper] = []
 _RESTYLERS: list[Restyler] = []
+# Called with the SVG and the node once the node and its children are drawn
+AfterDraw = Callable[[Any, Any], None]
+_AFTER_DRAW: list[AfterDraw] = []
 # The clip paths being drawn, per thread and task
 _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
@@ -76,6 +79,11 @@ def _svgimage_init(self: Any, tree: Any, base_url: Any, url_fetcher: Any, contex
 def _install_svgimage_hook() -> None:
     if wp_images.SVGImage.__init__ is not _svgimage_init:
         wp_images.SVGImage.__init__ = _svgimage_init
+
+
+def add_after_draw(function: AfterDraw) -> None:
+    if function not in _AFTER_DRAW:
+        _AFTER_DRAW.append(function)
 
 
 def add_restyler(function: Restyler) -> None:
@@ -185,6 +193,8 @@ def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True,
         if fill_stroke:
             restyle(self, node, font_size, restyled)
         _draw_with_effects(self, node, font_size, fill_stroke, context)
+        for function in _AFTER_DRAW:
+            function(self, node)
     finally:
         unrestyle(node, restyled)
         _ACTIVE_CLIPS.reset(token)
