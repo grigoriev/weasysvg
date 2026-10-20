@@ -35,7 +35,7 @@ from weasyprint.svg.utils import normalize, size
 from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.line_break import Layout
 
-from . import _core, ink, textpath, vertical
+from . import _core, glyphs, ink, textpath, vertical
 from .conditional import local_name
 from .fonts import FALLBACK, resolve_families
 
@@ -485,7 +485,9 @@ def _advances(svg: Any, node: Any, font_size: float) -> list[tuple[str, float]]:
     style = _style(svg, node, font_size)
     # A <tspan> measured ahead of its drawing has its family not resolved yet
     style["font_family"] = [family.strip() for family in _family(svg, node).split(",")]
-    return [(character, split_first_line(character, style, svg.context, float("inf"), 0)[3]) for character in node.text]
+    # Each character in the joining context of its word: laid out alone, Arabic still joins
+    shaped = [glyphs.in_context(node.text, index) for index in range(len(node.text))]
+    return [(string, split_first_line(string, style, svg.context, float("inf"), 0)[3]) for string in shaped]
 
 
 def _character_ink(svg: Any, node: Any, font_size: float) -> dict[str, list[ink.Glyph]]:
@@ -495,7 +497,7 @@ def _character_ink(svg: Any, node: Any, font_size: float) -> dict[str, list[ink.
     style = _style(svg, node, font_size)
     style["font_family"] = [family.strip() for family in _family(svg, node).split(",")]
     out = {}
-    for character in set(node.text or ""):
+    for character in {glyphs.in_context(node.text, index) for index in range(len(node.text or ""))}:
         layout = split_first_line(character, style, svg.context, float("inf"), 0)[0]
         # split_first_line hands the layout back deactivated
         layout.reactivate(style)

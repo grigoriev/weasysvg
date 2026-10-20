@@ -1029,8 +1029,8 @@
   "name": "resvg__text-writing-mode--tb-with-rotate",
   "reference": "resvg",
   "reference_why": "The test is undefined behavior; the resvg suite shows its expected result.",
-  "verdict": "differs",
-  "what": "The Arabic word is not shaped: its letters stand apart in isolated forms, so the column runs longer.",
+  "verdict": "close",
+  "what": "The Arabic word joins and runs from its last letter down, as in the suite, but its letters are laid out one at a time: without the cursive attachment of Amiri it runs about 10 px longer.",
   "native_verdict": "differs",
   "native_what": "Laid out horizontally."
  }

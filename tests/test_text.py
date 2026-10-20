@@ -17,6 +17,7 @@ from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 from weasyprint.text.fonts import get_hb_object_data
 
+from weasysvg import glyphs as glyph_layout
 from weasysvg import ink, text
 from weasysvg.text import baseline_shift, drop_nested_text
 
@@ -752,3 +753,49 @@ def test_the_font_caches_are_bounded() -> None:
         ink._remember(ink._FACES, index, (str(index), None))
     assert len(ink._FACES) == ink.MAX_FONTS
     assert 0 not in ink._FACES
+
+
+# ---------------- joining scripts laid out one character at a time ----------------
+
+ZWJ = "\u200d"
+
+
+def test_each_arabic_letter_is_shaped_in_its_joining_context() -> None:
+    # "اليابان": alef and the letters after an alef join nothing on their right side
+    word = "\u0627\u0644\u064a\u0627\u0628\u0627\u0646"
+    expected = ["\u0627", "\u0644" + ZWJ, ZWJ + "\u064a" + ZWJ, ZWJ + "\u0627", "\u0628" + ZWJ, ZWJ + "\u0627", "\u0646"]
+    assert [glyph_layout.in_context(word, index) for index in range(len(word))] == expected
+
+
+def test_marks_and_other_scripts_keep_their_letters_alone() -> None:
+    # A mark between two letters does not break their joining; Latin and spaces join nothing
+    word = "\u0628\u064e\u0628 ab"
+    assert [glyph_layout.in_context(word, index) for index in range(len(word))] == ["\u0628" + ZWJ, "\u064e", ZWJ + "\u0628", " ", "a", "b"]
+
+
+def test_a_tatweel_joins_both_sides() -> None:
+    word = "\u0628\u0640\u0627"
+    assert [glyph_layout.in_context(word, index) for index in range(len(word))] == ["\u0628" + ZWJ, "\u0640", ZWJ + "\u0627"]
+
+
+@pytest.mark.parametrize("body", ['<text x="50" y="20" writing-mode="tb" font-size="20">\u0644\u0644</text>', '<path id="p" d="M 10 50 H 190" fill="none"/><text font-size="20"><textPath href="#p">\u0644\u0644</textPath></text>'])
+def test_arabic_letters_laid_out_alone_still_join(body: str) -> None:
+    # Two lams: an initial and a final form, two glyphs, where isolated forms would repeat one
+    drawn = re.findall(r"\[<([0-9a-f]+)>[^\]]*\] TJ", content(render(svg(body, height=200))))
+    assert len(drawn) == 2
+    assert drawn[0] != drawn[1]
+
+
+def test_a_right_to_left_run_is_reversed() -> None:
+    # Latin stays, the Arabic run with its inner space turns around by clusters: the mark stays after its letter
+    text = "ab \u0627\u064e\u0644 \u062f c"
+    assert glyph_layout.visual_order(text) == [0, 1, 2, 7, 6, 5, 3, 4, 8, 9]
+
+
+def test_vertical_arabic_runs_from_its_last_letter_down() -> None:
+    # Sideways, the right end of a right-to-left run lies at the bottom: dal above alef, as in Chromium
+    def glyph_ids(body: str) -> list[str]:
+        return re.findall(r"\[<([0-9a-f]+)>[^\]]*\] TJ", content(render(svg(body, height=200))))
+
+    both = glyph_ids('<text x="50" y="20" writing-mode="tb" font-size="20">\u0627\u062f</text>')
+    assert both[0] == glyph_ids('<text x="50" y="20" writing-mode="tb" font-size="20">\u062f</text>')[0]

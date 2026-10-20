@@ -42,7 +42,7 @@ def vertical(node: Any) -> bool:
 
 
 def upright(character: str) -> bool:
-    code = ord(character)
+    code = ord(glyphs.base(character))
     return any(low <= code <= high for low, high in UPRIGHT)
 
 
@@ -142,7 +142,9 @@ def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances:
     spacing = svg.length(node.get("letter-spacing"), font_size)
     x, y = svg.cursor_position
     items = []
-    for index, (character, width) in enumerate(advances):
+    # Down the column in visual order: a right-to-left run turned sideways starts from its end
+    for index in glyphs.visual_order("".join(glyphs.base(character) for character, _ in advances)):
+        character, width = advances[index]
         x = (xs[index] if index < len(xs) else x) + (dxs[index] if index < len(dxs) else 0)
         y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
         shift = run.shift(node, index)
