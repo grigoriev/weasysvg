@@ -199,6 +199,50 @@ def test_mask_attribute_on_a_mask_is_ignored(cycle: bool) -> None:
     assert near(pixel(pdf, 120, 30), RED)
 
 
+# ---------------- clip paths ----------------
+
+
+def test_clip_rule_evenodd_leaves_a_hole() -> None:
+    clip = '<clipPath id="c"><path d="M0 0H200V100H0Z M50 25H150V75H50Z" clip-rule="evenodd"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 15, 10), RED)
+    assert near(pixel(pdf, 75, 37), WHITE)
+
+
+def test_clip_children_keep_their_own_clip_paths() -> None:
+    clip = '<clipPath id="c"><rect width="50" height="50"/><rect x="100" width="100" height="100" clip-path="url(#d)"/></clipPath><clipPath id="d"><circle cx="150" cy="50" r="30"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 15, 15), RED)
+    assert near(pixel(pdf, 112, 37), RED)
+    assert near(pixel(pdf, 80, 5), WHITE)
+    assert near(pixel(pdf, 60, 60), WHITE)
+
+
+def test_clip_ignores_opacity_and_paint_of_its_content() -> None:
+    clip = '<clipPath id="c"><use href="#r" style="opacity:.25;fill:none"/></clipPath>'
+    defs = f'<rect id="r" width="100" height="100" fill="none"/>{clip}'
+    pdf = render(svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 30, 30), RED, 5)
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+def test_text_in_a_clip_path_clips() -> None:
+    clip = '<clipPath id="c"><text x="10" y="80" font-size="80" font-weight="bold">II</text></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    colors = {pixel(pdf, x, 40) for x in range(0, 150, 2)}
+    assert any(near(color, RED) for color in colors)
+    assert not any(near(color, (0, 0, 0), 60) for color in colors)
+
+
+def test_complex_clip_in_bounding_box_units_with_a_mask() -> None:
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/><text y="1" font-size="0.5">x</text></clipPath>'
+    mask = '<mask id="m"><rect width="200" height="50" fill="white"/></mask>'
+    pdf = render(svg(f'<defs>{clip}{mask}</defs><rect x="100" width="100" height="100" fill="red" clip-path="url(#c)" mask="url(#m)"/>'))
+    assert near(pixel(pdf, 80, 15), RED)
+    assert near(pixel(pdf, 130, 15), WHITE)
+    assert near(pixel(pdf, 80, 60), WHITE)
+
+
 def test_mask_on_an_empty_group_is_skipped() -> None:
     body = (
         '<defs><mask id="m"><rect width="1" height="1" fill="white"/></mask><mask id="c" maskContentUnits="objectBoundingBox"><rect width="1" height="1"/></mask></defs>'

@@ -1,9 +1,10 @@
 """The two hooks that several features share, each installed once.
 
 - ``images.SVGImage.__init__``: runs the tree passes on the parsed XML, then wraps the URL fetcher.
-- ``svg.SVG.draw_node``: one replacement that combines blend mode and early mask (paint.py)
-  with vector filters (filters.py), in the compositing order of CSS: filter, then mask, then blend.
-  It also draws the opacity group, unbounded: the bounding box of WeasyPrint clips shifted text.
+- ``svg.SVG.draw_node``: one replacement that combines blend mode, early mask and complex clip
+  (paint.py) with vector filters (filters.py), in the compositing order of CSS: filter, then clip and
+  mask, then blend. It also draws the opacity group, unbounded: the bounding box of WeasyPrint clips
+  shifted text. Before a node draws, each restyler may change its attributes for the duration.
 """
 
 from __future__ import annotations
@@ -20,10 +21,13 @@ from weasyprint.svg.utils import alpha_value, size
 
 TreePass = Callable[[ET.Element], None]
 FetcherWrapper = Callable[[object], object]
+# Returns the attributes to put back after the node draws, or None when it leaves the node alone
+Restyler = Callable[[Any, Any, float], "dict[str, str | None] | None"]
 
 # Tree passes run in the order of their rank: conditional (10), paint (20), foreign_object (30)
 _TREE_PASSES: list[tuple[int, str, TreePass]] = []
 _FETCHER_WRAPPERS: list[FetcherWrapper] = []
+_RESTYLERS: list[Restyler] = []
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
 # The smallest box a group gets, in user units
 MIN_GROUP_EXTENT = 1e4
@@ -66,6 +70,26 @@ def _install_svgimage_hook() -> None:
         wp_images.SVGImage.__init__ = _svgimage_init
 
 
+def add_restyler(function: Restyler) -> None:
+    if function not in _RESTYLERS:
+        _RESTYLERS.append(function)
+
+
+def restyle(svg: Any, node: Any, font_size: float) -> list[dict[str, str | None]]:
+    """Run every restyler on node; return what to put back, in the order to put it back."""
+    saved = [changed for function in _RESTYLERS if (changed := function(svg, node, font_size)) is not None]
+    return saved[::-1]
+
+
+def unrestyle(node: Any, saved: list[dict[str, str | None]]) -> None:
+    for changed in saved:
+        for key, value in changed.items():
+            if value is None:
+                node.attrib.pop(key, None)
+            else:
+                node.attrib[key] = value
+
+
 def enable_draw_feature(name: str) -> None:
     DRAW_FEATURES[name] = True
     if wp_svg.SVG.draw_node is not _draw_node:
@@ -85,17 +109,20 @@ class _Effects:
     font_size: float  # the font size of the node, for its transform, mask and filter
     blend: str | None
     mask: Any
+    clip: Any
     plan: Any
     opacity: float | None
 
     def empty(self) -> bool:
-        return self.blend is None and self.mask is None and self.plan is None and self.opacity is None
+        return self.blend is None and self.mask is None and self.clip is None and self.plan is None and self.opacity is None
 
     def applied_keys(self) -> list[str]:
         """What this wrapper applies itself leaves the node, so the original does not apply it twice."""
         keys = ["transform"]
         if self.mask is not None:
             keys.append("mask")
+        if self.clip is not None:
+            keys.append("clip-path")
         if self.plan is not None:
             keys += ["filter", "opacity"]
         if self.opacity is not None:
@@ -109,22 +136,20 @@ def _effects(svg: Any, node: Any, font_size: float) -> _Effects:
 
     blend = paint.blend_mode(node) if DRAW_FEATURES["blend"] else None
     mask = paint.early_mask(svg, node) if DRAW_FEATURES["masks"] else None
+    clip = paint.complex_clip(svg, node) if DRAW_FEATURES["masks"] else None
     local_font_size = size(node.get("font-size", "1em"), font_size, font_size)
     plan = filters.plan(svg, node, local_font_size) if DRAW_FEATURES["filters"] else None
     opacity = _group_opacity(node) if plan is None else None
-    return _Effects(local_font_size, blend, mask, plan, opacity)
+    return _Effects(local_font_size, blend, mask, clip, plan, opacity)
 
 
 def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True, context: Any = None) -> None:
-    from . import filters
-
-    # A blur mask being built draws its shapes grown or as bands along their edge
-    restyled = filters.restyle(self, node, font_size) if fill_stroke and DRAW_FEATURES["filters"] else None
+    # A blur mask being built draws its shapes grown, a clip mask draws them filled
+    restyled = restyle(self, node, font_size) if fill_stroke else []
     try:
         _draw_with_effects(self, node, font_size, fill_stroke, context)
     finally:
-        if restyled is not None:
-            filters.unrestyle(node, restyled)
+        unrestyle(node, restyled)
 
 
 def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool, context: Any) -> None:
@@ -146,10 +171,34 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
             del node.attrib["transform"]
         if effects.mask is not None:
             paint.paint_mask(self, node, effects.mask, effects.font_size)
-        _draw_grouped(self, original, node, font_size, fill_stroke, context, effects, saved.get("opacity", 1))
+        if effects.clip is None:
+            _draw_grouped(self, original, node, font_size, fill_stroke, context, effects, saved.get("opacity", 1))
+        else:
+            _draw_clipped(self, original, node, font_size, fill_stroke, context, effects, saved.get("opacity", 1))
     finally:
         self.stream.pop_state()
         node.attrib.update(saved)
+
+
+def _draw_clipped(self: Any, original: Callable[..., None], node: Any, font_size: float, fill_stroke: bool, context: Any, effects: _Effects, filter_opacity: Any) -> None:
+    """The node in a group whose soft mask is its clip: the mask of the node keeps the graphics state."""
+    from . import paint
+
+    outer = self.stream
+    box = group_box(self, node, font_size)
+    group = outer.add_group(*box)
+    # The content draws in a group of its own: a filter or gradient inside sets a soft mask, which would
+    # replace the clip in the graphics state
+    content = group.add_group(*box)
+    self.stream = group
+    try:
+        paint.paint_clip(self, node, effects.clip, effects.font_size)
+        self.stream = content
+        _draw_grouped(self, original, node, font_size, fill_stroke, context, effects, filter_opacity)
+    finally:
+        self.stream = outer
+        group.draw_x_object(content.id)
+        outer.draw_x_object(group.id)
 
 
 def group_box(svg: Any, node: Any, font_size: float) -> tuple[float, float, float, float]:

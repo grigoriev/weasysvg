@@ -564,14 +564,6 @@ def restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | No
     return saved
 
 
-def unrestyle(node: Any, saved: dict[str, str | None]) -> None:
-    for key, value in saved.items():
-        if value is None:
-            node.attrib.pop(key, None)
-        else:
-            node.attrib[key] = value
-
-
 def _sigma(layer: Layer) -> float:
     """One standard deviation for both axes: a stroke grows a shape evenly."""
     return (layer.blur[0] + layer.blur[1]) / 2
@@ -621,12 +613,11 @@ def _draw_into(svg: Any, original: Callable[..., None], node: Any, font_size: fl
     previous, token, colors = svg.stream, RESTYLE.set(mode), RECOLOR.set(recolor)
     svg.stream = target
     # original is the draw_node of WeasyPrint: the node itself does not pass the wrapper of _core
-    restyled = restyle(svg, node, font_size)
+    restyled = _core.restyle(svg, node, font_size)
     try:
         original(svg, node, font_size, True, context)
     finally:
-        if restyled is not None:
-            unrestyle(node, restyled)
+        _core.unrestyle(node, restyled)
         svg.stream = previous
         RESTYLE.reset(token)
         RECOLOR.reset(colors)
@@ -829,4 +820,5 @@ def _recolored_gradient(draw_gradient: Callable[..., Any]) -> Callable[..., Any]
 def install() -> None:
     wp_svg.color = wp_defs.color = _color
     wp_svg.draw_gradient = _recolored_gradient(wp_svg.draw_gradient)
+    _core.add_restyler(restyle)
     _core.enable_draw_feature("filters")

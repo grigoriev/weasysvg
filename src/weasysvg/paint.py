@@ -10,6 +10,9 @@ Touches:
 - ``svg.defs.paint_mask``: replaced. Region of an objectBoundingBox mask, maskContentUnits, a cycle
   through mask="..." is broken, mask="..." on the <mask> itself is ignored as in Chromium, and the tag
   of the <mask> is restored, else the walk draws it as a <g>.
+- a complex clip path, through ``_core``: one whose children carry clip-path, clip-rule="evenodd",
+  text or <use>. One W clip cannot express it: it becomes an alpha soft mask, each child filled by its
+  clip-rule. WeasyPrint dropped such children, ignored clip-rule and painted clip text in black.
 - ``svg.Node.override_iter``: a list instead of a one-shot iterator, so a node can be walked twice.
 - ``svg.SVG.draw_node``, through ``_core``: mix-blend-mode as an isolated group, and a mask on a container
   is set before its children are drawn. ``svg.NOT_INHERITED_ATTRIBUTES`` gains mix-blend-mode.
@@ -307,6 +310,67 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
             mask.attrib["transform"] = saved_transform
 
 
+# ---------------- complex clip paths ----------------
+
+CLIP_SHAPES = frozenset(("circle", "ellipse", "line", "path", "polyline", "polygon", "rect", "text", "tspan", "textPath"))
+# The clip paths being drawn as masks, per thread and task: a cycle draws nothing more
+_ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
+_CLIPPING: ContextVar[bool] = ContextVar("weasysvg_clipping", default=False)
+
+
+def complex_clip(svg: Any, node: Any) -> Any:
+    """The clip path of node when one W clip cannot express it, else None."""
+    value = node.get("clip-path")
+    if not value:
+        return None
+    clip = svg.paths.get(wp_utils.parse_url(value).fragment)
+    if clip is None or clip.tag != "clipPath":
+        return None
+    for child in clip:
+        if child.get("clip-path") or child.get("clip-rule") == "evenodd" or child.tag in ("text", "use"):
+            return clip
+    return None
+
+
+def clip_restyle(_svg: Any, node: Any, _font_size: float) -> dict[str, str | None] | None:
+    """Inside a clip mask a shape counts by its geometry: filled by its clip-rule, no stroke, no effects."""
+    if not _CLIPPING.get():
+        return None
+    # The children cascade the original style first: they keep their own copy of it
+    list(node)
+    # A <use> or <g> in a clip path adds no opacity, filter or mask either
+    new = {"opacity": "1", "filter": "none", "mask": "none"}
+    if node.tag in CLIP_SHAPES:
+        new |= {"fill": "black", "fill-rule": node.get("clip-rule", "nonzero"), "fill-opacity": "1", "stroke": "none"}
+    saved = {key: node.attrib.get(key) for key in new}
+    node.attrib.update(new)
+    return saved
+
+
+def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
+    """Set clip as the alpha soft mask of the current state, with every child filled."""
+    if any(clip is active for active in _ACTIVE_CLIPS.get()):
+        return
+    stream = svg.stream
+    mask = stream.set_alpha_state(*_core.group_box(svg, node, font_size), mode="alpha")
+    if clip.get("clipPathUnits") == "objectBoundingBox":
+        box = svg.calculate_bounding_box(node, font_size, stroke=False)
+        if not wp_defs.is_valid_bounding_box(box):
+            return  # an empty mask: the node is clipped away, as in Chromium
+        mask.transform(a=box[2], d=box[3], e=box[0], f=box[1])
+    tag = clip._etree_node.tag
+    tokens = _ACTIVE_CLIPS.set((*_ACTIVE_CLIPS.get(), clip)), _CLIPPING.set(True)
+    try:
+        svg.stream = mask
+        clip._etree_node.tag = "g"
+        svg.draw_node(clip, font_size)
+    finally:
+        clip._etree_node.tag = tag
+        svg.stream = stream
+        _ACTIVE_CLIPS.reset(tokens[0])
+        _CLIPPING.reset(tokens[1])
+
+
 # ---------------- draw_node helpers, used by _core ----------------
 
 
@@ -332,6 +396,7 @@ def install(*, blend: bool = True) -> None:
     wp_defs.draw_pattern = wp_svg.draw_pattern = draw_pattern
     wp_defs.paint_mask = wp_svg.paint_mask = paint_mask
     wp_svg.SVG.set_graphical_state = set_graphical_state
+    _core.add_restyler(clip_restyle)
     wp_svg.Node.override_iter = _materialized_override_iter
     _core.enable_draw_feature("masks")
     if blend:
