@@ -105,6 +105,22 @@ def test_pattern_in_bounding_box_units_used_twice() -> None:
     assert near(pixel(pdf, 15, 30), WHITE)
 
 
+def test_user_space_pattern_starts_at_the_user_origin() -> None:
+    # The tiles start at x=0 of the user space, not at the box of the shape: 50 to 100 is white
+    body = '<defs><pattern id="p" patternUnits="userSpaceOnUse" width="100" height="100"><rect width="50" height="100" fill="red"/></pattern></defs><rect x="50" width="150" height="100" fill="url(#p)"/>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 45, 30), WHITE)
+    assert near(pixel(pdf, 80, 30), RED)
+
+
+def test_pattern_transform_applies_to_the_tile_origin() -> None:
+    # The box origin x=50 lies in pattern space: scale(2) moves the tiles to 100, 200 and so on
+    body = '<defs><pattern id="p" width="0.5" height="1" patternContentUnits="userSpaceOnUse" patternTransform="scale(2)"><rect width="25" height="100" fill="red"/></pattern></defs><rect x="50" width="100" height="50" fill="url(#p)"/>'
+    pdf = render(svg(body, width=400))
+    assert near(pixel(pdf, 60, 15), WHITE)
+    assert near(pixel(pdf, 80, 15), RED)
+
+
 def test_pattern_on_a_shape_without_box() -> None:
     body = '<defs><pattern id="p" x="0.1" width="1" height="1"><rect width="10" height="10" fill="red"/></pattern></defs><g fill="url(#p)"><path d=""/></g>'
     render(svg(body))

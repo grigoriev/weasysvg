@@ -89,7 +89,7 @@ change between releases.
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
 | Filters | `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over and in, `feComponentTransfer` alpha slope, `luminanceToAlpha`, and the CSS `drop-shadow()` and `blur()` functions, in vector. Blurred layers and other primitives go through resvg. |
 | Masks | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, and self-referencing masks. |
-| Gradients and patterns | Pattern `x` and `y`, patterns used twice, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
+| Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
 | Text | `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` from the font, font-size keywords, nested `<text>` ignored. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). |
@@ -104,9 +104,9 @@ review:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 92 |
+| same as Chromium | 40 | 101 |
 | minor difference | 10 | 4 |
-| other font only | 11 | 9 |
+| other font only | 11 | 0 |
 | broken | 54 | 10 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
@@ -124,8 +124,6 @@ which has no scrollbar for `overflow: auto` (print has no use for one). The verd
 - A blurred shadow can hide the shape it belongs to (the OpenStreetMap logo).
 - `mix-blend-mode` colors can be more saturated than in Chromium.
 - `overflow: auto` inside a `<foreignObject>` shows no scrollbar, so text reflows into the full width.
-- The "font" verdicts are resvg tests that expect a sans-serif default. weasysvg uses serif, as Chromium
-  does.
 
 ## Development
 

@@ -3,7 +3,8 @@
 Touches:
 - ``svg.defs.draw_gradient``: a gradient cell of about 1000 units, since Splash and Quartz drop a 1 x 1
   cell; r and fr percentages of a radial gradient refer to the normalized diagonal.
-- ``svg.defs.draw_pattern``: x and y move the tile origin; attributes and tag are restored after each use.
+- ``svg.defs.draw_pattern``: the tile origin in pattern space, x and y included; attributes and tag are
+  restored after each use.
 - ``svg.defs.paint_mask``: replaced. Region of an objectBoundingBox mask, maskContentUnits, a cycle
   through mask="..." is broken, and the tag of the <mask> is restored, else the walk draws it as a <g>.
 - ``svg.Node.override_iter``: a list instead of a one-shot iterator, so a node can be walked twice.
@@ -165,12 +166,16 @@ def draw_pattern(svg: Any, node: Any, pattern: Any, font_size: float, opacity: f
     tag = pattern._etree_node.tag
     # The finally covers the pops of x and y too: the pattern node is shared by every element that uses it
     try:
-        px, py = _pattern_origin(svg, node, pattern, font_size, stroke)
+        origin = _pattern_origin(svg, node, pattern, font_size, stroke)
+        pattern_transform = wp_utils.transform(pattern.get("patternTransform", ""), "0 0", font_size, svg.inner_diagonal)
         stream = svg.stream
         original_add_pattern = stream.add_pattern
 
-        def add_pattern(x: float, y: float, width: float, height: float, repeat_width: float, repeat_height: float, matrix: Any) -> Any:
-            return original_add_pattern(x, y, width, height, repeat_width, repeat_height, Matrix(e=px, f=py) @ matrix)
+        def add_pattern(x: float, y: float, width: float, height: float, repeat_width: float, repeat_height: float, _matrix: Any) -> Any:
+            # WeasyPrint starts the tiles at the box of the shape, after patternTransform. The tile origin
+            # lies in pattern space: patternTransform moves it too.
+            matrix = Matrix(e=origin[0], f=origin[1]) @ pattern_transform @ stream.ctm
+            return original_add_pattern(x, y, width, height, repeat_width, repeat_height, matrix)
 
         with _add_pattern_override(stream, add_pattern):
             return _ORIGINAL_DRAW_PATTERN(svg, node, pattern, font_size, opacity, stroke)
@@ -182,13 +187,15 @@ def draw_pattern(svg: Any, node: Any, pattern: Any, font_size: float, opacity: f
 
 
 def _pattern_origin(svg: Any, node: Any, pattern: Any, font_size: float, stroke: bool) -> tuple[float, float]:
-    """Take x and y off the pattern and return them in user space: they move the tile, not its content."""
+    """Take x and y off the pattern and return the tile origin in pattern space."""
     px, py = pattern.attrib.pop("x", 0), pattern.attrib.pop("y", 0)
     if pattern.get("patternUnits") == "userSpaceOnUse":
         x, y = svg.point(px, py, font_size)
         return x, y
     box = svg.calculate_bounding_box(node, font_size, stroke)
-    return wp_utils.size(px, font_size, 1) * (box[2] if box else 0), wp_utils.size(py, font_size, 1) * (box[3] if box else 0)
+    if not wp_defs.is_valid_bounding_box(box):
+        return 0.0, 0.0
+    return box[0] + wp_utils.size(px, font_size, 1) * box[2], box[1] + wp_utils.size(py, font_size, 1) * box[3]
 
 
 # ---------------- masks ----------------

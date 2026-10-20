@@ -533,9 +533,9 @@
  },
  {
   "name": "resvg__paint-servers-pattern--text-child",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif pattern text instead of reference sans; tiles now show full 'Text', grid matches.",
+  "what": "Tiles start at the user space origin, patternTransform included. Glyph antialiasing differs slightly.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -708,23 +708,23 @@
  },
  {
   "name": "resvg__text-dominant-baseline--auto",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface instead of reference sans; baseline matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "n/a"
  },
  {
   "name": "resvg__text-dominant-baseline--reset-size",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface instead of reference sans; baseline matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "n/a"
  },
  {
   "name": "resvg__text-letter-spacing--0",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface, narrower; position matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -743,23 +743,23 @@
  },
  {
   "name": "resvg__text-text--x-and-y-with-less-values-than-characters",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface; per-character positions match.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-text-decoration--line-through",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Serif typeface; line-through present.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-text-decoration--style-resolving-3",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Serif typeface; line-through present with correct fill and stroke.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -778,16 +778,16 @@
  },
  {
   "name": "resvg__text-tspan--mixed",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface; colors and positions match.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "n/a"
  },
  {
   "name": "resvg__text-tspan--only-with-y",
-  "verdict": "font",
+  "verdict": "same",
   "native_verdict": "font",
-  "what": "Serif typeface; position matches.",
+  "what": "Noto Sans is not installed: serif, as in Chromium. resvg draws sans.",
   "reference_agrees_with": "chromium"
  },
  {
