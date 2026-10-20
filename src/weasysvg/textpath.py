@@ -113,7 +113,9 @@ def _place(svg: Any, node: Any, font_size: float, state: _State, advances: list[
     dy = _numbers(node, "dy", font_size, svg.inner_height)
     letter_spacing = svg.length(node.get("letter-spacing"), font_size)
     placed = []
-    for index, (character, width) in enumerate(advances):
+    # Along the path in visual order: a right-to-left run runs right to left, its letters joining as they should
+    for index in glyphs.visual_order("".join(glyphs.base(character) for character, _ in advances)):
+        character, width = advances[index]
         state.distance += dx[index] if index < len(dx) else 0
         state.shift += dy[index] if index < len(dy) else 0
         position = state.polyline.at(state.distance + width / 2)

@@ -817,3 +817,28 @@ def test_digits_inside_a_right_to_left_run_keep_their_order() -> None:
     # Alef, space, the digits 1 and 2, space, dal: the words turn around, the number reads left to right
     assert glyph_layout.visual_order("\u0627 \u0661\u0662 \u062f") == [5, 4, 2, 3, 1, 0]
     assert glyph_layout.visual_order("\u0627 1.5 \u062f") == [6, 5, 2, 3, 4, 1, 0]
+
+
+def test_a_number_ending_a_right_to_left_run_belongs_to_it() -> None:
+    # A year after a word: the number comes first in visual order, as the bidi algorithm puts it (W2, N1)
+    assert glyph_layout.visual_order("\u0633\u0646\u0629 \u0662\u0660\u0662\u0664") == [4, 5, 6, 7, 3, 2, 1, 0]
+    assert glyph_layout.visual_order("\u0627 12") == [2, 3, 1, 0]
+    assert glyph_layout.visual_order("a 12") == [0, 1, 2, 3]
+
+
+def test_arabic_on_a_path_runs_right_to_left() -> None:
+    # Two lams on a path: the initial form joins the letter after it in reading order, so it lies to the right
+    def placed(body: str) -> dict[str, float]:
+        # The x of the text matrix of each glyph drawn; a joiner draws an empty array
+        out, x = {}, 0.0
+        for line in content(render(svg(body, height=200))).split("\n"):
+            if line.endswith(" Tm"):
+                x = float(line.split()[4])
+            elif glyph := re.match(r"\[<([0-9a-f]+)>", line):
+                out[glyph.group(1)] = x
+        return out
+
+    initial = re.findall(r"\[<([0-9a-f]+)>", content(render(svg('<text x="10" y="50" font-size="20">\u0644\u200d</text>'))))[0]
+    xs = placed('<path id="p" d="M 10 50 H 190" fill="none"/><text font-size="20"><textPath href="#p">\u0644\u0644</textPath></text>')
+    assert len(xs) == 2
+    assert xs[initial] == max(xs.values())

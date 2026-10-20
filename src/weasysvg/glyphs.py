@@ -71,36 +71,52 @@ def in_context(text: str, index: int) -> str:
 DIGITS = ("EN", "AN")
 
 
-def _nearest_strong(classes: list[str]) -> list[str | None]:
-    """The bidi class of the nearest strong letter before each index, None before the first."""
+def _resolved(classes: list[str]) -> list[str | None]:
+    """Each character as R or L for the line, None for a neutral.
+
+    A number takes the side of the letter before it (W2): after Arabic or Hebrew it reads in the run.
+    """
+    out: list[str | None] = []
+    strong = None
+    for kind in classes:
+        if kind in ("R", "AL"):
+            strong = "R"
+            out.append("R")
+        elif kind == "L":
+            strong = "L"
+            out.append("L")
+        elif kind in DIGITS:
+            out.append(strong or "L")
+        elif kind == "NSM":
+            out.append(out[-1] if out else None)
+        else:
+            out.append(None)
+    return out
+
+
+def _nearest(sides: list[str | None]) -> list[str | None]:
+    """The nearest side before each index, None before the first."""
     out: list[str | None] = []
     last = None
-    for kind in classes:
+    for side in sides:
         out.append(last)
-        last = kind if kind in ("L", "R", "AL") else last
+        last = side if side is not None else last
     return out
 
 
 def _right_to_left(classes: list[str]) -> list[bool]:
-    """Whether each character belongs to a right-to-left run."""
-    before = _nearest_strong(classes)
-    after = _nearest_strong(classes[::-1])[::-1]
-    rtl = [False] * len(classes)
-    for index, kind in enumerate(classes):
-        if kind in ("R", "AL"):
-            rtl[index] = True
-        elif kind == "NSM" and index:
-            rtl[index] = rtl[index - 1]
-        elif kind != "L":
-            rtl[index] = before[index] in ("R", "AL") and after[index] in ("R", "AL")
-    return rtl
+    """Whether each character belongs to a right-to-left run: neutrals between two of its parts do (N1)."""
+    sides = _resolved(classes)
+    before = _nearest(sides)
+    after = _nearest(sides[::-1])[::-1]
+    return [side == "R" or (side is None and before[index] == "R" and after[index] == "R") for index, side in enumerate(sides)]
 
 
 def rtl_runs(text: str) -> list[tuple[int, int]]:
     """The right-to-left runs of text, start and end indices, for a left-to-right line.
 
-    A simple form of the bidi algorithm: strong Arabic and Hebrew letters make a run, with the marks after
-    them and the neutrals and numbers between two of them.
+    A simple form of the bidi algorithm: strong Arabic and Hebrew letters make a run, with the marks and
+    numbers after them and the neutrals between two of its parts.
     """
     rtl = _right_to_left([unicodedata.bidirectional(character) for character in text])
     runs: list[tuple[int, int]] = []
