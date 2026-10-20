@@ -104,8 +104,8 @@ review:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 108 |
-| minor difference | 10 | 7 |
+| same as Chromium | 40 | 109 |
+| minor difference | 10 | 6 |
 | other font only | 11 | 0 |
 | broken | 54 | 0 |
 

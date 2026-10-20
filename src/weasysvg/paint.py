@@ -24,6 +24,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from dataclasses import dataclass
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -180,6 +181,37 @@ def _radial_percentages(gradient: Any) -> dict[str, str | None]:
     return changed
 
 
+@dataclass(frozen=True)
+class _Stop:
+    attrib: dict[str, str]
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.attrib.get(key, default)
+
+
+def _focal_ring(gradient: Any, font_size: float, reference: float) -> list[_Stop] | None:
+    """The stops of a padded radial gradient whose focal circle is concentric, rewritten for fr = 0.
+
+    PDFium paints the center of a shading with an inner radius white. Without one, the first color
+    fills the focal circle and the stops move out to it: offset k + o (1 - k), with k = fr / r.
+    """
+    if gradient.tag != "radialGradient" or gradient.get("spreadMethod", "pad") != "pad":
+        return None
+    if any(gradient.get(name) not in (None, gradient.get(center, "50%")) for name, center in (("fx", "cx"), ("fy", "cy"))):
+        return None
+    radius, focal = (wp_utils.size(gradient.get(name, default), font_size, reference) for name, default in (("r", "50%"), ("fr", "0")))
+    stops = list(gradient)
+    if not stops or not 0 < focal < radius:
+        return None
+    ring = focal / radius
+    out = [_Stop({**stops[0].attrib, "offset": "0"})]
+    previous = 0.0
+    for stop in stops:
+        previous = max(previous, wp_utils.size(stop.get("offset", "0"), font_size, 1))
+        out.append(_Stop({**stop.attrib, "offset": str(ring + min(previous, 1.0) * (1 - ring))}))
+    return out
+
+
 # A stop of opacity 0 gets this one instead: WeasyPrint gives a transparent stop the color of its
 # neighbor, the premultiplied mix again, while Chromium keeps its own color
 TRANSPARENT_STOP = "1e-9"
@@ -211,8 +243,19 @@ def draw_gradient(svg: Any, node: Any, gradient: Any, font_size: float, opacity:
         changed = _radial_percentages(gradient)
         _visible_stops(gradient, stops)
         cell = _gradient_cell(svg, node, gradient, font_size, stroke)
-        with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
-            return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)
+        reference = svg.normalized_diagonal if gradient.get("gradientUnits") == "userSpaceOnUse" else 1
+        ring = _focal_ring(gradient, font_size, reference)
+        cls = gradient.__class__
+        if ring is not None:
+            changed.setdefault("fr", gradient.attrib.get("fr"))
+            gradient.attrib["fr"] = "0"
+            gradient.__class__ = type(cls.__name__, (cls,), {"__iter__": lambda _: iter(ring)})
+        try:
+            with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
+                return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)
+        finally:
+            if ring is not None:
+                gradient.__class__ = cls
     finally:
         for stop, stop_opacity in stops:
             stop.attrib["stop-opacity"] = stop_opacity
