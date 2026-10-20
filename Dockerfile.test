@@ -36,6 +36,18 @@ RUN apt-get update \
         fonts-dejavu fonts-freefont-ttf fonts-ipafont-gothic fonts-noto-cjk \
         fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei \
     && rm -rf /var/lib/apt/lists/*
+# Trebuchet MS, the first font Mermaid asks for: Safari has it, the service image does not. The package of
+# Debian contrib downloads the core fonts of Microsoft at build time. Only Trebuchet MS stays: Arial and
+# Times New Roman would take over Helvetica and Times from the Liberation fonts of the service image.
+RUN sed -i 's/^Components: main$/Components: main contrib/' /etc/apt/sources.list.d/debian.sources \
+    && echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections \
+    && apt-get update \
+    && apt-get install --yes --no-install-recommends ttf-mscorefonts-installer \
+    && find /usr/share/fonts/truetype/msttcorefonts -type f ! -iname 'trebuc*' -delete \
+    && fc-cache --force \
+    && fc-list | grep -qi "trebuchet ms" \
+    && test "$(fc-match Helvetica family)" = "Liberation Sans" \
+    && rm -rf /var/lib/apt/lists/*
 # The fonts the corpus asks for by name (Noto Sans, Amiri, Mplus 1p...), the very files of the resvg suite,
 # live in corpus/fonts of the mounted source: Chromium, WeasyPrint and resvg all find them through fontconfig
 RUN printf '<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n<fontconfig><dir>/src/corpus/fonts</dir></fontconfig>\n' \
