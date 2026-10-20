@@ -309,6 +309,8 @@ def _decorate(svg: Any, node: Any, font_size: float) -> None:
 
 def _draw_lines(svg: Any, node: Any, font_size: float, rects: list[tuple[float, float, float, float]]) -> None:
     """Fill the rectangles of the lines in the paint of the node."""
+    if not rects:
+        return  # every piece lies under ink: a paint operator needs a path before it
     svg.stream.push_state()
     try:
         fill, stroke = svg.set_graphical_state(node, font_size)

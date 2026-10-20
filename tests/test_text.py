@@ -197,6 +197,14 @@ def test_an_underline_skips_the_ink_of_descenders(decoration: str, pieces: int) 
     assert len(line_pieces(pdf)) == pieces
 
 
+@pytest.mark.parametrize("body", ['<text x="10" y="50" text-decoration="underline">_</text>', '<path id="p" d="M 10 50 H 200" fill="none"/><text text-decoration="underline"><textPath href="#p">_</textPath></text>'])
+def test_a_line_all_under_ink_paints_no_empty_path(body: str) -> None:
+    # The underscore crosses the whole underline: nothing is left to fill, and a paint operator needs a path
+    lines = content(render(svg(body))).split("\n")
+    painted = [lines[index - 1] for index, line in enumerate(lines) if line in ("f", "S", "B")]
+    assert all(line.endswith((" re", " l", " c", " m", "h")) for line in painted)
+
+
 def test_a_line_without_descenders_is_whole() -> None:
     assert len(line_pieces(render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">Decor</text>', height=100)))) == 1
 

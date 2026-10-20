@@ -128,7 +128,9 @@ def _place(svg: Any, node: Any, font_size: float, state: _State, advances: list[
 Decoration = tuple[float, float, float | None]  # top, thickness, how far it skips ink or None
 
 
-def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> None:
+def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> bool:
+    """Add the pieces of the decoration lines to the path; return whether there was any."""
+    drawn = False
     for index, (character, width, origin, cos, sin) in enumerate(placed):
         # The line runs on under the letter-spacing, up to the next character
         length = width + (letter_spacing if index + 1 < len(placed) else 0)
@@ -137,6 +139,8 @@ def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations
             cuts = ink.intercepts(characters.get(character, []), top, top + thickness) if dilation is not None else []
             for left, right in ink.skipped(0, length, cuts, dilation or 0):
                 _turned_rectangle(svg.stream, origin, cos, sin, (left, top, right - left, thickness))
+                drawn = True
+    return drawn
 
 
 def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advances: list[tuple[str, float]], decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> None:
@@ -150,8 +154,8 @@ def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advan
     try:
         fill, stroke = svg.set_graphical_state(node, font_size)
         glyphs.show(svg, style, fill, stroke, items)
-        if decorations:
-            _decorate(svg, placed, svg.length(node.get("letter-spacing"), font_size), decorations, characters)
+        # Every piece may lie under ink: a paint operator needs a path before it
+        if decorations and _decorate(svg, placed, svg.length(node.get("letter-spacing"), font_size), decorations, characters):
             svg.fill_stroke(fill, stroke)
     finally:
         svg.stream.pop_state()
