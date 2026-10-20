@@ -15,5 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opacity groups, marker orientation, text baselines and decorations from font metrics, font-size
   keywords, and Chromium font selection. No rasterizer: the PDF stays vector.
 - Python 3.10 to 3.14 and PyPy 3.11, the versions WeasyPrint 70 supports.
+- Upstream tracking for WeasyPrint upgrades (UPGRADING.md): probes of the gaps weasysvg covers, a
+  snapshot of the internals it hooks, a bench baseline, and a weekly run against the newest WeasyPrint.
 - A visual regression corpus of 115 SVGs with Chromium and resvg references, and a bench that
   compares weasysvg with Chromium.

@@ -492,7 +492,8 @@ def _reference_plan(svg: Any, node: Any, font_size: float, fragment: str) -> Pla
     try:
         region = _region(svg, node, filter_node, font_size)
         return Plan(_checked(_evaluate(svg, filter_node, region, font_size, _unit(svg, node, filter_node, font_size))), region)
-    except Unsupported as error:
+    except (Unsupported, ValueError) as error:
+        # ValueError: a value WeasyPrint cannot parse, such as flood-opacity="abc"
         LOGGER.warning("SVG filter %r is drawn unfiltered: %s is not supported", fragment, error)
         return UNFILTERED
 
