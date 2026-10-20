@@ -212,11 +212,18 @@ def carried_shifts(stream: Any) -> Iterator[None]:
         show_text(text)
         state["last"] = (len(stream.stream) - 1, state["size"])
 
+    # An override of the stream that another patch set stays: it comes back afterwards
+    missing = object()
+    previous = {name: stream.__dict__.get(name, missing) for name in ("show_text", "set_font_size")}
     stream.show_text, stream.set_font_size = show, sized
     try:
         yield
     finally:
-        del stream.show_text, stream.set_font_size
+        for name, value in previous.items():
+            if value is missing:
+                del stream.__dict__[name]
+            else:
+                setattr(stream, name, value)
 
 
 # ---------------- text-decoration ----------------

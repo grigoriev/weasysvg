@@ -475,6 +475,18 @@ def test_a_first_leading_shift_stays() -> None:
     assert "show_text" not in vars(stream)
 
 
+def test_carried_shifts_restores_an_override_of_the_stream() -> None:
+    # Another patch replaced show_text on this stream first: it is back afterwards, not deleted
+    stream = TextStream()
+    shown: list[str] = []
+    vars(stream)["show_text"] = shown.append
+    with text.carried_shifts(stream):
+        stream.show_text("<0001>")
+    stream.show_text("<0002>")
+    assert shown == ["<0001>", "<0002>"]
+    assert "set_font_size" not in vars(stream)
+
+
 def test_arabic_letter_spacing_needs_no_leading_shift() -> None:
     body = '<text x="38" y="100" font-size="18" letter-spacing="10">بعض النص الطويل</text>'
     arrays = re.findall(r"\[([^\]]*)\] TJ", content(render(svg(body, height=200))))
