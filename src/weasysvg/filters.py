@@ -104,13 +104,13 @@ def _flood(node: Any) -> tuple[Any, float]:
     return color(node.get("flood-color", "black")), alpha_value(node.get("flood-opacity", 1))
 
 
-def _silhouette(layers: list[Layer], rgba: Any, opacity: float) -> list[Layer]:
+def _silhouette(svg: Any, layers: list[Layer], rgba: Any, opacity: float) -> list[Layer]:
     out = []
     for layer in layers:
         if layer.kind == "flood":
             out.append(replace(layer, rgba=rgba, opacity=layer.opacity * opacity))
         elif layer.kind == "image":
-            out.append(replace(layer, image=_image_silhouette(layer.image, rgba), opacity=layer.opacity * opacity))
+            out.append(replace(layer, image=_cached_silhouette(svg, layer.image, rgba), opacity=layer.opacity * opacity))
         else:
             out.append(replace(layer, kind="alpha", rgba=rgba, opacity=layer.opacity * opacity, recolor=()))
     return out
@@ -183,7 +183,7 @@ def _fe_drop_shadow(chain: _Chain, child: Any) -> list[Layer]:
     rgba, opacity = _flood(child)
     dx, dy = chain.scaled(_num(child.get("dx"), 2), _num(child.get("dy"), 2))
     std = chain.scaled(*_std(child.get("stdDeviation"), "2"))
-    shadow = [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy, blur=_add_blur(layer.blur, std)) for layer in _silhouette(chain.source, rgba, opacity)]
+    shadow = [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy, blur=_add_blur(layer.blur, std)) for layer in _silhouette(chain.svg, chain.source, rgba, opacity)]
     return shadow + list(chain.source)
 
 
@@ -208,7 +208,7 @@ def _fe_composite(chain: _Chain, child: Any) -> list[Layer]:
         return list(backdrop) + list(chain.source)
     if operator == "in" and len(chain.source) == 1 and chain.source[0].kind == "flood":
         # Colorize a silhouette: the common shadow idiom
-        return _silhouette(backdrop, chain.source[0].rgba, chain.source[0].opacity)
+        return _silhouette(chain.svg, backdrop, chain.source[0].rgba, chain.source[0].opacity)
     if operator == "arithmetic":
         return _arithmetic(chain, child, backdrop)
     raise Unsupported(f"feComposite {operator}")
@@ -488,6 +488,18 @@ def _recolor_image(picture: Image.Image, function: Recolor) -> Image.Image:
     pixels = (cast(RGBA, tuple(c / 255 for c in data[i : i + 4])) for i in range(0, len(data), 4))
     out.putdata([tuple(round(_clamp(value) * 255) for value in function(pixel)) for pixel in pixels])
     return out
+
+
+def _cached_silhouette(svg: Any, picture: Image.Image, rgba: Any) -> Image.Image:
+    """The silhouette, the same image on every draw: a recolor after it is cached by its identity."""
+
+    def compute() -> Image.Image:
+        svg.__dict__["_weasysvg_pixels"].inputs.append(picture)
+        return _image_silhouette(picture, rgba)
+
+    key = ("silhouette", id(picture), tuple(rgba.to("srgb").coordinates), rgba.alpha)
+    # Pillow does this work in C: it costs nothing against the budget
+    return _computed(svg, key, 0, compute)
 
 
 def _image_silhouette(picture: Image.Image, rgba: Any) -> Image.Image:

@@ -903,3 +903,14 @@ def test_pixel_work_is_counted_once_per_image(monkeypatch: pytest.MonkeyPatch, c
     with caplog.at_level(logging.WARNING, logger="weasysvg"):
         render(svg(body, height=120))
     assert "too much pixel work" not in caplog.text
+
+
+def test_a_recolored_silhouette_is_computed_once(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    # Each draw evaluates the chain again: the silhouette must be the same image, or its recolor counts again
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    shapes = "".join(f'<rect x="{x}" y="20" width="10" height="10" filter="url(#f)"/>' for x in range(0, 200, 20))
+    primitives = '<feTurbulence baseFrequency="0.05" result="t"/><feFlood flood-color="blue"/><feComposite in2="t" operator="in"/><feColorMatrix type="saturate" values="0"/>'
+    body = f'<defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">{primitives}</filter></defs>{shapes}'
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        render(svg(body, height=120))
+    assert "too much pixel work" not in caplog.text
