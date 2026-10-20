@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import importlib
 import math
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -23,6 +24,9 @@ from weasyprint import svg as wp_svg
 from weasyprint.pdf import stream as wp_stream
 from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, parse_url, size
+
+# The module: weasyprint.svg exports a function of the same name, which hides it from attribute access
+wp_bounding_box = importlib.import_module("weasyprint.svg.bounding_box")
 
 TreePass = Callable[[ET.Element], None]
 FetcherWrapper = Callable[[object], object]
@@ -114,6 +118,13 @@ def enable_draw_feature(name: str) -> None:
     DRAW_FEATURES[name] = True
     if wp_svg.SVG.draw_node is not _draw_node:
         wp_svg.SVG.draw_node = _draw_node
+    wp_bounding_box.BOUNDING_BOX_METHODS.setdefault("a", bounding_box_a)
+
+
+def bounding_box_a(svg: Any, node: Any, font_size: float) -> Any:
+    """The box of an <a>, which WeasyPrint leaves empty: its text inside a <text>, its children elsewhere."""
+    box = getattr(node, "text_bounding_box", None)
+    return box if is_valid_bounding_box(box) else wp_bounding_box.bounding_box_g(svg, node, font_size)
 
 
 def _group_opacity(node: Any) -> float | None:
@@ -242,7 +253,8 @@ _MEASURING: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_measuring", defau
 
 def _unmeasured_text(node: Any) -> bool:
     """Whether node is or holds a text whose box WeasyPrint does not know yet: another shape may give a box."""
-    if node.tag in TEXT_TAGS:
+    # WeasyPrint draws an <a> as text: in a <text> it holds text of its own, around shapes it holds none
+    if node.tag in TEXT_TAGS or (node.tag == "a" and (node.text or "").strip()):
         return not is_valid_bounding_box(getattr(node, "text_bounding_box", None))
     return any(_unmeasured_text(child) for child in node)
 

@@ -595,3 +595,18 @@ def test_a_group_with_a_shape_and_text_clips_by_both() -> None:
     pdf = render(svg(f"<defs>{clip}</defs>{group}"))
     # pixel() reads pt: user units 64 to 88 lie left of the middle of the group, which spans 0 to about 230
     assert any(near(pixel(pdf, x, 37), RED) for x in range(48, 66))
+
+
+def test_bounding_box_clip_on_a_link_in_text() -> None:
+    # An <a> in a text is text too: its box is measured before its clip
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><text x="10" y="70" font-size="60" font-weight="bold" fill="red"><a clip-path="url(#c)">HHHH</a></text>'))
+    assert any(near(pixel(pdf, x, 37), RED) for x in range(10, 40))
+
+
+def test_bounding_box_clip_on_a_link_around_a_shape() -> None:
+    # An <a> around shapes has the box of its children, as a <g>
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><a clip-path="url(#c)"><rect width="200" height="100" fill="red"/></a>'))
+    assert near(pixel(pdf, 56, 30), RED)
+    assert near(pixel(pdf, 90, 30), WHITE)

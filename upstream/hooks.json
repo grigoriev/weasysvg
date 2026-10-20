@@ -65,6 +65,14 @@
    "fingerprint": "ad1627ab16540da2",
    "used_by": "paint.paint_mask replaces it"
   },
+  "weasyprint.svg.bounding_box:BOUNDING_BOX_METHODS": {
+   "fingerprint": "d8ff97b0c26cf73d",
+   "used_by": "_core gives <a> a box (bounding_box_a)"
+  },
+  "weasyprint.svg.bounding_box:bounding_box_g": {
+   "fingerprint": "7529508537f35e15",
+   "used_by": "_core.bounding_box_a for an <a> around shapes"
+  },
   "weasyprint.svg.defs:use": {
    "fingerprint": "848a3b9f26224482",
    "used_by": "restylers and clips walk <use> trees"
