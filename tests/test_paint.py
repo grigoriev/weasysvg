@@ -558,3 +558,21 @@ def test_a_round_shape_has_the_length_of_its_arc(shape: str, first_curve: list[f
 @pytest.mark.parametrize("shape", ['<circle cx="100" cy="50" r="0"/>', '<ellipse cx="100" cy="50" rx="40" ry="-5"/>', '<circle cx="100" cy="50"/>'])
 def test_a_round_shape_without_a_radius_draws_nothing(shape: str) -> None:
     assert not re.search(r"\bc\b", content(render(svg(shape))))
+
+
+def test_bounding_box_clip_on_text() -> None:
+    # The box of a text is known once it is drawn: the clip keeps its left half, not nothing
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><text x="10" y="70" font-size="60" font-weight="bold" fill="red" clip-path="url(#c)">HHHH</text>'))
+    left = {pixel(pdf, x, 50) for x in range(10, 60)}
+    right = {pixel(pdf, x, 50) for x in range(110, 180)}
+    assert any(near(color, RED) for color in left)
+    assert not any(near(color, RED) for color in right)
+
+
+def test_bounding_box_mask_on_text() -> None:
+    # maskContentUnits="objectBoundingBox": the left half of the box of the text shows
+    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="0.5" height="1" fill="white"/></mask>'
+    pdf = render(svg(f'<defs>{mask}</defs><text x="10" y="70" font-size="60" font-weight="bold" fill="red" mask="url(#m)">HHHH</text>'))
+    assert any(near(pixel(pdf, x, 50), RED) for x in range(10, 60))
+    assert not any(near(pixel(pdf, x, 50), RED) for x in range(110, 180))

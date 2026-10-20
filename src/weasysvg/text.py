@@ -159,6 +159,15 @@ CHUNK_BOX = "_weasysvg_chunk_box"
 TEXT_TAGS_WITH_CHUNKS = frozenset(("text", "tspan", "a"))
 
 
+def anchored(node: Any, box: Any) -> Any:
+    """The box of a text or a text chunk where its text-anchor moved it: WeasyPrint keeps the box from before."""
+    anchor, direction = node.get("text-anchor", "start"), node.get("direction", "ltr")
+    if (anchor, direction) in (("start", "ltr"), ("end", "rtl")) or not is_valid_bounding_box(box):
+        return box
+    x, y, width, height = box
+    return (x - (width / 2 if anchor == "middle" else width), y, width, height)
+
+
 def chunk_boxes(_svg: Any, node: Any) -> None:
     """Keep the box of a text chunk out of the anchor of its parent, and give it back afterwards.
 
@@ -167,12 +176,15 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
     The box of a chunk is hidden and passed up until the <text> or an enclosing chunk is drawn, then added
     back to it: a gradient or a filter of the text still spans every chunk. A tspan that starts no chunk
     passes the boxes on, since WeasyPrint merges its own box into the anchor of the chunk around it.
+    The box of the text and of each chunk ends where text-anchor drew it, so effects see the text as drawn.
     """
     if node.tag not in TEXT_TAGS_WITH_CHUNKS:
         return
     hidden = [entry for child in node for entry in child.__dict__.pop(CHUNK_BOX, ())]
     starts = node.tag != "text" and ("x" in node.attrib or "y" in node.attrib) and is_valid_bounding_box(getattr(node, "text_bounding_box", None))
     if node.tag == "text" or starts:
+        # The width WeasyPrint anchored by: the chunks below are not in it, they moved on their own
+        node.text_bounding_box = anchored(node, node.text_bounding_box)
         for owner, box in hidden:
             owner.text_bounding_box = box
             x, y, width, height = box

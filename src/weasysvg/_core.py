@@ -21,6 +21,7 @@ from xml.etree import ElementTree as ET
 from weasyprint import images as wp_images
 from weasyprint import svg as wp_svg
 from weasyprint.pdf import stream as wp_stream
+from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, parse_url, size
 
 TreePass = Callable[[ET.Element], None]
@@ -206,6 +207,8 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
     original: Callable[..., None] = _ORIGINAL_DRAW_NODE
     if not fill_stroke or node.tag == "defs":
         return original(self, node, font_size, fill_stroke, context)
+    if any(node.attrib.get(key) not in (None, "", "none") for key in BOX_EFFECTS):
+        measure_text(self, node, font_size)
     effects = _effects(self, node, font_size)
     if effects.empty():
         return original(self, node, font_size, fill_stroke, context)
@@ -228,6 +231,44 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
     finally:
         self.stream.pop_state()
         node.attrib.update(saved)
+
+
+# The effects whose region or units follow the bounding box of the element
+BOX_EFFECTS = ("filter", "mask", "clip-path")
+TEXT_TAGS = frozenset(("text", "tspan", "textPath"))
+# The nodes being measured: a restyler may set an effect again while one draws, which must not measure it twice
+_MEASURING: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_measuring", default=())
+
+
+def _holds_text(node: Any) -> bool:
+    return node.tag in TEXT_TAGS or any(_holds_text(child) for child in node)
+
+
+def measure_text(svg: Any, node: Any, font_size: float) -> None:
+    """Draw node once into a scratch group, without its effects, when its box needs text.
+
+    WeasyPrint knows the box of a text only once the text is drawn, but a filter region, a mask or a clip in
+    objectBoundingBox units needs the box before. The scratch group is dropped from the resources: only
+    the boxes it left on the nodes remain.
+    """
+    measuring = _MEASURING.get()
+    if any(node is item for item in measuring) or not _holds_text(node) or is_valid_bounding_box(svg.calculate_bounding_box(node, font_size, stroke=False)):
+        return
+    outer = svg.stream
+    scratch = outer.add_group(0, 0, 0, 0)
+    saved = {key: node.attrib.pop(key) for key in (*BOX_EFFECTS, "opacity", "mix-blend-mode") if key in node.attrib}
+    # Text moves the current text position: the real drawing starts where the scratch one did
+    cursor, shift = svg.cursor_position, list(svg.cursor_d_position)
+    token = _MEASURING.set((*measuring, node))
+    try:
+        svg.stream = scratch
+        svg.draw_node(node, font_size)
+    finally:
+        svg.stream = outer
+        svg.cursor_position, svg.cursor_d_position = cursor, shift
+        _MEASURING.reset(token)
+        node.attrib.update(saved)
+        del outer._resources["XObject"][scratch.id]
 
 
 def _draw_clipped(self: Any, original: Callable[..., None], node: Any, font_size: float, fill_stroke: bool, context: Any, effects: _Effects, filter_opacity: Any) -> None:

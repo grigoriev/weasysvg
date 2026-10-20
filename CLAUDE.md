@@ -41,6 +41,9 @@ once.
 - `_core.py`: the two shared hooks. `images.SVGImage.__init__` runs the tree passes on the parsed
   XML (conditional 10, nested_text 15, invalid_rotate 16, empty_presentation 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
+  A node that holds text and has a filter, mask or clip is drawn once into a scratch group first
+  (`measure_text`): WeasyPrint knows the box of a text only after drawing it. The text box is kept
+  where `text-anchor` moved it (`text.anchored`).
 - `conditional.py`: `<switch>`, `requiredExtensions`, `systemLanguage`.
 - `foreign_object.py`: stashes the XHTML in an attribute, lays all objects of one SVG out as one
   WeasyPrint document (one page each), draws each page into the SVG stream. Also patches
