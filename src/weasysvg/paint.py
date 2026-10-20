@@ -17,6 +17,8 @@ Touches:
 - ``svg.SVG.draw_node``, through ``_core``: mix-blend-mode as an isolated group, and a mask on a container
   is set before its children are drawn. ``svg.NOT_INHERITED_ATTRIBUTES`` gains mix-blend-mode.
 - a tree pass: an empty presentation attribute (fill="") is ignored, as browsers do.
+- ``svg.TAGS['circle']`` and ``svg.TAGS['ellipse']``: each quarter is a Bezier with the arc constant
+  4 (sqrt(2) - 1) / 3. WeasyPrint uses 1 / sqrt(pi), a longer outline that moves the dashes along it.
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ from weasyprint.svg import utils as wp_utils
 from . import _core
 
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
+ARC_CONSTANT = 4 * (2**0.5 - 1) / 3  # the control point of a quarter circle in one Bezier, per unit of radius
 SHAPES = frozenset(("circle", "ellipse", "line", "path", "polyline", "polygon", "rect"))
 BLEND_MODES = {
     "multiply": "Multiply",
@@ -482,7 +485,27 @@ def early_mask(svg: Any, node: Any) -> Any:
     return svg.masks.get(wp_utils.parse_url(mask_url).fragment)
 
 
+def ellipse(svg: Any, node: Any, font_size: float) -> None:
+    """A circle or an ellipse in four Bezier quarters, from (cx + rx, cy) in the direction of positive y."""
+    if node.tag == "circle":
+        rx = ry = svg.length(node.get("r"), font_size)
+    else:
+        rx, ry = svg.point(node.get("rx"), node.get("ry"), font_size)
+    if rx <= 0 or ry <= 0:
+        return
+    cx, cy = svg.point(node.get("cx"), node.get("cy"), font_size)
+    kx, ky = ARC_CONSTANT * rx, ARC_CONSTANT * ry
+    stream = svg.stream
+    stream.move_to(cx + rx, cy)
+    stream.curve_to(cx + rx, cy + ky, cx + kx, cy + ry, cx, cy + ry)
+    stream.curve_to(cx - kx, cy + ry, cx - rx, cy + ky, cx - rx, cy)
+    stream.curve_to(cx - rx, cy - ky, cx - kx, cy - ry, cx, cy - ry)
+    stream.curve_to(cx + kx, cy - ry, cx + rx, cy - ky, cx + rx, cy)
+    stream.close()
+
+
 def install(*, blend: bool = True) -> None:
+    wp_svg.TAGS["circle"] = wp_svg.TAGS["ellipse"] = ellipse
     _core.add_tree_pass(20, "empty_presentation", drop_empty_presentation)
     wp_defs.draw_gradient = wp_svg.draw_gradient = draw_gradient
     wp_defs.draw_pattern = wp_svg.draw_pattern = draw_pattern
