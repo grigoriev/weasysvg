@@ -182,6 +182,23 @@ def page(resvg_errors: dict[str, str]) -> str:
     return intro + summary(list(verdicts.values()), version) + "\n\n" + contents + "\n\n" + "\n".join(sections)
 
 
+def browser_crop(item: dict[str, Any]) -> dict[str, Any] | None:
+    """Where the Chromium panel sits on the page of the references, and the size of the <img> there.
+
+    The browser panel draws the SVG itself and crops it there. resvg gives the height of the <img> at the
+    width of the page, as a browser sizes the SVG.
+    """
+    reference = CORPUS / "reference" / "chromium" / f"{item['name']}.png"
+    box = item.get("reference_box")
+    if not box or not reference.exists():
+        return None
+    ink = ink_box([Image.open(reference).convert("RGB")])
+    drawn = resvg_image(item)
+    if ink is None or not isinstance(drawn, Image.Image):
+        return None
+    return {"x": box[0] + ink[0], "y": box[1] + ink[1], "page": item["width"], "pageHeight": drawn.height}
+
+
 def html_page(resvg_errors: dict[str, str]) -> str:
     """The interactive page: the template with the panels, verdicts and notes of every SVG as JSON."""
     verdicts = {v["name"]: v for v in json.loads((CORPUS / "verdicts.json").read_text())}
@@ -192,16 +209,7 @@ def html_page(resvg_errors: dict[str, str]) -> str:
         name, verdict = item["name"], verdicts.get(item["name"], {})
         found = {label.lower(): f"{folder}/{name}.png" for label, folder in COLUMNS if (CORPUS / folder / f"{name}.png").exists()}
         size = Image.open(CORPUS / found["chromium"]).size if "chromium" in found else (0, 0)
-        # Where the Chromium panel sits on the page of the references: the browser panel crops the SVG there
-        reference = CORPUS / "reference" / "chromium" / f"{name}.png"
-        box = item.get("reference_box")
-        ink = ink_box([Image.open(reference).convert("RGB")]) if box and reference.exists() else None
-        # The height of the <img> at that width: resvg sizes the SVG as a browser does
-        crop = None
-        if box and ink:
-            drawn = resvg_image(item)
-            if isinstance(drawn, Image.Image):
-                crop = {"x": box[0] + ink[0], "y": box[1] + ink[1], "page": item["width"], "pageHeight": drawn.height}
+        crop = browser_crop(item)
         items.append(
             {
                 "name": name,
