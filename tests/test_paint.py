@@ -236,11 +236,28 @@ def test_clip_ignores_opacity_and_paint_of_its_content() -> None:
     assert near(pixel(pdf, 120, 30), WHITE)
 
 
-def test_clip_cycles_and_missing_references() -> None:
-    # A child clipped by its own clip path: the inner use is skipped, the outer still clips
-    clip = '<clipPath id="c"><rect width="100" height="100" clip-path="url(#c)"/><text>x</text></clipPath>'
-    pdf = render(svg(f'<defs>{clip}<mask id="m"/></defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/><rect width="10" height="10" clip-path="url(#m)"/><rect width="10" height="10" clip-path="url(#nowhere)"/>'))
-    assert near(pixel(pdf, 120, 30), WHITE)
+@pytest.mark.parametrize("complex_clip", ["", "<text>x</text>"])
+def test_clip_cycles_are_ignored(complex_clip: str) -> None:
+    # Chromium ignores the reference that closes a cycle; WeasyPrint recursed until the SVG was lost
+    clips = (
+        f'<clipPath id="c"><rect width="50" height="50" clip-path="url(#c)"/>{complex_clip}</clipPath>'
+        '<clipPath id="d"><rect x="100" width="50" height="100" clip-path="url(#e)"/></clipPath>'
+        '<clipPath id="e"><rect x="100" width="100" height="50" clip-path="url(#d)"/></clipPath>'
+        '<clipPath id="f" clip-path="url(#f)"><rect y="60" width="50" height="40"/></clipPath>'
+    )
+    body = f'<defs>{clips}</defs><rect width="100" height="100" fill="red" clip-path="url(#c)"/><rect x="100" width="100" height="100" fill="red" clip-path="url(#d)"/><rect width="100" height="100" fill="red" clip-path="url(#f)"/>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 15, 15), RED)
+    assert near(pixel(pdf, 85, 15), RED)
+    assert near(pixel(pdf, 85, 60), WHITE)
+    assert near(pixel(pdf, 15, 60), RED)
+    assert near(pixel(pdf, 60, 30), WHITE)
+
+
+def test_missing_and_foreign_clip_references() -> None:
+    references = ("url(#m)", "url(#nowhere)", "inset(1px)")
+    body = "<defs><mask id='m'/></defs>" + "".join(f'<rect x="{20 * i}" width="10" height="10" fill="red" clip-path="{value}"/>' for i, value in enumerate(references))
+    render(svg(body))
 
 
 def test_complex_clip_in_bounding_box_units_without_a_box() -> None:

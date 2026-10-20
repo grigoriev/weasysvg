@@ -4,20 +4,23 @@
 - ``svg.SVG.draw_node``: one replacement that combines blend mode, early mask and complex clip
   (paint.py) with vector filters (filters.py), in the compositing order of CSS: filter, then clip and
   mask, then blend. It also draws the opacity group, unbounded: the bounding box of WeasyPrint clips
-  shifted text. Before a node draws, each restyler may change its attributes for the duration.
+  shifted text. Before a node draws, each restyler may change its attributes for the duration. A
+  clip-path that leads back into a clip path being drawn is ignored, as in Chromium: WeasyPrint
+  recursed until the stack ran out, and the whole SVG was lost.
 """
 
 from __future__ import annotations
 
 import math
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 from xml.etree import ElementTree as ET
 
 from weasyprint import images as wp_images
 from weasyprint import svg as wp_svg
-from weasyprint.svg.utils import alpha_value, size
+from weasyprint.svg.utils import alpha_value, parse_url, size
 
 TreePass = Callable[[ET.Element], None]
 FetcherWrapper = Callable[[object], object]
@@ -28,6 +31,8 @@ Restyler = Callable[[Any, Any, float], "dict[str, str | None] | None"]
 _TREE_PASSES: list[tuple[int, str, TreePass]] = []
 _FETCHER_WRAPPERS: list[FetcherWrapper] = []
 _RESTYLERS: list[Restyler] = []
+# The clip paths being drawn, per thread and task
+_ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
 # The smallest box a group gets, in user units
 MIN_GROUP_EXTENT = 1e4
@@ -143,13 +148,28 @@ def _effects(svg: Any, node: Any, font_size: float) -> _Effects:
     return _Effects(local_font_size, blend, mask, clip, plan, opacity)
 
 
+def _clip_of(svg: Any, node: Any) -> Any:
+    value = node.get("clip-path")
+    if not value or not value.strip().startswith("url("):
+        return None
+    return svg.paths.get(parse_url(value).fragment)
+
+
 def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True, context: Any = None) -> None:
+    clip = _clip_of(self, node)
+    cycle = clip is not None and any(clip is active for active in _ACTIVE_CLIPS.get())
+    saved_clip = node.attrib.pop("clip-path") if cycle else None
+    token = _ACTIVE_CLIPS.set((*_ACTIVE_CLIPS.get(), clip)) if clip is not None and not cycle else None
     # A blur mask being built draws its shapes grown, a clip mask draws them filled
     restyled = restyle(self, node, font_size) if fill_stroke else []
     try:
         _draw_with_effects(self, node, font_size, fill_stroke, context)
     finally:
         unrestyle(node, restyled)
+        if token is not None:
+            _ACTIVE_CLIPS.reset(token)
+        if saved_clip is not None:
+            node.attrib["clip-path"] = saved_clip
 
 
 def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool, context: Any) -> None:
