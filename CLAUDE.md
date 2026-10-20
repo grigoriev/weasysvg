@@ -99,7 +99,8 @@ run in a process of their own: `tests/helpers.py` installs weasysvg on import.
   (`try`/`finally`). A leak shows as wrong output on the second `<use>` of the same element.
 - No graphics state (`gs`) between path construction and its paint operator: viewers ignore it.
 - Untrusted SVG: `foreignObject` content must not reach files or URLs outside the URL fetcher of the
-  caller. A blur draws its element up to 3 * MAX_STEPS + 2 times: keep the step count capped.
+  caller. A blur draws its element up to 3 * MAX_STEPS + 2 times: keep the step count capped. Pixels
+  computed in Python (turbulence, recolored images) count against MAX_PIXEL_WORK per SVG.
 - WeasyPrint internals change between majors: a new hook needs a test that fails when the hooked
   function changes shape.
 - A rendering change updates `corpus/verdicts.json` and, for a new gap or a fixed one, the README.

@@ -858,3 +858,59 @@ def test_out_of_range_turbulence_keeps_the_svg(primitives: str) -> None:
     pdf = render(filtered(primitives, target=target))
     # The rest of the SVG still draws after it
     assert near(pixel(pdf, 30, 30), RED, 4)
+
+
+def test_a_faded_image_is_faded_before_its_recolor() -> None:
+    # The matrix sets alpha to 1: the fade before it must not show
+    matrix = '<feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 1"/>'
+    faded = '<feTurbulence baseFrequency="0.05"/><feComponentTransfer><feFuncA type="linear" slope="0.5"/></feComponentTransfer>'
+    opaque = render(filtered(f"{faded}{matrix}", ' color-interpolation-filters="sRGB"'))
+    plain = render(filtered(f'<feTurbulence baseFrequency="0.05"/>{matrix}', ' color-interpolation-filters="sRGB"'))
+    assert rasterize(opaque, 1).tobytes() == rasterize(plain, 1).tobytes()
+
+
+def test_arithmetic_of_an_offset_flood_fills_the_uncovered_strip() -> None:
+    # The strip the offset uncovers gets k4 on nothing: half transparent white, over a black backdrop
+    target = '<rect x="0" y="0" width="200" height="120" fill="black"/><rect x="20" y="20" width="60" height="40" fill="red" filter="url(#f)"/>'
+    primitives = '<feFlood flood-color="blue"/><feOffset dx="30" result="m"/><feFlood flood-color="white"/><feComposite in2="m" operator="arithmetic" k3="1" k4="0.5"/>'
+    pdf = render(filtered(primitives, ' color-interpolation-filters="sRGB"', target=target))
+    assert near(pixel(pdf, 12, 30), (128, 128, 128), 4)
+
+
+def test_arithmetic_of_an_offset_image_draws_unfiltered(caplog: pytest.LogCaptureFixture) -> None:
+    primitives = '<feTurbulence baseFrequency="0.05"/><feOffset dx="30" result="m"/><feFlood/><feComposite in2="m" operator="arithmetic" k3="1" k4="0.5"/>'
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered(primitives))
+    assert "partial image" in caplog.text
+    assert near(pixel(pdf, 30, 30), RED, 4)
+
+
+def test_pixel_work_is_bounded_per_svg(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    noise = "".join(f'<feTurbulence baseFrequency="0.05" seed="{seed}"/>' for seed in range(20))
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered(noise))
+    assert "too much pixel work" in caplog.text
+    assert near(pixel(pdf, 30, 30), RED, 4)
+
+
+def test_pixel_work_is_counted_once_per_image(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    # The same noise and recolor in many elements are computed once
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    shapes = "".join(f'<rect x="{x}" y="20" width="10" height="10" filter="url(#f)"/>' for x in range(0, 200, 20))
+    primitives = '<feTurbulence baseFrequency="0.05"/><feColorMatrix type="saturate" values="0"/>'
+    body = f'<defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">{primitives}</filter></defs>{shapes}'
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        render(svg(body, height=120))
+    assert "too much pixel work" not in caplog.text
+
+
+def test_a_recolored_silhouette_is_computed_once(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    # Each draw evaluates the chain again: the silhouette must be the same image, or its recolor counts again
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    shapes = "".join(f'<rect x="{x}" y="20" width="10" height="10" filter="url(#f)"/>' for x in range(0, 200, 20))
+    primitives = '<feTurbulence baseFrequency="0.05" result="t"/><feFlood flood-color="blue"/><feComposite in2="t" operator="in"/><feColorMatrix type="saturate" values="0"/>'
+    body = f'<defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">{primitives}</filter></defs>{shapes}'
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        render(svg(body, height=120))
+    assert "too much pixel work" not in caplog.text

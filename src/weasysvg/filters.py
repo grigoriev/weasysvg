@@ -104,13 +104,13 @@ def _flood(node: Any) -> tuple[Any, float]:
     return color(node.get("flood-color", "black")), alpha_value(node.get("flood-opacity", 1))
 
 
-def _silhouette(layers: list[Layer], rgba: Any, opacity: float) -> list[Layer]:
+def _silhouette(svg: Any, layers: list[Layer], rgba: Any, opacity: float) -> list[Layer]:
     out = []
     for layer in layers:
         if layer.kind == "flood":
             out.append(replace(layer, rgba=rgba, opacity=layer.opacity * opacity))
         elif layer.kind == "image":
-            out.append(replace(layer, image=_image_silhouette(layer.image, rgba), opacity=layer.opacity * opacity))
+            out.append(replace(layer, image=_cached_silhouette(svg, layer.image, rgba), opacity=layer.opacity * opacity))
         else:
             out.append(replace(layer, kind="alpha", rgba=rgba, opacity=layer.opacity * opacity, recolor=()))
     return out
@@ -183,7 +183,7 @@ def _fe_drop_shadow(chain: _Chain, child: Any) -> list[Layer]:
     rgba, opacity = _flood(child)
     dx, dy = chain.scaled(_num(child.get("dx"), 2), _num(child.get("dy"), 2))
     std = chain.scaled(*_std(child.get("stdDeviation"), "2"))
-    shadow = [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy, blur=_add_blur(layer.blur, std)) for layer in _silhouette(chain.source, rgba, opacity)]
+    shadow = [replace(layer, dx=layer.dx + dx, dy=layer.dy + dy, blur=_add_blur(layer.blur, std)) for layer in _silhouette(chain.svg, chain.source, rgba, opacity)]
     return shadow + list(chain.source)
 
 
@@ -208,7 +208,7 @@ def _fe_composite(chain: _Chain, child: Any) -> list[Layer]:
         return list(backdrop) + list(chain.source)
     if operator == "in" and len(chain.source) == 1 and chain.source[0].kind == "flood":
         # Colorize a silhouette: the common shadow idiom
-        return _silhouette(backdrop, chain.source[0].rgba, chain.source[0].opacity)
+        return _silhouette(chain.svg, backdrop, chain.source[0].rgba, chain.source[0].opacity)
     if operator == "arithmetic":
         return _arithmetic(chain, child, backdrop)
     raise Unsupported(f"feComposite {operator}")
@@ -272,17 +272,18 @@ def _arithmetic(chain: _Chain, child: Any, backdrop: list[Layer]) -> list[Layer]
     else:
         raise Unsupported("feComposite arithmetic of two variable inputs")
     function = _in_space(_polynomial(coefficients), chain, child)
+    recolor = _Recolor(chain.svg, child, function)
     if len(other) != 1 or other[0].blur != (0.0, 0.0) or (other[0].kind == "source" and other[0].opacity < 1):
         raise Unsupported("feComposite arithmetic of a blurred, faded or merged input")
     layer = other[0]
     nothing = function((0.0, 0.0, 0.0, 0.0))
     under = [Layer("flood", rgba=color(_rgba(*nothing)), region=chain.region)] if nothing[3] > 0 else []
-    if layer.region == chain.region and layer.kind in ("flood", "image"):
+    if layer.region == chain.region and layer.kind in ("flood", "image") and not layer.dx and not layer.dy:
         # It covers the region: its transparent pixels map to the value on nothing themselves
-        return _recolor_layers(other, function)
+        return _recolor_layers(other, recolor)
     if layer.kind == "image" and under:
         raise Unsupported("feComposite arithmetic of a partial image")
-    return under + _recolor_layers(other, function)
+    return under + _recolor_layers(other, recolor)
 
 
 # ---------------- recoloring ----------------
@@ -420,17 +421,65 @@ def recolored(rgba: Any, functions: tuple[Recolor, ...]) -> Any:
     return rgba.__class__("srgb", value[:3], value[3])
 
 
-def _recolor_layers(layers: list[Layer], function: Recolor) -> list[Layer]:
+# The pure-Python pixel work one SVG may cost: turbulence pixels times octaves, plus recolored pixels
+MAX_PIXEL_WORK = 2_000_000
+
+
+@dataclass
+class _Pixels:
+    """The images one SVG computed in Python, and the work they cost."""
+
+    images: dict[Any, Image.Image] = field(default_factory=dict)
+    inputs: list[Image.Image] = field(default_factory=list)  # keeps the ids in the keys alive
+    work: int = 0
+
+
+def _computed(svg: Any, key: Any, cost: int, compute: Callable[[], Image.Image]) -> Image.Image:
+    """The image for key: computed once per SVG, within MAX_PIXEL_WORK."""
+    pixels: _Pixels = svg.__dict__.setdefault("_weasysvg_pixels", _Pixels())
+    if key not in pixels.images:
+        # Each draw of a filtered element evaluates its chain again: only new work counts
+        if pixels.work + cost > MAX_PIXEL_WORK:
+            raise Unsupported("too much pixel work")
+        pixels.work += cost
+        pixels.images[key] = compute()
+    return pixels.images[key]
+
+
+@dataclass(frozen=True)
+class _Recolor:
+    """A recolor function and the primitive it comes from, which identifies it for the image cache."""
+
+    svg: Any
+    primitive: Any
+    function: Recolor
+
+
+def _recolor_layers(layers: list[Layer], recolor: _Recolor) -> list[Layer]:
+    function = recolor.function
     out = []
     for layer in layers:
         if layer.kind == "source":
             out.append(replace(layer, recolor=(*layer.recolor, function)))
         elif layer.kind == "image":
-            out.append(replace(layer, image=_recolor_image(layer.image, function)))
+            # The fade goes into the pixels first: a recolor is not linear in alpha
+            out.append(replace(layer, image=_recolored_image(recolor, layer.image, layer.opacity), opacity=1))
         else:
             # A flood or a silhouette has one color: recolor it now
             out.append(replace(layer, rgba=recolored(_with_alpha(layer.rgba, layer.opacity), (function,)), opacity=1))
     return out
+
+
+def _recolored_image(recolor: _Recolor, picture: Image.Image, opacity: float) -> Image.Image:
+    def compute() -> Image.Image:
+        recolor.svg.__dict__["_weasysvg_pixels"].inputs.append(picture)
+        faded = picture
+        if opacity < 1:
+            faded = picture.copy()
+            faded.putalpha(picture.getchannel("A").point(lambda value: round(value * opacity)))
+        return _recolor_image(faded, recolor.function)
+
+    return _computed(recolor.svg, ("recolor", id(recolor.primitive), id(picture), opacity), picture.width * picture.height, compute)
 
 
 def _recolor_image(picture: Image.Image, function: Recolor) -> Image.Image:
@@ -439,6 +488,18 @@ def _recolor_image(picture: Image.Image, function: Recolor) -> Image.Image:
     pixels = (cast(RGBA, tuple(c / 255 for c in data[i : i + 4])) for i in range(0, len(data), 4))
     out.putdata([tuple(round(_clamp(value) * 255) for value in function(pixel)) for pixel in pixels])
     return out
+
+
+def _cached_silhouette(svg: Any, picture: Image.Image, rgba: Any) -> Image.Image:
+    """The silhouette, the same image on every draw: a recolor after it is cached by its identity."""
+
+    def compute() -> Image.Image:
+        svg.__dict__["_weasysvg_pixels"].inputs.append(picture)
+        return _image_silhouette(picture, rgba)
+
+    key = ("silhouette", id(picture), tuple(rgba.to("srgb").coordinates), rgba.alpha)
+    # Pillow does this work in C: it costs nothing against the budget
+    return _computed(svg, key, 0, compute)
 
 
 def _image_silhouette(picture: Image.Image, rgba: Any) -> Image.Image:
@@ -466,7 +527,10 @@ def _fe_turbulence(chain: _Chain, child: Any) -> list[Layer]:
     )
     if region[2] <= 0 or region[3] <= 0:
         return []
-    return [Layer("image", region=region, image=turbulence.image(spec, region, _px_per_unit(chain.svg), _linear_space(chain, child)))]
+    scale, linear = _px_per_unit(chain.svg), _linear_space(chain, child)
+    columns, rows = turbulence.size(region, scale)
+    image = _computed(chain.svg, ("turbulence", spec, region, scale, linear), columns * rows * max(spec.octaves, 1), lambda: turbulence.image(spec, region, scale, linear))
+    return [Layer("image", region=region, image=image)]
 
 
 def _fe_component_transfer(chain: _Chain, child: Any) -> list[Layer]:
@@ -476,14 +540,14 @@ def _fe_component_transfer(chain: _Chain, child: Any) -> list[Layer]:
         # An alpha slope fades the whole layer, images included
         slope = _num(funcs[0].get("slope"), 1) if funcs else 1
         return [replace(layer, opacity=layer.opacity * slope) for layer in chain.source]
-    return _recolor_layers(chain.source, _in_space(_component_transfer(child), chain, child))
+    return _recolor_layers(chain.source, _Recolor(chain.svg, child, _in_space(_component_transfer(child), chain, child)))
 
 
 def _fe_color_matrix(chain: _Chain, child: Any) -> list[Layer]:
     values = _color_matrix_values(child)
     if values == [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0]:
         return chain.source
-    return _recolor_layers(chain.source, _in_space(_matrix(values), chain, child))
+    return _recolor_layers(chain.source, _Recolor(chain.svg, child, _in_space(_matrix(values), chain, child)))
 
 
 _PRIMITIVES: dict[str, Callable[[_Chain, Any], list[Layer]]] = {
