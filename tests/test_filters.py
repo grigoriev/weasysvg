@@ -929,7 +929,9 @@ def gray_at(pdf: bytes, x: float, y: float) -> float:
     ("deviation", "points"),
     [
         # Blurred along y only: the left edge stays sharp, the top edge is half dark
-        ("0 5", [((52, 100), 1.0), ((48, 100), 0.0), ((100, 50), 0.5)]),
+        ("0 5", [((52, 100), 1.0), ((48, 100), 0.0), ((148, 100), 1.0), ((152, 100), 0.0), ((100, 50), 0.5)]),
+        # Blurred along x only: the bottom edge stays sharp as well
+        ("5 0", [((100, 148), 1.0), ((100, 152), 0.0), ((150, 100), 0.5)]),
         # Both: the corner is a quarter dark, the product of two half profiles, not half as a distance gives
         ("5", [((50, 50), 0.25), ((100, 50), 0.5), ((100, 100), 1.0)]),
     ],
@@ -939,6 +941,15 @@ def test_a_blurred_rectangle_is_the_product_of_two_profiles(deviation: str, poin
     pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="100" height="100" fill="black" filter="url(#f)"/>', height=200))
     for (x, y), expected in points:
         assert gray_at(pdf, x, y) == pytest.approx(expected, abs=0.06)
+
+
+def test_a_wide_rect_keeps_its_blurred_edges_in_place() -> None:
+    # Each edge has a shading of its own: one shading over the whole rect moves the edges by units in PDFium
+    filters_ = '<filter id="f" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>'
+    pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="500" height="100" fill="black" filter="url(#f)"/>', width=600, height=200))
+    # PDFium samples a shading at the corner of a pixel: pixels 50 and 550 sit on the edges, half covered
+    assert gray_at(pdf, 550, 100) == pytest.approx(0.5, abs=0.04)
+    assert gray_at(pdf, 50, 100) == pytest.approx(0.5, abs=0.04)
 
 
 def test_a_wide_horizontal_blur_keeps_its_tail() -> None:

@@ -1019,45 +1019,65 @@ def _plain_rect(svg: Any, node: Any, font_size: float) -> Region | None:
     return (x, y, width, height) if width > 0 and height > 0 else None
 
 
-def _profile(start: float, end: float, sigma: float) -> list[tuple[float, float]]:
-    """The blurred coverage of [start, end] along one axis, sampled: Phi((t - start) / s) - Phi((t - end) / s)."""
-    if not sigma:
-        # A sharp edge: 0 a hair outside, so that the extended shading stays 0 beyond it
-        hair = (end - start) * 1e-6
-        return [(start - hair, 0.0), (start, 1.0), (end, 1.0), (end + hair, 0.0)]
-    reach = EDGE_REACH * sigma
-    edges = [[edge - reach + 2 * reach * k / (EDGE_SAMPLES - 1) for k in range(EDGE_SAMPLES)] for edge in (start, end)]
-    points = sorted({*edges[0], *edges[1]})
+def _profile(start: float, end: float, sigma: float, low: float, high: float) -> list[tuple[float, float]]:
+    """The blurred coverage of [start, end] along one axis, sampled over [low, high]: Phi((t - start) / s) - Phi((t - end) / s)."""
+    points = [low + (high - low) * k / (EDGE_SAMPLES - 1) for k in range(EDGE_SAMPLES)]
     return [(t, _GAUSS.cdf((t - start) / sigma) - _GAUSS.cdf((t - end) / sigma)) for t in points]
 
 
 def _profile_shading(stream: Any, samples: list[tuple[float, float]], vertical: bool) -> Any:
-    """An axial shading in gray along x or y through the samples, extended: 0 beyond the profile."""
+    """An axial shading in gray along x or y through the samples."""
     (low, _), (high, _) = samples[0], samples[-1]
     pieces = [stream.create_interpolation_function((0, 1), [a], [b], 1) for (_, a), (_, b) in zip(samples, samples[1:], strict=False)]
     function = stream.create_stitching_function((low, high), [0, 1] * len(pieces), [t for t, _ in samples[1:-1]], pieces)
     coords = (0, low, 0, high) if vertical else (low, 0, high, 0)
-    # Every profile ends at 0: extended, it covers the whole mask, so the product reaches everywhere
-    return stream.add_shading(2, (low, high), coords, True, function, "DeviceGray")
+    return stream.add_shading(2, (low, high), coords, False, function, "DeviceGray")
+
+
+def _axis_group(stream: Any, start: float, end: float, sigma: float, vertical: bool, box: Region) -> Any:
+    """A group over box in gray: the coverage of [start, end] along one axis, constant along the other.
+
+    Each blurred edge is a shading of its own over 4 deviations to each side: PDFium samples a shading
+    in 256 steps, which over a whole wide rect would move its edges by whole units.
+    """
+    group = stream.add_group(*box)
+    left, top, width, height = box
+    group.set_color(_gray(0))
+    group.rectangle(*box)
+    group.fill()
+
+    def strip(low: float, high: float) -> Region:
+        return (left, low, width, high - low) if vertical else (low, top, high - low, height)
+
+    reach = EDGE_REACH * sigma
+    # Where the two edges are close, one shading covers both
+    spans = [(start - reach, start + reach), (end - reach, end + reach)] if end - start > 2 * reach else [(start - reach, end + reach)]
+    if len(spans) == 2:
+        group.set_color(_gray(1))
+        group.rectangle(*strip(start + reach, end - reach))
+        group.fill()
+    for low, high in spans if sigma else []:
+        group.push_state()
+        group.rectangle(*strip(low, high))
+        group.clip()
+        group.end()
+        group.paint_shading(_profile_shading(group, _profile(start, end, sigma, low, high), vertical).id)
+        group.pop_state()
+    return group
 
 
 def _rect_blur_mask(svg: Any, rect: Region, blur: tuple[float, float], box: Region) -> None:
     """Set the blurred rect as the soft mask of svg.stream, exactly: the product of two profiles.
 
     The blur of a rectangle is separable: its coverage is the profile along x times the profile along y.
-    Each is an axial shading; the second multiplies the first in a luminosity group. Corners come out round
-    and a deviation along one axis only leaves the other edges sharp, as in Chromium.
+    The group of the second axis multiplies the first in a luminosity group. Corners come out round and a
+    deviation along one axis only leaves the other edges sharp, as in Chromium.
     """
     x, y, width, height = rect
     mask = svg.stream.set_alpha_state(*box, mode="luminosity")
-    mask.rectangle(*box)
-    mask.clip()
-    mask.end()
-    across = _profile_shading(mask, _profile(x, x + width, blur[0]), False)
-    mask.paint_shading(across.id)
+    mask.draw_x_object(_axis_group(mask, x, x + width, blur[0], False, box).id)
     mask.set_blend_mode("Multiply")
-    down = _profile_shading(mask, _profile(y, y + height, blur[1]), True)
-    mask.paint_shading(down.id)
+    mask.draw_x_object(_axis_group(mask, y, y + height, blur[1], True, box).id)
 
 
 def _blurred_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, sigma: float, box: Region) -> None:
