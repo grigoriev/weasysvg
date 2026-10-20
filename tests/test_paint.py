@@ -226,6 +226,18 @@ def test_clip_ignores_opacity_and_paint_of_its_content() -> None:
     assert near(pixel(pdf, 120, 30), WHITE)
 
 
+def test_clip_cycles_and_missing_references() -> None:
+    # A child clipped by its own clip path: the inner use is skipped, the outer still clips
+    clip = '<clipPath id="c"><rect width="100" height="100" clip-path="url(#c)"/><text>x</text></clipPath>'
+    pdf = render(svg(f'<defs>{clip}<mask id="m"/></defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/><rect width="10" height="10" clip-path="url(#m)"/><rect width="10" height="10" clip-path="url(#nowhere)"/>'))
+    assert near(pixel(pdf, 120, 30), WHITE)
+
+
+def test_complex_clip_in_bounding_box_units_without_a_box() -> None:
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><text>x</text></clipPath>'
+    render(svg(f'<defs>{clip}</defs><g clip-path="url(#c)"/>'))
+
+
 def test_text_in_a_clip_path_clips() -> None:
     clip = '<clipPath id="c"><text x="10" y="80" font-size="80" font-weight="bold">II</text></clipPath>'
     pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))

@@ -313,8 +313,6 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
 # ---------------- complex clip paths ----------------
 
 CLIP_SHAPES = frozenset(("circle", "ellipse", "line", "path", "polyline", "polygon", "rect", "text", "tspan", "textPath"))
-# The clip paths being drawn as masks, per thread and task: a cycle draws nothing more
-_ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 _CLIPPING: ContextVar[bool] = ContextVar("weasysvg_clipping", default=False)
 
 
@@ -324,6 +322,7 @@ def complex_clip(svg: Any, node: Any) -> Any:
     if not value:
         return None
     clip = svg.paths.get(wp_utils.parse_url(value).fragment)
+    # A clip path being drawn is tagged <g>: a cycle back to it ends here
     if clip is None or clip.tag != "clipPath":
         return None
     for child in clip:
@@ -349,8 +348,6 @@ def clip_restyle(_svg: Any, node: Any, _font_size: float) -> dict[str, str | Non
 
 def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
     """Set clip as the alpha soft mask of the current state, with every child filled."""
-    if any(clip is active for active in _ACTIVE_CLIPS.get()):
-        return
     stream = svg.stream
     mask = stream.set_alpha_state(*_core.group_box(svg, node, font_size), mode="alpha")
     if clip.get("clipPathUnits") == "objectBoundingBox":
@@ -359,7 +356,7 @@ def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
             return  # an empty mask: the node is clipped away, as in Chromium
         mask.transform(a=box[2], d=box[3], e=box[0], f=box[1])
     tag = clip._etree_node.tag
-    tokens = _ACTIVE_CLIPS.set((*_ACTIVE_CLIPS.get(), clip)), _CLIPPING.set(True)
+    token = _CLIPPING.set(True)
     try:
         svg.stream = mask
         clip._etree_node.tag = "g"
@@ -367,8 +364,7 @@ def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
     finally:
         clip._etree_node.tag = tag
         svg.stream = stream
-        _ACTIVE_CLIPS.reset(tokens[0])
-        _CLIPPING.reset(tokens[1])
+        _CLIPPING.reset(token)
 
 
 # ---------------- draw_node helpers, used by _core ----------------
