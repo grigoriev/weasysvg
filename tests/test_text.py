@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import math
 import re
+from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -716,6 +717,20 @@ def test_a_glyph_of_a_dropped_font_has_no_ink_until_it_comes_back() -> None:
     assert len(ink.intercepts([glyph], 0, 1)) == 1
 
 
+@pytest.fixture
+def fresh_caches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Caches of this test alone: fake faces must not stay under addresses a real face can take later."""
+    monkeypatch.setattr(ink, "_FACES", OrderedDict())
+    monkeypatch.setattr(ink, "_FONTS", OrderedDict())
+
+
+def test_an_unreadable_font_has_no_ink(fresh_caches: None) -> None:
+    # HarfBuzz may take a font fontTools rejects: the line stays whole, the render goes on
+    ink._FONTS["unreadable"] = (b"no font at all", 0, 1000)
+    assert ink.intercepts([ink.Glyph("unreadable", 1, 0, 0, 0.01)], 0, 1) == []
+
+
+@pytest.mark.usefixtures("fresh_caches")
 def test_the_faces_of_one_collection_have_keys_of_their_own(monkeypatch: pytest.MonkeyPatch) -> None:
     # A .ttc file holds several faces: each face reads its own outlines
     from weasyprint.text.ffi import ffi
@@ -731,6 +746,7 @@ def test_the_faces_of_one_collection_have_keys_of_their_own(monkeypatch: pytest.
     assert ink._FONTS[keys[0]][0] is ink._FONTS[keys[1]][0]
 
 
+@pytest.mark.usefixtures("fresh_caches")
 def test_the_font_caches_are_bounded() -> None:
     for index in range(ink.MAX_FONTS + 10):
         ink._remember(ink._FACES, index, (str(index), None))

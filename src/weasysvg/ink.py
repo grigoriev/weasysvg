@@ -151,16 +151,22 @@ class _BandPen(BasePen):  # type: ignore[misc]  # fontTools ships no type inform
 
 @functools.lru_cache(maxsize=4096)
 def _extent(key: str, glyph: int, low: float, high: float) -> tuple[float, float] | None:
-    """Where the outline of glyph lies within the band from low to high, in font units, y up."""
-    font = _font(key)
-    if not any(table in font for table in ("glyf", "CFF ", "CFF2")):
-        return None  # bitmap glyphs only (CBDT, sbix): no outline to skip
-    glyph_set = font.getGlyphSet()
-    name = font.getGlyphOrder()[glyph] if glyph < len(font.getGlyphOrder()) else None
-    if name is None or name not in glyph_set:
+    """Where the outline of glyph lies within the band from low to high, in font units, y up.
+
+    A font fontTools cannot read, which HarfBuzz may still take, has no ink: the line stays whole.
+    """
+    try:
+        font = _font(key)
+        if not any(table in font for table in ("glyf", "CFF ", "CFF2")):
+            return None  # bitmap glyphs only (CBDT, sbix): no outline to skip
+        glyph_set = font.getGlyphSet()
+        name = font.getGlyphOrder()[glyph] if glyph < len(font.getGlyphOrder()) else None
+        if name is None or name not in glyph_set:
+            return None
+        pen = _BandPen(glyph_set, low, high)
+        glyph_set[name].draw(pen)
+    except Exception:  # fontTools raises errors of many kinds on a broken table
         return None
-    pen = _BandPen(glyph_set, low, high)
-    glyph_set[name].draw(pen)
     return (pen.left, pen.right) if pen.left <= pen.right else None
 
 
