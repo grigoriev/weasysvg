@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 from xml.etree import ElementTree as ET
@@ -689,3 +690,17 @@ def test_a_zero_length_dash_stays_above_what_the_pdf_writes() -> None:
     # pydyf writes six decimals: a dash shorter than 0.000001 would be 0 in the PDF again
     style = 'fill="none" stroke="green" stroke-width="1" stroke-dasharray="0 0.01" stroke-linecap="round"'
     assert re.search(r"\[1e-05 0\.00999\] 0 d|\[0\.00001 0\.00999\] 0 d", content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
+
+
+def test_a_gradient_transform_through_href_applies_once() -> None:
+    # The test of the resvg suite: one template used directly, through one href and through two, then
+    # overridden by scale(1). The center of the gradient lies 3/4 across the first three squares, 1/2 across the last
+    path = Path(__file__).resolve().parents[1] / "corpus" / "svg" / "resvg" / "paint-servers-radialGradient--gradientTransform-via-href.svg"
+    image = rasterize(render(path.read_text(), 200), 4).convert("RGB")
+    scale = 4 * 0.75
+
+    def center(left: int, top: int) -> float:
+        row = [(sum(cast(tuple[int, int, int], image.getpixel((int((left + x / 10) * scale), int((top + 35) * scale))))[:2]), x / 10) for x in range(700)]
+        return max(row)[1] / 70
+
+    assert [round(center(left, top), 2) for left, top in ((20, 20), (110, 20), (20, 110), (110, 110))] == [0.76, 0.76, 0.76, 0.5]
