@@ -88,7 +88,7 @@ def test_text_in_a_clip_path_inherits_from_its_own_ancestors() -> None:
 
 
 def test_a_resource_under_a_size_in_ex_takes_the_x_height() -> None:
-    body = '<g font-family="Liberation Sans" font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g>'
+    body = '<g font-family="Liberation Sans"><g font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g></g>'
     assert font_sizes(render(svg(body))) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
 
 
@@ -97,13 +97,36 @@ def test_a_resource_measures_ex_with_the_fonts_of_its_svg() -> None:
     font = (Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "Amiri-Regular.ttf").as_uri()
     body = (
         f"<style>@font-face{{font-family:Embedded;src:url({font})}}</style>"
-        '<g font-family="Embedded" font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g>'
-        '<text x="10" y="90" font-family="Embedded" font-size="4ex">Free</text>'
+        '<g font-family="Embedded"><g font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g>'
+        '<text x="10" y="90" font-size="4ex">Free</text></g>'
     )
     sizes = font_sizes(render(svg(body)))
     assert len(sizes) == 2
     assert max(sizes) - min(sizes) < 0.01
     assert max(sizes) < 30  # the x-height of Amiri, not of the fallback
+
+
+def test_ex_holds_for_an_anchor_measured_before_drawing() -> None:
+    # A textPath measures its tspans for text-anchor before they draw: 4ex anchors as its size in px does
+    def placed(size: str) -> list[str]:
+        body = f'<path id="p" d="M 10 50 H 190" fill="none"/><text font-family="Liberation Sans"><textPath href="#p" startOffset="50%" text-anchor="middle"><tspan font-size="{size}">AVA</tspan></textPath></text>'
+        return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body))))
+
+    assert placed("4ex") == placed(f"{4 * 16 * 1082 / 2048}px")
+
+
+def test_each_foreign_object_in_ex_takes_the_x_height() -> None:
+    # Two objects are laid out in one batch, when the first draws: the second is not drawn yet
+    html = '<div xmlns="http://www.w3.org/1999/xhtml">A</div>'
+    objects = "".join(f'<foreignObject y="{y}" width="100" height="40" font-size="4ex">{html}</foreignObject>' for y in (0, 50))
+    pdf = render(svg(f'<g font-family="Liberation Sans">{objects}</g>'))
+    assert font_sizes(pdf) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)] * 2
+
+
+def test_ex_in_a_font_size_is_the_x_height_of_the_parent_font() -> None:
+    # CSS: font-relative units of font-size refer to the parent, whatever family the element sets
+    body = '<g font-family="Liberation Sans"><text x="10" y="50" font-family="DejaVu Sans" font-size="4ex">A</text></g>'
+    assert font_sizes(render(svg(body))) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
 
 
 def test_ex_holds_where_a_size_is_read_before_drawing() -> None:

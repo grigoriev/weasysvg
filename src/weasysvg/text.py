@@ -112,19 +112,22 @@ def _ex_count(value: str) -> float | None:
         return None
 
 
-def _resolved_px(node: Any, value: str, parent_px: float) -> float:
-    """The font size value of node in px: ex from the x-height of its font, as ex_restyle draws it."""
+def _resolved_px(parent: Any, value: str, parent_px: float) -> float:
+    """A font size value in px, against the size and font of parent: ex is the x-height of that font."""
     if normalize(value).split(" ", 1)[0].endswith("ex"):
         count = _ex_count(value)
         if count is None:
             return parent_px  # a word that ends in ex, which WeasyPrint cannot read either
-        x_height = _metrics(SimpleNamespace(font_config=_fonts()), node, parent_px)[2] or parent_px / 2
+        x_height = _metrics(SimpleNamespace(font_config=_fonts()), parent, parent_px)[2] or parent_px / 2
         return count * x_height
     return float(size(value, parent_px, parent_px))
 
 
 def _font_px(node: Any) -> float:
-    """The computed font size of node: noted by the cascade, or of the root, against the 12pt of WeasyPrint."""
+    """The computed font size of node: noted by the cascade, or of the root, against the 12pt of WeasyPrint.
+
+    The root has no parent: its own font measures its ex, as ex_restyle draws it.
+    """
     noted = getattr(node, FONT_PX, None)
     if noted is None:
         noted = _resolved_px(node, node.attrib.get("font-size", "1em"), DEFAULT_FONT_PX)
@@ -138,7 +141,9 @@ def cascade(self: Any, child: Any) -> None:
     WeasyPrint copies the font-size of the parent to the child as text: a relative size such as "2em" then
     applies again to the size it made. Without it the child takes "1em", the computed size of the parent.
     A resource gets its computed size written out: it draws with the size of the element that uses it,
-    and its text must still inherit from its own ancestors.
+    and its text must still inherit from its own ancestors. A size in ex is written out too, from the
+    x-height of the font of the parent as CSS says: code that reads the size before the element draws
+    then reads the same size.
     """
     parent = self.attrib.pop("font-size", None) if self is not child else None
     try:
@@ -156,13 +161,16 @@ def cascade(self: Any, child: Any) -> None:
         return
     parent_px = _font_px(self)
     own = child.attrib.get("font-size", "1em")
-    setattr(child, FONT_PX, _resolved_px(child, own, parent_px))
-    if child.tag in RESOURCES:
+    setattr(child, FONT_PX, _resolved_px(self, own, parent_px))
+    if child.tag in RESOURCES or normalize(own).split(" ", 1)[0].endswith("ex"):
         child.attrib["font-size"] = f"{getattr(child, FONT_PX)}px"
 
 
 def ex_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:
-    """A font-size in ex becomes px: one ex is the x-height of the font, as in Chromium, not half the em."""
+    """A font-size in ex becomes px: one ex is the x-height of the font, as in Chromium, not half the em.
+
+    The cascade writes out every size in ex but the one of the root <svg>, which it never reaches.
+    """
     count = _ex_count(node.attrib.get("font-size", ""))
     if count is None:
         return None
