@@ -678,3 +678,8 @@ def test_a_zero_length_dash_grows_with_its_period() -> None:
 def test_a_negative_offset_of_an_odd_dash_array_uses_its_whole_period(dashes: str, cap: str, expected: str) -> None:
     style = f'fill="none" stroke="green" stroke-width="2" stroke-dasharray="{dashes}" stroke-dashoffset="-5" stroke-linecap="{cap}"'
     assert re.search(expected, content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
+
+
+def test_a_zero_length_dash_stays_short_against_its_stroke() -> None:
+    # A long period on a thin stroke: the dot must stay a dot, not a dash of 2.5 units
+    assert paint.no_zero_dashes((0, 100000), 1) == pytest.approx((0.001, 99999.999))
