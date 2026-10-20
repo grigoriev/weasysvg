@@ -265,6 +265,18 @@ def track_groups() -> None:
         wp_stream.Stream.add_group = _add_group
 
 
+def text_scale(svg: Any) -> float:
+    """The factor Chromium scales SVG text by, in CSS px per user unit: the mean square of the two axes.
+
+    Chromium lays out SVG text at the font size times this factor (CalculateScreenFontSizeScalingFactor).
+    """
+    try:
+        (a, b, _), (c, d, _), _ = absolute_matrix(svg.stream)
+        return math.sqrt((a * a + b * b + c * c + d * d) / 2) * PX_PER_PT or 1.0
+    except (AttributeError, TypeError, ValueError):
+        return 1.0
+
+
 def px_per_unit(svg: Any) -> float:
     """How many CSS px one user unit spans, through every transform and group."""
     try:

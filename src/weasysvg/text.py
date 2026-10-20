@@ -175,8 +175,8 @@ def chromium_lines(lines: list[str], font_size: float, ascent: float, underline_
 
 
 def _lines_of(svg: Any, lines: list[str], font_size: float, layout: Any) -> list[tuple[float, float]]:
-    """chromium_lines in user units: Chromium applies its minimum and its rounding in CSS px."""
-    scale = _core.px_per_unit(svg)
+    """chromium_lines in user units: Chromium applies its minimum and its rounding to the scaled font."""
+    scale = _core.text_scale(svg)
     found = chromium_lines(lines, font_size * scale, layout.ascent * scale, layout.underline_position * scale, layout.underline_thickness * scale)
     return [(top / scale, thickness / scale) for top, thickness in found]
 

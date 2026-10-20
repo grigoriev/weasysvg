@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import warnings
 from types import SimpleNamespace
 from typing import Any
@@ -11,6 +12,7 @@ import weasyprint
 from helpers import render, svg
 from weasyprint import images as wp_images
 from weasyprint import svg as wp_svg
+from weasyprint.matrix import Matrix
 
 import weasysvg
 from weasysvg import _core
@@ -104,18 +106,31 @@ def test_a_later_install_never_turns_fonts_off(monkeypatch: pytest.MonkeyPatch) 
         ('<g opacity="0.5" transform="scale(2)"><text x="1" y="2" font-size="1" text-decoration="underline">A</text></g>', ' viewBox="0 0 20 10"', 20.0),
     ],
 )
-def test_px_per_unit_counts_every_transform(monkeypatch: pytest.MonkeyPatch, body: str, extra: str, expected: float) -> None:
+def test_text_scale_counts_every_transform(monkeypatch: pytest.MonkeyPatch, body: str, extra: str, expected: float) -> None:
     seen: list[float] = []
-    original = _core.px_per_unit
+    original = _core.text_scale
 
     def recording(image: Any) -> float:
         seen.append(original(image))
         return seen[-1]
 
-    monkeypatch.setattr(_core, "px_per_unit", recording)
+    monkeypatch.setattr(_core, "text_scale", recording)
     render(svg(body, extra=extra))
     assert seen == [pytest.approx(expected)]
 
 
 def test_px_per_unit_without_a_stream_is_one() -> None:
     assert _core.px_per_unit(SimpleNamespace()) == 1.0
+
+
+def test_text_scale_is_the_mean_square_of_the_axes() -> None:
+    # scale(1, 0.25) on a page in pt: sqrt((1 + 0.0625) / 2) CSS px per unit
+    stream = SimpleNamespace(ctm=Matrix(0.75, 0, 0, 0.1875))
+    assert _core.text_scale(SimpleNamespace(stream=stream)) == pytest.approx(math.sqrt((1 + 0.0625) / 2))
+    assert _core.text_scale(SimpleNamespace()) == 1.0
+
+
+def test_px_per_unit_follows_the_groups() -> None:
+    page = SimpleNamespace(ctm=Matrix(7.5, 0, 0, 7.5))
+    group = SimpleNamespace(ctm=Matrix(2, 0, 0, 2), weasysvg_base=_core.absolute_matrix(page))
+    assert _core.px_per_unit(SimpleNamespace(stream=group)) == pytest.approx(20.0)
