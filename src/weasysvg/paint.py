@@ -3,7 +3,7 @@
 Touches:
 - ``svg.defs.draw_gradient``: a gradient cell of about 1000 units, since Splash and Quartz drop a 1 x 1
   cell, that covers the box under any gradientTransform; r and fr percentages of a radial gradient
-  refer to the normalized diagonal.
+  refer to the normalized diagonal; colors interpolate unpremultiplied, as Chromium does for SVG.
 - ``svg.SVG.set_graphical_state``: a gradient or pattern stroke gets its stroke-width, not 1.
 - ``svg.defs.draw_pattern``: the tile origin in pattern space, x and y included; attributes and tag are
   restored after each use.
@@ -129,6 +129,10 @@ def _scaled_add_pattern(stream: Any, cell: tuple[float, float, float, float] | N
                 gx, gy, gwidth, gheight = cell
             group = original_group(gx * k, gy * k, gwidth * k, gheight * k)
             group.transform(a=k, d=k)
+            # WeasyPrint bends the color between stops of different opacity by a0 / a1, to mimic a
+            # premultiplied mix. Chromium mixes SVG gradient colors unpremultiplied: a straight line.
+            original_function = group.create_interpolation_function
+            group.create_interpolation_function = lambda domain, c0, c1, _n: original_function(domain, c0, c1, 1)
             if cell is not None:
                 original_alpha = group.set_alpha_state
                 group.set_alpha_state = lambda *_box, **kwargs: original_alpha(*cell, **kwargs)
@@ -176,14 +180,33 @@ def _radial_percentages(gradient: Any) -> dict[str, str | None]:
     return changed
 
 
+# A stop of opacity 0 gets this one instead: WeasyPrint gives a transparent stop the color of its
+# neighbor, the premultiplied mix again, while Chromium keeps its own color
+TRANSPARENT_STOP = "1e-9"
+
+
+def _visible_stops(gradient: Any) -> list[tuple[Any, str]]:
+    """Give each fully transparent stop a tiny opacity; return the stops and values to put back."""
+    changed = []
+    for stop in gradient:
+        value = stop.get("stop-opacity")
+        if value is not None and wp_utils.alpha_value(value) == 0:
+            changed.append((stop, value))
+            stop.attrib["stop-opacity"] = TRANSPARENT_STOP
+    return changed
+
+
 def draw_gradient(svg: Any, node: Any, gradient: Any, font_size: float, opacity: float, stroke: bool) -> Any:
     stream = svg.stream
     changed = _radial_percentages(gradient)
+    stops = _visible_stops(gradient)
     try:
         cell = _gradient_cell(svg, node, gradient, font_size, stroke)
         with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
             return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)
     finally:
+        for stop, stop_opacity in stops:
+            stop.attrib["stop-opacity"] = stop_opacity
         for name, value in changed.items():
             if value is None:
                 gradient.attrib.pop(name, None)

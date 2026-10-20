@@ -484,9 +484,9 @@
  },
  {
   "name": "resvg__masking-clipPath--clip-path-on-children",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Only the small center square shows; the clipped star is missing.",
+  "what": "The clip path becomes a soft mask: each child keeps its own clip-path and clip-rule.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -505,9 +505,9 @@
  },
  {
   "name": "resvg__masking-mask--recursive-on-self",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Frame draws but the masked green gradient is missing.",
+  "what": "mask on a <mask> is ignored, as in Chromium; gradient colors mix unpremultiplied.",
   "reference_agrees_with": "chromium"
  },
  {
@@ -568,16 +568,16 @@
  },
  {
   "name": "resvg__painting-mix-blend-mode--screen",
-  "verdict": "minor",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Screen blend present but the overlap is more saturated teal than the reference's pale tones.",
+  "what": "Gradient colors mix unpremultiplied, as in Chromium.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__painting-mix-blend-mode--xor",
-  "verdict": "minor",
+  "verdict": "same",
   "native_verdict": "minor",
-  "what": "Overlap gradient slightly more saturated yellow-green than reference.",
+  "what": "Gradient colors mix unpremultiplied, as in Chromium.",
   "reference_agrees_with": "chromium"
  },
  {

@@ -97,6 +97,16 @@ def test_gradient_cell_needs_a_box() -> None:
     assert paint._gradient_cell(fake, object(), gradient, 12, False) is None
 
 
+def test_gradient_interpolates_unpremultiplied() -> None:
+    # Chromium mixes transparent white and black into half transparent gray: 0.75 over white, not 0.5
+    gradient = '<linearGradient id="g"><stop stop-color="white" stop-opacity="0"/><stop offset="1" stop-color="black"/></linearGradient>'
+    mask = '<mask id="m"><rect width="200" height="100" fill="url(#g)"/></mask>'
+    pdf = render(svg(f'<defs>{gradient}{mask}</defs><rect width="200" height="50" fill="url(#g)"/><rect y="50" width="200" height="50" fill="red" mask="url(#m)"/>'))
+    assert near(pixel(pdf, 75, 18), (191, 191, 191), 12)
+    # In a mask the gray of the middle shows, so the red does too
+    assert pixel(pdf, 75, 55) != WHITE
+
+
 def test_gradient_stops_via_href_used_twice() -> None:
     body = (
         '<defs><linearGradient id="base"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>'
