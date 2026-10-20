@@ -112,7 +112,8 @@ review:
 All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
 differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
 which has no scrollbar for `overflow: auto` (print has no use for one). The verdicts are in
-[`corpus/verdicts.json`](corpus/verdicts.json).
+[`corpus/verdicts.json`](corpus/verdicts.json). [`corpus/COMPARISON.md`](corpus/COMPARISON.md) shows every
+SVG in Chromium, resvg, WeasyPrint alone and WeasyPrint with weasysvg.
 
 ## Known gaps
 
@@ -135,6 +136,7 @@ Tests and the bench run in Docker, since WeasyPrint needs Pango. See [CONTRIBUTI
 make lint     # ruff and mypy, on the host
 make test     # pytest with coverage, in Docker
 make visual   # the visual bench, report in tools/visual/out/report.html
+make comparison # corpus/COMPARISON.md, the renderings of every SVG side by side
 make upstream # probes of the WeasyPrint gaps and of the hooked internals
 ```
 
