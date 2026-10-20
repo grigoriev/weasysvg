@@ -84,7 +84,7 @@ change between releases.
 
 | Area | What weasysvg adds |
 |---|---|
-| `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. |
+| `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. Disc, circle and square list markers are the shapes Chromium paints, placed from the ascent of the font. |
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
 | Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, and in steps through the profile for other shapes. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
@@ -108,8 +108,8 @@ gives the verdict:
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 41 | 106 |
-| 🟡 close to the reference | 20 | 7 |
+| ✅ matches the reference | 41 | 107 |
+| 🟡 close to the reference | 20 | 6 |
 | ❌ differs from the reference | 54 | 1 |
 
 Of the 35 diagrams from draw.io, kroki and mermaid.ink, 31 match the reference and 4 are close.

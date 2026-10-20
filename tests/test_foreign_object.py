@@ -9,7 +9,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 import weasyprint
-from helpers import SVG_NS, XHTML_NS, RecordingStream, close, content, page_html, render, svg, text_of
+from helpers import SVG_NS, XHTML_NS, RecordingStream, close, content, page_html, rasterize, render, svg, text_of
 from PIL import Image
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
@@ -285,3 +285,52 @@ def test_svg_stylesheet_cannot_close_the_html_style() -> None:
     document = foreign_object._document("p{color:red} /* </style><p>injected</p> */", "", "<p>body</p>")
     assert document.count("</style>") == 1
     assert "<p>injected</p>" not in document.split("</style>", 1)[1]
+
+
+# ---------------- list markers ----------------
+
+MARKER_SCALE = 8  # px per CSS px
+
+
+def ink_box(image: Image.Image, color: tuple[int, int, int], columns: slice) -> tuple[float, float, float, float]:
+    """The box of the pixels near color within columns, in CSS px: left, top, right, bottom."""
+    import numpy as np
+
+    pixels = np.abs(np.asarray(image, dtype=int)[:, columns] - color).max(axis=2) < 100
+    rows, cols = np.where(pixels.any(axis=1))[0], np.where(pixels.any(axis=0))[0]
+    start = columns.start or 0
+    return ((start + cols[0]) / MARKER_SCALE, rows[0] / MARKER_SCALE, (start + cols[-1] + 1) / MARKER_SCALE, (rows[-1] + 1) / MARKER_SCALE)
+
+
+def marker_and_text(style: str, item: str = "I") -> tuple[tuple[float, ...], tuple[float, ...], Image.Image]:
+    html = f"<ul style=\"margin:0;padding-left:40px;font:16px 'DejaVu Sans';color:#0000ff;{style}\"><li>{item}</li></ul>"
+    image = rasterize(render(svg(fo(html, width=200, height=40), width=200, height=40)), MARKER_SCALE / 0.75)
+    left = int(image.width * 0)  # the page starts at the SVG
+    text = ink_box(image, (0, 0, 255), slice(left + 38 * MARKER_SCALE, None))
+    marker = ink_box(image, (0, 0, 255), slice(left, left + 38 * MARKER_SCALE))
+    return marker, text, image
+
+
+def test_a_disc_marker_is_the_shape_of_chromium() -> None:
+    # Measured in Chromium with DejaVu Sans at 16px, ascent 15: a disc 5 px wide, 18.5 px left of the I and
+    # 8 px above its baseline. WeasyPrint draws the bullet glyph 9 px from the text instead
+    marker, text, _ = marker_and_text("")
+    assert marker[0] == pytest.approx(text[0] - 18.5, abs=0.25)
+    assert marker[2] - marker[0] == pytest.approx(5, abs=0.25)
+    assert marker[1] == pytest.approx(text[3] - 8, abs=0.25)
+    assert marker[3] - marker[1] == pytest.approx(5, abs=0.25)
+
+
+@pytest.mark.parametrize(("kind", "hollow"), [("circle", True), ("square", False)])
+def test_circle_and_square_markers_are_shapes(kind: str, hollow: bool) -> None:
+    marker, text, image = marker_and_text(f"list-style-type:{kind}")
+    assert marker[0] == pytest.approx(text[0] - 18.5, abs=0.25)
+    center = image.getpixel((int((marker[0] + marker[2]) / 2 * MARKER_SCALE), int((marker[1] + marker[3]) / 2 * MARKER_SCALE)))
+    assert (center == (255, 255, 255)) == hollow
+
+
+@pytest.mark.parametrize("style", ["list-style-type:decimal", "list-style-position:inside"])
+def test_other_markers_stay_text(style: str) -> None:
+    pdf = render(svg(fo(f'<ul style="{style}"><li>Item</li></ul>', width=200, height=40), width=200, height=40))
+    assert "Item" in text_of(pdf)
+    assert "1." in text_of(pdf) or "\u2022" in text_of(pdf)
