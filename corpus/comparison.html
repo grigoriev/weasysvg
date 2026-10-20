@@ -44,6 +44,8 @@ article h2 { font-size: 15px; margin: 0; word-break: break-all; }
 .panels.wide.two, .panels.wide.four { grid-template-columns: minmax(0, 1fr); }
 figure { margin: 0; }
 figcaption { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+figure a { display: inline-block; max-width: 100%; }
+figure a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 figure img { display: block; max-width: 100%; height: auto; background: #fff; border: 1px solid var(--line); cursor: zoom-in; image-rendering: auto; }
 .missing { color: var(--muted); font-style: italic; padding: 12px; border: 1px dashed var(--line); border-radius: 4px; }
 .flip figcaption strong { color: var(--accent); }
@@ -132,8 +134,14 @@ function panel(item, key, caption, onOpen) {
   const children = [element("figcaption", {}, caption || [renderers[key]])];
   if (path) {
     const image = element("img", { src: path, alt: item.name + " in " + renderers[key], loading: "lazy", width: item.width * state.zoom, height: item.height * state.zoom });
-    image.addEventListener("click", onOpen || (() => openLightbox(item, key)));
-    children.push(image);
+    // A link: Enter opens the full view, and "open in new tab" still shows the PNG
+    const link = element("a", { href: path }, [image]);
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      opener = link;
+      (onOpen || (() => openLightbox(item, key)))();
+    });
+    children.push(link);
   } else {
     children.push(element("div", { class: "missing", text: item.errors[key] || "no panel" }));
   }
@@ -153,7 +161,10 @@ function flipPanel(item) {
     showing = key;
     caption.replaceChildren(element("strong", { text: renderers[key] }), " - hover or tap to see " + renderers[key === state.left ? state.right : state.left]);
     const image = figure.querySelector("img");
-    if (image && item.panels[key]) image.src = item.panels[key];
+    if (image && item.panels[key]) {
+      image.src = item.panels[key];
+      image.parentElement.href = item.panels[key];
+    }
   };
   show(state.left);
   // Hover for a mouse only: a touch fires mouse events of its own, which would flip back
@@ -193,11 +204,13 @@ function render() {
 
 let current = null;
 let currentKey = "chromium";
+let opener = null;
 function openLightbox(item, key) {
   current = item;
   currentKey = key;
   document.getElementById("lightbox").classList.add("open");
   showLightbox();
+  document.getElementById("lb-close").focus();
 }
 function showLightbox() {
   document.getElementById("lb-name").textContent = current.name;
@@ -215,6 +228,7 @@ function showLightbox() {
 function closeLightbox() {
   document.getElementById("lightbox").classList.remove("open");
   current = null;
+  if (opener && opener.isConnected) opener.focus();
 }
 function step(direction) {
   const items = visible();
