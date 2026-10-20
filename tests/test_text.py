@@ -282,6 +282,15 @@ def test_text_path_offsets_anchors_and_tspans() -> None:
     assert 180 < sum(xs) / len(xs) < 240
 
 
+@pytest.mark.parametrize("effect", ['clip-path="url(#c)"', 'filter="url(#f)"'])
+def test_an_effect_on_a_tspan_keeps_its_place_on_the_path(effect: str) -> None:
+    # The tspan is measured before its effect: that draw must not move the text along the path
+    defs = f'{WAVE}<clipPath id="c"><rect width="440" height="160"/></clipPath><filter id="f"><feOffset/></filter>'
+    plain = f'<defs>{defs}</defs><text font-size="12"><textPath href="#w">ab <tspan>cd</tspan> ef</textPath></text>'
+    pdf = render(svg(plain.replace("<tspan>", f"<tspan {effect}>"), width=440, height=160))
+    assert glyph_matrices(pdf) == glyph_matrices(render(svg(plain, width=440, height=160)))
+
+
 def test_text_path_from_the_path_attribute_and_a_transform() -> None:
     body = '<defs><path id="t" d="M 0 0 H 100" transform="translate(20 50)"/></defs><text><textPath href="#t">A</textPath></text><text><textPath path="M 20 90 H 120">B</textPath></text>'
     pdf = render(svg(body, height=120))

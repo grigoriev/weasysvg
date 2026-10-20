@@ -277,8 +277,13 @@ def measure_text(svg: Any, node: Any, font_size: float) -> None:
     outer = svg.stream
     scratch = outer.add_group(0, 0, 0, 0)
     saved = {key: node.attrib.pop(key) for key in (*BOX_EFFECTS, "opacity", "mix-blend-mode") if key in node.attrib}
-    # Text moves the current text position: the real drawing starts where the scratch one did
+    from . import textpath
+
+    # Text moves the current text position, and the position along a <textPath>: the real drawing
+    # starts where the scratch one did
     cursor, shift = svg.cursor_position, list(svg.cursor_d_position)
+    path = textpath.CURRENT.get()
+    along = (path, path.distance, path.shift) if path is not None else None
     token = _MEASURING.set((*measuring, node))
     try:
         svg.stream = scratch
@@ -286,6 +291,8 @@ def measure_text(svg: Any, node: Any, font_size: float) -> None:
     finally:
         svg.stream = outer
         svg.cursor_position, svg.cursor_d_position = cursor, shift
+        if along is not None:
+            along[0].distance, along[0].shift = along[1:]
         _MEASURING.reset(token)
         # A box cached before the text was measured lacks it
         node.bounding_box = None
