@@ -23,6 +23,7 @@ Touches:
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -38,6 +39,9 @@ from weasyprint.svg import utils as wp_utils
 from . import _core
 
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
+DASH_FRACTION = 2.5e-5  # of the dash period: the length a dash of length 0 gets, 0.001 units of a period of 40
+STROKE_FRACTION = 1e-3  # of the stroke width: the most that length may be
+MIN_DASH = 1e-5  # user units: the least that length may be, pydyf writes six decimals
 ARC_CONSTANT = 4 * (2**0.5 - 1) / 3  # the control point of a quarter circle in one Bezier, per unit of radius
 SHAPES = frozenset(("circle", "ellipse", "line", "path", "polyline", "polygon", "rect"))
 BLEND_MODES = {
@@ -280,7 +284,47 @@ def set_graphical_state(self: Any, node: Any, font_size: float, context: Any = N
     fill, stroke = _ORIGINAL_SET_GRAPHICAL_STATE(self, node, font_size, context=context)
     if stroke:
         self.stream.set_line_width(self.length(node.get("stroke-width", "1px"), font_size))
+    _reset_dashes(self, node, font_size)
     return fill, stroke
+
+
+def _reset_dashes(svg: Any, node: Any, font_size: float) -> None:
+    """Set the dashes WeasyPrint set again where they are wrong: no dash of length 0, the whole period.
+
+    PDFium moves a dash of length 0 (no_zero_dashes). Only a round or square cap paints one: under a butt
+    cap a tiny dash would show as a sliver. An odd array repeats, so its period is twice its sum, and a
+    negative offset counts back from that period: WeasyPrint counts back from the sum alone.
+    """
+    dashes = tuple(svg.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
+    if not any(dashes) or min(dashes) < 0:
+        return
+    offset = svg.length(node.get("stroke-dashoffset"), font_size)
+    zero = 0 in dashes and node.get("stroke-linecap", "butt") in ("round", "square")
+    if not zero and not (offset < 0 and len(dashes) % 2):
+        return
+    # Without a dash of length 0 only an odd array with a negative offset is here: repeated, it has its period
+    fixed = no_zero_dashes(dashes, svg.length(node.get("stroke-width", "1px"), font_size)) if zero else dashes * 2
+    if offset < 0:
+        offset = sum(fixed) - abs(offset) % sum(fixed)
+    svg.stream.set_dash(fixed, offset)
+
+
+def no_zero_dashes(dashes: tuple[float, ...], stroke_width: float = math.inf) -> tuple[float, ...]:
+    """The dash array with each dash of length 0 lengthened a little, taken from the gap after it.
+
+    PDFium moves a dash of length 0 along the path, about 1 unit each 240: the dots of a dotted line
+    drifted. The period stays the same. A gap of 0 stays: a tiny gap could show as a hairline.
+    """
+    # An odd array repeats to an even one: dashes and gaps alternate
+    out = list(dashes * 2 if len(dashes) % 2 else dashes)
+    # A share of the period, not a length in user units: a viewBox of one unit drawn large would show
+    # 0.001 units. A share of the stroke as well: a long period would stretch a dot of a thin stroke.
+    # And no shorter than the PDF writes: six decimals
+    epsilon = max(min(sum(out) * DASH_FRACTION, stroke_width * STROKE_FRACTION), MIN_DASH)
+    for index in range(0, len(out), 2):
+        if out[index] == 0 and out[index + 1] > epsilon:
+            out[index], out[index + 1] = epsilon, out[index + 1] - epsilon
+    return tuple(out)
 
 
 # ---------------- patterns ----------------

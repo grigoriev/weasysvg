@@ -204,6 +204,13 @@ def test_clip_cycle_loses_the_svg() -> None:
     still_broken(lost(errors), "clip-path cycles", "_core._draw_node (_ACTIVE_CLIPS)")
 
 
+def test_negative_offset_of_an_odd_dash_array_uses_half_the_period() -> None:
+    # 10 5 3 repeats to a period of 36: an offset of -5 starts 31 into it, WeasyPrint says 13
+    style = 'fill="none" stroke="black" stroke-dasharray="10 5 3" stroke-dashoffset="-5"'
+    pdf, _ = render(svg(f'<path d="M 0 50 H 200" {style}/>'))
+    still_broken(bool(re.search(r"\] 13 d", content(pdf))), "the dash offset of an odd array", "paint._reset_dashes")
+
+
 def test_circle_outline_is_too_long() -> None:
     # The control point of a quarter circle sits at 1 / sqrt(pi) of the radius, not 0.5523
     pdf, _ = render(svg('<circle cx="100" cy="50" r="40"/>'))

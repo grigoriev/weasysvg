@@ -619,3 +619,73 @@ def test_a_link_with_text_and_a_shape_clips_by_both() -> None:
     pdf = render(svg(f'<defs>{clip}</defs><g transform="translate(10 70)">{link}</g>'))
     # pixel() reads pt: the right stem of the "H" lies at about 38 to 48 user units
     assert any(near(pixel(pdf, x, 37), RED) for x in range(30, 37))
+
+
+def test_zero_length_dashes_keep_their_place_in_pdfium() -> None:
+    # PDFium moves dashes of length 0 along the path, about 1 unit each 240: dots on the bottom edge,
+    # drawn right to left from the corner at x=160, sit at 160, 120, 80 and 40
+    style = 'fill="none" stroke="green" stroke-width="20" stroke-dasharray="0 40" stroke-linecap="round"'
+    pdf = render(svg(f'<rect x="40" y="40" width="120" height="120" {style}/>', height=200))
+    image = rasterize(pdf, 96 / 72).convert("RGB")
+    row = [cast(tuple[int, int, int], image.getpixel((x, 160))) for x in range(200)]
+    green = [x for x, (red, green, _) in enumerate(row) if green > 80 and red < 100]
+    dots = [x for x in green if x - 1 not in green]
+    assert dots == [30, 70, 110, 150]
+    # The period stays 40
+    assert re.search(r"\[0\.001 39\.999\] 0 d", content(pdf))
+
+
+def test_zero_length_dashes_keep_a_negative_offset() -> None:
+    # An offset of -10 starts 30 into the period of 40, as WeasyPrint computes it
+    style = 'fill="none" stroke="green" stroke-width="2" stroke-dasharray="0 40" stroke-dashoffset="-10" stroke-linecap="round"'
+    assert re.search(r"\[0\.001 39\.999\] 30 d", content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
+
+
+@pytest.mark.parametrize(
+    ("dashes", "expected"),
+    [
+        ((0, 40), (0.001, 39.999)),
+        # An odd array repeats: its 0 is a dash once and a gap once
+        ((0, 10, 5), (0.00075, 9.99925, 5, 0, 10, 5)),
+        # A gap of 0 stays, and so does a dash of 0 before it: there is no length to take
+        ((40, 0), (40, 0)),
+        ((0, 0, 0, 40), (0, 0, 0.001, 39.999)),
+    ],
+)
+def test_no_zero_dashes(dashes: tuple[float, ...], expected: tuple[float, ...]) -> None:
+    assert paint.no_zero_dashes(dashes) == pytest.approx(expected)
+
+
+def test_zero_length_dashes_with_butt_caps_stay() -> None:
+    # A dash of length 0 with butt caps paints nothing: no sliver may take its place
+    style = 'fill="none" stroke="green" stroke-width="20" stroke-dasharray="0 40"'
+    assert re.search(r"\[0 40\] 0 d", content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
+
+
+def test_a_zero_length_dash_grows_with_its_period() -> None:
+    # In a viewBox of one unit drawn large, 0.001 units would show: the length follows the period
+    assert paint.no_zero_dashes((0, 4)) == pytest.approx((0.0001, 3.9999))
+
+
+@pytest.mark.parametrize(
+    ("dashes", "cap", "expected"),
+    [
+        # An odd array repeats: its period is 30, and an offset of -5 starts 25 into it
+        ("0 10 5", "round", r"\[0\.00075 9\.99925 5 0 10 5\] 25 d"),
+        ("10 5 3", "butt", r"\[10 5 3 10 5 3\] 31 d"),
+    ],
+)
+def test_a_negative_offset_of_an_odd_dash_array_uses_its_whole_period(dashes: str, cap: str, expected: str) -> None:
+    style = f'fill="none" stroke="green" stroke-width="2" stroke-dasharray="{dashes}" stroke-dashoffset="-5" stroke-linecap="{cap}"'
+    assert re.search(expected, content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
+
+
+def test_a_zero_length_dash_stays_short_against_its_stroke() -> None:
+    # A long period on a thin stroke: the dot must stay a dot, not a dash of 2.5 units
+    assert paint.no_zero_dashes((0, 100000), 1) == pytest.approx((0.001, 99999.999))
+
+
+def test_a_zero_length_dash_stays_above_what_the_pdf_writes() -> None:
+    # pydyf writes six decimals: a dash shorter than 0.000001 would be 0 in the PDF again
+    style = 'fill="none" stroke="green" stroke-width="1" stroke-dasharray="0 0.01" stroke-linecap="round"'
+    assert re.search(r"\[1e-05 0\.00999\] 0 d|\[0\.00001 0\.00999\] 0 d", content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
