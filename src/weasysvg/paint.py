@@ -281,15 +281,29 @@ def set_graphical_state(self: Any, node: Any, font_size: float, context: Any = N
     fill, stroke = _ORIGINAL_SET_GRAPHICAL_STATE(self, node, font_size, context=context)
     if stroke:
         self.stream.set_line_width(self.length(node.get("stroke-width", "1px"), font_size))
-    dashes = tuple(self.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
-    # Only a round or square cap paints a dash of length 0: under a butt cap a tiny dash would show as a sliver
-    if 0 in dashes and any(dashes) and min(dashes) >= 0 and node.get("stroke-linecap", "butt") in ("round", "square"):
-        # The same dashes as WeasyPrint set, the offset included, with no dash of length 0
-        offset = self.length(node.get("stroke-dashoffset"), font_size)
-        if offset < 0:
-            offset = sum(dashes) - abs(offset) % sum(dashes)
-        self.stream.set_dash(no_zero_dashes(dashes), offset)
+    _reset_dashes(self, node, font_size)
     return fill, stroke
+
+
+def _reset_dashes(svg: Any, node: Any, font_size: float) -> None:
+    """Set the dashes WeasyPrint set again where they are wrong: no dash of length 0, the whole period.
+
+    PDFium moves a dash of length 0 (no_zero_dashes). Only a round or square cap paints one: under a butt
+    cap a tiny dash would show as a sliver. An odd array repeats, so its period is twice its sum, and a
+    negative offset counts back from that period: WeasyPrint counts back from the sum alone.
+    """
+    dashes = tuple(svg.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
+    if not any(dashes) or min(dashes) < 0:
+        return
+    offset = svg.length(node.get("stroke-dashoffset"), font_size)
+    zero = 0 in dashes and node.get("stroke-linecap", "butt") in ("round", "square")
+    if not zero and not (offset < 0 and len(dashes) % 2):
+        return
+    # Without a dash of length 0 only an odd array with a negative offset is here: repeated, it has its period
+    fixed = no_zero_dashes(dashes) if zero else dashes * 2
+    if offset < 0:
+        offset = sum(fixed) - abs(offset) % sum(fixed)
+    svg.stream.set_dash(fixed, offset)
 
 
 def no_zero_dashes(dashes: tuple[float, ...]) -> tuple[float, ...]:

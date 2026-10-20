@@ -665,3 +665,16 @@ def test_zero_length_dashes_with_butt_caps_stay() -> None:
 def test_a_zero_length_dash_grows_with_its_period() -> None:
     # In a viewBox of one unit drawn large, 0.001 units would show: the length follows the period
     assert paint.no_zero_dashes((0, 0.04)) == pytest.approx((0.000001, 0.039999))
+
+
+@pytest.mark.parametrize(
+    ("dashes", "cap", "expected"),
+    [
+        # An odd array repeats: its period is 30, and an offset of -5 starts 25 into it
+        ("0 10 5", "round", r"\[0\.00075 9\.99925 5 0 10 5\] 25 d"),
+        ("10 5 3", "butt", r"\[10 5 3 10 5 3\] 31 d"),
+    ],
+)
+def test_a_negative_offset_of_an_odd_dash_array_uses_its_whole_period(dashes: str, cap: str, expected: str) -> None:
+    style = f'fill="none" stroke="green" stroke-width="2" stroke-dasharray="{dashes}" stroke-dashoffset="-5" stroke-linecap="{cap}"'
+    assert re.search(expected, content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
