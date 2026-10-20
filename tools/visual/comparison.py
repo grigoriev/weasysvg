@@ -170,7 +170,7 @@ def page(resvg_errors: dict[str, str]) -> str:
         "rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the "
         "ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see "
         "[`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large "
-        "panels and a flip between renderers: <https://sergey.grigoriev.online/weasysvg/corpus/comparison.html>.\n\n"
+        "panels and a flip between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.\n\n"
     )
     return intro + summary(list(verdicts.values()), version) + "\n\n" + contents + "\n\n" + "\n".join(sections)
 
