@@ -7,11 +7,11 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 47 | 110 |
-| 🟡 close to the reference | 15 | 3 |
-| ❌ differs from the reference | 53 | 1 |
+| ✅ matches the reference | 41 | 104 |
+| 🟡 close to the reference | 20 | 9 |
+| ❌ differs from the reference | 54 | 1 |
 
-References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
+References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
@@ -209,8 +209,8 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
-| ✅ | weasysvg | **matches the reference** | Matches, the underlined word included. |
+| 📌 | Reference | Chromium | resvg draws the underline under &#x27;waiting&#x27; through the descenders; Chromium skips their ink. |
+| 🟡 | weasysvg | **close to the reference** | The underline under &#x27;waiting&#x27; runs through the descenders; Chromium skips their ink. |
 | 🟡 | WeasyPrint | **close to the reference** | The underline under &#x27;waiting&#x27; is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -322,7 +322,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
-| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | weasysvg | **close to the reference** | The label Car sits 3 px right of where Chromium puts it; the rest matches. |
 | ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -363,9 +363,9 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
-| ✅ | weasysvg | **matches the reference** | Matches. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 📌 | Reference | Chromium | The title has fill=&quot;&quot;, which browsers ignore: it takes #333 from the CSS of the root, as in Chromium. resvg draws it black. |
+| 🟡 | weasysvg | **close to the reference** | The title, sized 4ex, is about 4 % smaller: WeasyPrint takes 1ex as half an em, Chromium the x-height of the font. |
+| ❌ | WeasyPrint | **differs from the reference** | The title, with fill=&quot;&quot;, and the labels of the two sections are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -436,7 +436,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg draws the labels in a serif. |
-| ✅ | weasysvg | **matches the reference** | Matches. The remote GIFs are blocked in every rendering, by policy. |
+| 🟡 | weasysvg | **close to the reference** | The underlines of the links run through the descenders; Chromium skips their ink. The remote GIFs are blocked in every rendering, by policy. |
 | 🟡 | WeasyPrint | **close to the reference** | The links lose their underline. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -506,7 +506,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg shows &#x27;Not supported by viewer&#x27; fallbacks. |
-| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | weasysvg | **close to the reference** | The list markers of the MathJax box sit closer to the text, and one AsciiMath label breaks its line at another word. |
 | ❌ | WeasyPrint | **differs from the reference** | Fallback texts in place of the labels. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -536,7 +536,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg has no foreignObject. |
-| ✅ | weasysvg | **matches the reference** | Matches: heading, list, table and the rotated paragraph. |
+| 🟡 | weasysvg | **close to the reference** | Heading, table and the rotated paragraph match; the list markers sit about 2 px closer to their text than in Chromium. |
 | ❌ | WeasyPrint | **differs from the reference** | All HTML content is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -621,7 +621,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg fills some shapes black instead of their gradients. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | ✅ | WeasyPrint | **matches the reference** | Matches. |
 
@@ -650,7 +650,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg drops the second line of every label. |
-| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | weasysvg | **matches the reference** | Matches: every label and its lines are centered as in Chromium. |
 | ❌ | WeasyPrint | **differs from the reference** | All translations of every label are drawn on top of each other. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -833,7 +833,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | resvg | Chromium rounds the filter region out to whole pixels: the flood reaches a pixel further. resvg and the expected image of the resvg suite keep the region of the spec. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | ❌ | WeasyPrint | **differs from the reference** | A black square instead of the seagreen flood. |
 
@@ -889,7 +889,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg offsets in the wrong space; Chromium matches the expected image of the resvg suite. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | ❌ | WeasyPrint | **differs from the reference** | The offset is taken in the wrong space: the shape lands lower and larger. |
 
@@ -903,9 +903,9 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | resvg | Chromium rounds the filter region out to whole pixels. resvg and the expected image of the resvg suite keep the region of the spec. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The offset square is not clipped to the filter region: it covers the frame. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1085,7 +1085,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | resvg | Chromium shifts the tiles of the inner pattern; resvg matches the expected image of the resvg suite. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | ❌ | WeasyPrint | **differs from the reference** | The inner pattern is shrunk to small fragments. |
 
@@ -1099,7 +1099,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | resvg | Chromium prints a pattern as a low-resolution image, so its text is blurred; resvg matches the expected image of the resvg suite. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | 🟡 | WeasyPrint | **close to the reference** | The text tiles are spaced differently, in another font. |
 
@@ -1113,7 +1113,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | resvg | Chromium leaves a white pixel at the focal center; resvg matches the expected image of the resvg suite. |
 | ✅ | weasysvg | **matches the reference** | Matches: the gray levels agree within 2 of 255. |
 | 🟡 | WeasyPrint | **close to the reference** | The gradient is cut to a square with dark corners. |
 
@@ -1127,7 +1127,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg ignores a gradientTransform inherited through href; Chromium matches the expected image of the resvg suite. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | ❌ | WeasyPrint | **differs from the reference** | The lower two squares are missing. |
 
@@ -1141,7 +1141,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium | The path is one arc, so it has no middle vertex. resvg splits the arc into curves and puts a marker-mid between them. |
+| 📌 | Reference | Chromium | The path is one arc, so by the spec it has no middle vertex, as Chromium draws it. resvg, Safari and the resvg suite split the arc into curves and put a marker-mid where they meet. |
 | ✅ | weasysvg | **matches the reference** | Matches: a start and an end marker. |
 | ❌ | WeasyPrint | **differs from the reference** | The markers point the wrong way. |
 
@@ -1155,7 +1155,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium and resvg | At the cusp the two tangents are opposite, so their bisector can point either way: undefined by the spec. Chromium, resvg and the resvg suite point left, Safari right. |
 | ✅ | weasysvg | **matches the reference** | Matches: the middle marker at the cusp points left. |
 | ❌ | WeasyPrint | **differs from the reference** | The start marker points down instead of along the curve. |
 
@@ -1451,7 +1451,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 |---|---|---|---|
 | 📌 | Reference | Chromium and resvg |  |
 | ✅ | weasysvg | **matches the reference** | Matches, in the Noto Sans the test asks for. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The word is wider: WeasyPrint lays the letters out one by one, without kerning. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1465,7 +1465,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 |---|---|---|---|
 | 📌 | Reference | Chromium and resvg |  |
 | ✅ | weasysvg | **matches the reference** | Matches, in the Noto Sans the test asks for. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The word is wider: WeasyPrint lays the letters out one by one, without kerning. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1533,7 +1533,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium. |
 | ✅ | weasysvg | **matches the reference** | Matches, the line-through included. |
 | ❌ | WeasyPrint | **differs from the reference** | No line-through. |
 
@@ -1547,7 +1547,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium. |
 | ✅ | weasysvg | **matches the reference** | Matches, the line-through included. |
 | ❌ | WeasyPrint | **differs from the reference** | No line-through. |
 
@@ -1575,7 +1575,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg and the resvg suite draw a thinner underline, from the font, through the descenders; Chromium a tenth of the font size, skipping the ink. |
 | 🟡 | weasysvg | **close to the reference** | The underline runs under the descenders too: Chromium breaks it around them. |
 | ❌ | WeasyPrint | **differs from the reference** | No text on the path. |
 
@@ -1591,7 +1591,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 |---|---|---|---|
 | 📌 | Reference | Chromium and resvg |  |
 | ✅ | weasysvg | **matches the reference** | Matches. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The words are wider: WeasyPrint lays the letters out one by one, without kerning. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1605,7 +1605,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 |---|---|---|---|
 | 📌 | Reference | Chromium and resvg |  |
 | ✅ | weasysvg | **matches the reference** | Matches. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The word is wider: WeasyPrint lays the letters out one by one, without kerning. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1617,7 +1617,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium | SVG 2 anchors a text chunk by the extent of its glyph positions, dy included, as Chromium does. resvg anchors by the advance. |
+| 📌 | Reference | Chromium | SVG 2 anchors a text chunk by the extent of its glyph positions, dy included; Chromium does, and matches the expected image of the resvg suite. resvg anchors by the advance. |
 | ✅ | weasysvg | **matches the reference** | Matches: each column is anchored with B moved up. |
 | ❌ | WeasyPrint | **differs from the reference** | Laid out horizontally. |
 

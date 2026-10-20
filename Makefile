@@ -3,7 +3,7 @@ IMAGE ?= weasysvg-test
 BASE ?= python:3.14-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
 RUN = docker run --rm --volume "$(CURDIR):/src"
 
-.PHONY: lint test test-image upstream hooks visual visual-image visual-baseline visual-check comparison references
+.PHONY: lint test test-image upstream hooks visual visual-image visual-baseline visual-check comparison references review
 
 lint:
 	uv run ruff check .
@@ -54,3 +54,7 @@ comparison: visual-image
 # visual-baseline and comparison
 references: visual-image
 	$(RUN) $(IMAGE):visual uv run --frozen --all-extras python tools/visual/make_references.py $(ARGS)
+
+# Compare the renderings region by region at 2x, from the PDFs of visual-baseline, into tools/visual/out/review
+review: visual-image
+	$(RUN) $(IMAGE):visual uv run --frozen --all-extras python tools/visual/review.py $(ARGS)
