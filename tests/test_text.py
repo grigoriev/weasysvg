@@ -445,7 +445,7 @@ def test_each_text_chunk_is_anchored_by_its_own_width(anchor: str, inner: str) -
 class TextNode(list[Any]):
     """A text node as chunk_boxes sees it: tag, attributes, children and the box WeasyPrint drew."""
 
-    def __init__(self, tag: str, box: tuple[float, float, float, float], children: tuple[Any, ...] = (), attrib: dict[str, str] | None = None) -> None:
+    def __init__(self, tag: str, box: tuple[float, float, float, float] | None, children: tuple[Any, ...] = (), attrib: dict[str, str] | None = None) -> None:
         super().__init__(children)
         self.tag, self.attrib, self.text_bounding_box = tag, attrib or {}, box
 
@@ -463,6 +463,33 @@ def test_the_space_after_a_chunk_belongs_to_that_chunk(extra: str) -> None:
 
     two = ("<tspan>Transport</tspan>", '<tspan x="150" font-size="10pt" dy="16">End-to-End</tspan>')
     assert title_shift((*two, extra) if extra else two) == title_shift(two[:1] + ('<tspan x="150" font-size="10pt" dy="16">End</tspan>',))
+
+
+def test_text_nested_in_a_later_chunk_belongs_to_that_chunk() -> None:
+    # The bold tspan and the tail " end" lie inside the second chunk: the first chunk, drawn before, must
+    # not take them, or the second line is anchored by "two " alone
+    def shifts(first: str) -> list[str]:
+        body = f'<text y="40" x="150" text-anchor="middle">{first}<tspan x="150" dy="16">two <tspan font-weight="bold">bold</tspan> end</tspan></text>'
+        return re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))
+
+    assert shifts('<tspan x="150">one</tspan>')[-1] == shifts("")[-1]
+
+
+def test_measuring_a_text_keeps_the_last_chunk() -> None:
+    # The scratch draw before a filter meets the chunks of the text: the real draw must start where it did
+    from weasysvg import _core
+
+    group = SimpleNamespace(id="scratch")
+    stream = SimpleNamespace(add_group=lambda *_: group, _resources={"XObject": {}})
+    drawn = TextNode("tspan", (0, 0, 0, 0), attrib={"x": "1"})
+    scratch = SimpleNamespace(stream=stream, cursor_position=(0, 0), cursor_d_position=[0, 0], draw_node=lambda node, _: text.LAST_CHUNK.set(drawn))
+    before = TextNode("tspan", (0, 0, 0, 0), attrib={"x": "0"})
+    token = text.LAST_CHUNK.set(before)
+    try:
+        _core.measure_text(scratch, TextNode("tspan", None, (drawn,)), 16)
+        assert text.LAST_CHUNK.get() is before
+    finally:
+        text.LAST_CHUNK.reset(token)
 
 
 def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:

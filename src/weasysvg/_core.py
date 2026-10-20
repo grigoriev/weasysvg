@@ -40,6 +40,8 @@ _RESTYLERS: list[Restyler] = []
 # Called with the SVG and the node once the node and its children are drawn
 AfterDraw = Callable[[Any, Any], None]
 _AFTER_DRAW: list[AfterDraw] = []
+# Called with the SVG and the node before the node draws
+_BEFORE_DRAW: list[AfterDraw] = []
 # The clip paths being drawn, per thread and task
 _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
@@ -89,6 +91,11 @@ def _install_svgimage_hook() -> None:
 def add_after_draw(function: AfterDraw) -> None:
     if function not in _AFTER_DRAW:
         _AFTER_DRAW.append(function)
+
+
+def add_before_draw(function: AfterDraw) -> None:
+    if function not in _BEFORE_DRAW:
+        _BEFORE_DRAW.append(function)
 
 
 def add_restyler(function: Restyler) -> None:
@@ -209,6 +216,8 @@ def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True,
         # A blur mask being built draws its shapes grown, a clip mask draws them filled
         if fill_stroke:
             restyle(self, node, font_size, restyled)
+        for function in _BEFORE_DRAW:
+            function(self, node)
         _draw_with_effects(self, node, font_size, fill_stroke, context)
         for function in _AFTER_DRAW:
             function(self, node)
@@ -277,11 +286,12 @@ def measure_text(svg: Any, node: Any, font_size: float) -> None:
     outer = svg.stream
     scratch = outer.add_group(0, 0, 0, 0)
     saved = {key: node.attrib.pop(key) for key in (*BOX_EFFECTS, "opacity", "mix-blend-mode") if key in node.attrib}
-    from . import textpath
+    from . import text, textpath
 
-    # Text moves the current text position, and the position along a <textPath>: the real drawing
-    # starts where the scratch one did
+    # Text moves the current text position, the position along a <textPath> and the last text chunk:
+    # the real drawing starts where the scratch one did
     cursor, shift = svg.cursor_position, list(svg.cursor_d_position)
+    chunk = text.LAST_CHUNK.set(text.LAST_CHUNK.get())
     path = textpath.CURRENT.get()
     along = (path, path.distance, path.shift) if path is not None else None
     token = _MEASURING.set((*measuring, node))
@@ -291,6 +301,7 @@ def measure_text(svg: Any, node: Any, font_size: float) -> None:
     finally:
         svg.stream = outer
         svg.cursor_position, svg.cursor_d_position = cursor, shift
+        text.LAST_CHUNK.reset(chunk)
         if along is not None:
             along[0].distance, along[0].shift = along[1:]
         _MEASURING.reset(token)
