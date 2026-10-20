@@ -378,6 +378,14 @@ def test_a_backward_advance_counts_in_the_extent() -> None:
     assert 100 < matrices[0][5] < 120
 
 
+@pytest.mark.parametrize("hidden", ['display="none"', 'visibility="hidden"'])
+def test_a_hidden_vertical_tspan_keeps_the_shifts_of_the_rest(hidden: str) -> None:
+    # The chunk of 本 ends at 200 whether or not the <tspan> before it draws
+    body = f'<text x="50" y="100" writing-mode="vertical-rl" text-anchor="end" font-size="20" letter-spacing="0">日<tspan {hidden}>月</tspan><tspan y="200">本</tspan></text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert 180 < matrices[-1][5] < 200
+
+
 def test_vertical_text_anchor_counts_absolute_y() -> None:
     # The second character starts anew at 200 and moves up 60: the run spans 100 to 160
     body = '<text x="50" y="100 200" dy="0 -60" writing-mode="vertical-rl" text-anchor="start" font-size="20" letter-spacing="0">日本</text>'

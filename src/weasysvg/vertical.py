@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from weasyprint.svg import utils as wp_utils
@@ -48,16 +48,14 @@ def upright(character: str) -> bool:
 
 @dataclass
 class _Run:
-    """The vertical run of one <text>: its nodes, the shift text-anchor gives each character, and the next one."""
+    """The vertical run of one <text>: its nodes, and the shift text-anchor gives each of their characters."""
 
     nodes: set[int]
-    shifts: list[float]
-    index: int = 0
+    # By node id and character index: a node that draws twice, or not at all, moves no other one
+    shifts: dict[tuple[int, int], float]
 
-    def shift(self) -> float:
-        """The shift of the next character, in document order."""
-        self.index += 1
-        return self.shifts[self.index - 1] if self.index <= len(self.shifts) else 0.0
+    def shift(self, node: Any, index: int) -> float:
+        return self.shifts.get((id(node), index), 0.0)
 
 
 CURRENT: ContextVar[_Run | None] = ContextVar("weasysvg_vertical", default=None)
@@ -74,7 +72,7 @@ class _Chunk:
     first: float
     low: float = math.inf
     high: float = -math.inf
-    count: int = 0
+    characters: list[tuple[int, int]] = field(default_factory=list)  # node id and index of each character
 
 
 def _chunks(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> list[_Chunk]:
@@ -97,7 +95,7 @@ def _chunks(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> list[_Ch
             # letter-spacing belongs to the advance of each character, the last one included
             step = advance(character, width, size) + spacing
             chunk.low, chunk.high = min(chunk.low, y, y + step), max(chunk.high, y, y + step)
-            chunk.count += 1
+            chunk.characters.append((id(text), index))
             y += step
     return chunks
 
@@ -105,10 +103,10 @@ def _chunks(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> list[_Ch
 def start(svg: Any, node: Any, texts: list[tuple[Any, float]], advances: Any) -> _Run:
     """Begin a vertical <text>: measure each chunk of its text for text-anchor."""
     anchor = node.get(ANCHOR) or node.get("text-anchor", "start")
-    shifts = []
+    shifts = {}
     for chunk in _chunks(svg, texts, advances):
         point = {"middle": (chunk.low + chunk.high) / 2, "end": chunk.high}.get(anchor, chunk.low)
-        shifts += [chunk.first - point] * chunk.count
+        shifts.update(dict.fromkeys(chunk.characters, chunk.first - point))
     run = _Run({id(text) for text, _ in texts}, shifts)
     CURRENT.set(run)
     return run
@@ -147,7 +145,7 @@ def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances:
     for index, (character, width) in enumerate(advances):
         x = (xs[index] if index < len(xs) else x) + (dxs[index] if index < len(dxs) else 0)
         y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
-        shift = run.shift()
+        shift = run.shift(node, index)
         if character.strip():
             angle = rotations[min(index, len(rotations) - 1)] if rotations else 0.0
             items.append((character, _place(character, width, x, y + shift, angle)))
