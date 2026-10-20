@@ -662,3 +662,17 @@ def test_blurred_layers_count_against_the_draw_budget(caplog: pytest.LogCaptureF
         pdf = render(filtered(f'<feGaussianBlur stdDeviation="2" result="b"/>{merge}'))
     assert near(pixel(pdf, 30, 30), RED)
     assert "too many nested layers" in caplog.text
+
+
+@pytest.mark.parametrize("value", ["blur(-2px)", "blur(1.2.3px)", "drop-shadow(2px 2px -3px red)", "drop-shadow(1..2px 2px red)"])
+def test_invalid_css_filter_lengths_draw_unfiltered(value: str) -> None:
+    pdf = render(svg(f'<rect x="20" y="20" width="60" height="40" fill="red" style="filter:{value}"/>', height=120))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 13, 30), WHITE, 3)
+
+
+@pytest.mark.parametrize("value", ["blur(-2px)", "blur(1.2.3px)", "drop-shadow(2px 2px -3px red)"])
+def test_invalid_css_filter_lengths_plan_unfiltered(value: str) -> None:
+    node = SimpleNamespace(get={"filter": value}.get, tag="rect")
+    fake = SimpleNamespace(tree=object())
+    assert filters.plan(fake, node, 12) is filters.UNFILTERED

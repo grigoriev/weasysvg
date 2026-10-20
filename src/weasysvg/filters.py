@@ -460,6 +460,8 @@ def _function_layers(value: str) -> list[Layer]:
 def _checked(layers: list[Layer]) -> list[Layer]:
     """Refuse lengths no stroke or offset can carry: inf, nan, or beyond MAX_REGION."""
     for layer in layers:
+        if min(layer.blur) < 0:
+            raise Unsupported("negative blur")  # CSS blur() and drop-shadow() reject it
         if not all(math.isfinite(value) and abs(value) <= MAX_REGION for value in (*layer.blur, layer.dx, layer.dy, *(layer.region or ()))):
             raise Unsupported("length out of range")
     return layers
@@ -469,7 +471,7 @@ def _function_plan(value: str) -> Plan:
     """The plan of a CSS filter function list."""
     try:
         return Plan(_checked(_function_layers(value)), None)
-    except Unsupported:
+    except (Unsupported, ValueError):
         return UNFILTERED  # an invalid function list: browsers draw the element unfiltered
 
 
