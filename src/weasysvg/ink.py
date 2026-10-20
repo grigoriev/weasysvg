@@ -37,9 +37,9 @@ class Glyph:
     scale: float
 
 
-# The font file of each key, and the key of each Pango font: reading and hashing a file costs its size
+# The font file of each key, and the key of each HarfBuzz face: reading and hashing a file costs its size
 _FONTS: OrderedDict[str, tuple[bytes, int, int]] = OrderedDict()
-_FACES: OrderedDict[tuple[int, int], str] = OrderedDict()
+_FACES: OrderedDict[int, tuple[str, Any]] = OrderedDict()
 
 
 def _remember(cache: OrderedDict[Any, Any], key: Any, value: Any) -> None:
@@ -50,22 +50,25 @@ def _remember(cache: OrderedDict[Any, Any], key: Any, value: Any) -> None:
         cache.popitem(last=False)
 
 
-def _font_key(pango_font: Any, description: int) -> str:
-    """The key of the font file of a Pango font, its file read and hashed once.
+def _font_key(pango_font: Any) -> str:
+    """The key of the font file of a Pango font, its file read and hashed once per face.
 
-    A Pango font is known by its address and the hash of its description: the address alone can come
-    back for another font once the first is freed.
+    A face is known by its address. Pango shares it between the sizes of a font, and the cache holds a
+    reference to it: its address cannot come back for another face.
     """
-    identity = (int(ffi.cast("uintptr_t", pango_font)), description)
-    key = _FACES.get(identity)
-    if key is None or key not in _FONTS:
-        face = get_pango_font_hb_face(pango_font)
-        data = get_hb_object_data(face)
-        # The faces of a collection share their file: the index tells them apart
-        index = harfbuzz.hb_face_get_index(face)
-        key = f"{hashlib.sha1(data, usedforsecurity=False).hexdigest()}:{index}"
-        _remember(_FONTS, key, (data, index, harfbuzz.hb_face_get_upem(face)))
-        _remember(_FACES, identity, key)
+    face = get_pango_font_hb_face(pango_font)
+    identity = int(ffi.cast("uintptr_t", face))
+    found = _FACES.get(identity)
+    if found is not None and found[0] in _FONTS:
+        return str(found[0])
+    data = get_hb_object_data(face)
+    digest = hashlib.sha1(data, usedforsecurity=False).hexdigest()
+    # The faces of a collection share their file: the index tells them apart, and one copy serves them all
+    index = harfbuzz.hb_face_get_index(face)
+    key = f"{digest}:{index}"
+    data = next((value[0] for other, value in _FONTS.items() if other.startswith(f"{digest}:")), data)
+    _remember(_FONTS, key, (data, index, harfbuzz.hb_face_get_upem(face)))
+    _remember(_FACES, identity, (key, face))
     return key
 
 
@@ -77,8 +80,8 @@ def run_glyphs(line: Any, x: float) -> list[Glyph]:
         glyph_item = run.data
         run = run.next
         pango_font = glyph_item.item.analysis.font
-        description, _, font_size = get_pango_font_key(pango_font)
-        key = _font_key(pango_font, description)
+        _, _, font_size = get_pango_font_key(pango_font)
+        key = _font_key(pango_font)
         scale = font_size / _FONTS[key][2]
         glyph_string = glyph_item.glyphs
         for info in glyph_string.glyphs[0 : glyph_string.num_glyphs]:

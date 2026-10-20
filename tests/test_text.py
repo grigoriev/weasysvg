@@ -690,7 +690,7 @@ def test_text_without_underline_or_overline_reads_no_glyphs(monkeypatch: pytest.
 
 
 def test_a_font_file_is_read_once(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Each run of each text reads the same font: its file is copied and hashed once
+    # Each run of each text reads the same font, at five sizes: its file is read and hashed once
     reads: list[Any] = []
 
     def recording(face: Any) -> Any:
@@ -699,7 +699,7 @@ def test_a_font_file_is_read_once(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(ink, "get_hb_object_data", recording)
     ink._FACES.clear()
-    lines = "".join(f'<text x="10" y="{20 + 15 * index}" font-size="12" text-decoration="underline">line {index}</text>' for index in range(5))
+    lines = "".join(f'<text x="10" y="{20 + 15 * index}" font-size="{12 + index}" text-decoration="underline">line {index}</text>' for index in range(5))
     render(svg(lines, height=100))
     assert len(reads) == 1
 
@@ -720,18 +720,19 @@ def test_the_faces_of_one_collection_have_keys_of_their_own(monkeypatch: pytest.
     # A .ttc file holds several faces: each face reads its own outlines
     from weasyprint.text.ffi import ffi
 
-    fonts = [ffi.new("int *") for _ in range(2)]
-    faces = {int(ffi.cast("uintptr_t", font)): index for index, font in enumerate(fonts)}
-    monkeypatch.setattr(ink, "get_pango_font_hb_face", lambda font: faces[int(ffi.cast("uintptr_t", font))])
-    monkeypatch.setattr(ink, "get_hb_object_data", lambda face: b"one collection")
-    monkeypatch.setattr(ink, "harfbuzz", SimpleNamespace(hb_face_get_index=lambda face: face, hb_face_get_upem=lambda face: 1000))
-    keys = [ink._font_key(font, 0) for font in fonts]
+    faces = [ffi.new("int *", index) for index in range(2)]
+    monkeypatch.setattr(ink, "get_pango_font_hb_face", lambda font: font)
+    monkeypatch.setattr(ink, "get_hb_object_data", lambda face: bytes(bytearray(b"one collection")))
+    monkeypatch.setattr(ink, "harfbuzz", SimpleNamespace(hb_face_get_index=lambda face: face[0], hb_face_get_upem=lambda face: 1000))
+    keys = [ink._font_key(face) for face in faces]
     assert keys[0] != keys[1]
     assert [ink._FONTS[key][1] for key in keys] == [0, 1]
+    # One copy of the file serves both faces
+    assert ink._FONTS[keys[0]][0] is ink._FONTS[keys[1]][0]
 
 
 def test_the_font_caches_are_bounded() -> None:
     for index in range(ink.MAX_FONTS + 10):
-        ink._remember(ink._FACES, (index, 0), str(index))
+        ink._remember(ink._FACES, index, (str(index), None))
     assert len(ink._FACES) == ink.MAX_FONTS
-    assert (0, 0) not in ink._FACES
+    assert 0 not in ink._FACES
