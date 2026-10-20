@@ -18,9 +18,11 @@ scripts joined (css-text-3, cursive tracking). Other runs keep the layout of Wea
 
 from __future__ import annotations
 
+import functools
 import math
 import re
 import sys
+import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -77,7 +79,26 @@ FONT_PX = "_weasysvg_font_px"
 RESOURCES = frozenset(("clipPath", "mask", "marker", "pattern"))
 
 
-_SHARED_FONTS: list[Any] = []
+# The fonts of the SVG being drawn, weakly: its lazy definitions cascade while it draws
+_DRAWING_FONTS: ContextVar[Any] = ContextVar("weasysvg_drawing_fonts", default=None)
+
+
+def note_fonts(svg: Any, _node: Any) -> None:
+    """Note the fonts of the SVG that draws, with its @font-face rules, for the cascade to measure ex."""
+    if svg.font_config is not None:
+        _DRAWING_FONTS.set(weakref.ref(svg.font_config))
+
+
+@functools.cache
+def _system_fonts() -> Any:
+    return FontConfiguration()
+
+
+def _fonts() -> Any:
+    """The fonts of the SVG that draws, else, outside a drawing, the fonts of the system."""
+    noted = _DRAWING_FONTS.get()
+    fonts = noted() if noted is not None else None
+    return fonts if fonts is not None else _system_fonts()
 
 
 def _ex_count(value: str) -> float | None:
@@ -97,10 +118,7 @@ def _resolved_px(node: Any, value: str, parent_px: float) -> float:
         count = _ex_count(value)
         if count is None:
             return parent_px  # a word that ends in ex, which WeasyPrint cannot read either
-        # The fonts of the system: the cascade knows no document, @font-face rules apart
-        if not _SHARED_FONTS:
-            _SHARED_FONTS.append(FontConfiguration())
-        x_height = _metrics(SimpleNamespace(font_config=_SHARED_FONTS[0]), node, parent_px)[2] or parent_px / 2
+        x_height = _metrics(SimpleNamespace(font_config=_fonts()), node, parent_px)[2] or parent_px / 2
         return count * x_height
     return float(size(value, parent_px, parent_px))
 
@@ -679,6 +697,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
+    _core.add_before_draw(note_fonts)
     _core.add_restyler(ex_restyle)
     _core.add_restyler(anchor_restyle)
     _core.add_before_draw(chunk_started)

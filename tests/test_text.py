@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextvars
 import io
 import math
 import re
@@ -91,6 +92,20 @@ def test_a_resource_under_a_size_in_ex_takes_the_x_height() -> None:
     assert font_sizes(render(svg(body))) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
 
 
+def test_a_resource_measures_ex_with_the_fonts_of_its_svg() -> None:
+    # A font of @font-face lives in the fonts of the SVG: the clip text takes its x-height, as free text does
+    font = (Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "Amiri-Regular.ttf").as_uri()
+    body = (
+        f"<style>@font-face{{font-family:Embedded;src:url({font})}}</style>"
+        '<g font-family="Embedded" font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g>'
+        '<text x="10" y="90" font-family="Embedded" font-size="4ex">Free</text>'
+    )
+    sizes = font_sizes(render(svg(body)))
+    assert len(sizes) == 2
+    assert max(sizes) - min(sizes) < 0.01
+    assert max(sizes) < 30  # the x-height of Amiri, not of the fallback
+
+
 def test_ex_holds_where_a_size_is_read_before_drawing() -> None:
     # A textPath measures its tspans before they draw: 4ex must place the glyphs as its size in px does
     def placed(size: str) -> list[str]:
@@ -107,6 +122,16 @@ def test_a_resource_under_a_word_ending_in_ex_takes_the_parent_size(monkeypatch:
     clip = SimpleNamespace(tag="clipPath", attrib={})
     text.cascade(group, clip)
     assert clip.attrib == {"font-size": "16.0px"}
+
+
+def test_ex_outside_a_drawing_takes_the_fonts_of_the_system(monkeypatch: pytest.MonkeyPatch) -> None:
+    # In a context where no SVG draws, the cascade measures with the fonts of the system
+    monkeypatch.setattr(text, "_ORIGINAL_CASCADE", lambda self, child: None)
+    attrib = {"font-size": "4ex", "font-family": "Liberation Sans"}
+    group = SimpleNamespace(tag="g", attrib=attrib, get=attrib.get)
+    clip = SimpleNamespace(tag="clipPath", attrib={})
+    contextvars.Context().run(text.cascade, group, clip)
+    assert float(clip.attrib["font-size"][:-2]) == pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)
 
 
 def test_a_word_ending_in_ex_is_no_size() -> None:
