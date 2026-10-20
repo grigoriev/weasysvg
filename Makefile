@@ -46,6 +46,6 @@ visual-check: visual-image
 
 # Render the panels of both modes into corpus/render and write corpus/COMPARISON.md
 comparison: visual-image
-	$(BENCH) --native --out tools/visual/out/native --panels corpus/render/weasyprint
-	$(BENCH) --out tools/visual/out/weasysvg --panels corpus/render/weasysvg
+	$(BENCH) --native --out tools/visual/out/native --panels tools/visual/out/panels/weasyprint
+	$(BENCH) --out tools/visual/out/weasysvg --panels tools/visual/out/panels/weasysvg
 	$(RUN) $(IMAGE):visual uv run --frozen --all-extras python tools/visual/comparison.py
