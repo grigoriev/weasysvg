@@ -107,5 +107,5 @@ show_error_codes = true
 
 # WeasyPrint ships no type information
 [[tool.mypy.overrides]]
-module = ["weasyprint.*", "weasyprint", "pypdfium2.*", "numpy.*"]
+module = ["weasyprint.*", "weasyprint", "pypdfium2.*", "numpy.*", "fontTools.*"]
 ignore_missing_imports = true

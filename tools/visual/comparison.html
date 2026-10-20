@@ -194,8 +194,45 @@ function verdictRow(status, who, label, what) {
 // and its own height, as there, cropped by its box to the box of the Chromium panel. Every length is a
 // share of the width of the box, margins above included: the crop holds at any size. An <image> in an
 // <svg> sizes the SVG by other rules in each browser: Safari drew it larger.
+// An SVG in an <img> sees no font of the page: a copy of it gets the fonts of the corpus it names, each as
+// an @font-face rule with a data URL. Each font and each copy is fetched once. Opened from the disk, the
+// browser refuses the fetches, and the panel keeps the SVG as it is, with the fonts of the system.
+const fetched = new Map();
+function once(key, make) {
+  if (!fetched.has(key)) fetched.set(key, make());
+  return fetched.get(key);
+}
+function dataUrl(file) {
+  return once(file, async () => {
+    const response = await fetch(file);
+    if (!response.ok) throw new Error(file + ": " + response.status);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  });
+}
+function withFonts(source) {
+  return once(source, async () => {
+    const response = await fetch(source);
+    if (!response.ok) return source;
+    const text = await response.text();
+    const used = data.fonts.filter((font) => text.includes(font.family));
+    if (!used.length) return source;
+    const faces = await Promise.all(used.map(async (font) => "@font-face{font-family:\"" + font.family + "\";font-weight:" + font.weight + ";font-style:" + font.style + ";src:url(" + await dataUrl(font.file) + ")}"));
+    const copy = text.replace(/<svg\b[^>]*>/, (root) => root + "<style>" + faces.join("") + "</style>");
+    return URL.createObjectURL(new Blob([copy], { type: "image/svg+xml" }));
+  });
+}
 function live(item, scale, fluid) {
   const image = element("img", { src: item.panels.browser, alt: "", draggable: "false" });
+  // Once the SVG shows, which makes a hidden panel cost nothing, its copy with the fonts takes its place
+  image.addEventListener("load", () => {
+    withFonts(item.panels.browser).then((source) => { if (image.src !== source) image.src = source; }).catch(() => {});
+  }, { once: true });
   image.style.width = (item.crop.page / item.width) * 100 + "%";
   image.style.marginLeft = (-item.crop.x / item.width) * 100 + "%";
   image.style.marginTop = (-item.crop.y / item.width) * 100 + "%";
