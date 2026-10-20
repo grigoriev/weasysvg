@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>weasysvg corpus</title>
+<!-- Written by make comparison from tools/visual/comparison.html. Do not edit by hand. -->
+<style>
+:root {
+  --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --card: #f6f8fa;
+  --accent: #0969da; --same: #1a7f37; --minor: #9a6700; --broken: #cf222e; --font: #8250df;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --card: #151b23;
+    --accent: #4493f8; --same: #3fb950; --minor: #d29922; --broken: #f85149; --font: #ab7df8;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding: 12px 16px; }
+h1 { font-size: 18px; margin: 0 0 4px; }
+.intro { color: var(--muted); margin: 0 0 10px; max-width: 1100px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.controls label { color: var(--muted); }
+select, input { font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+input[type=search] { min-width: 200px; }
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.segmented button { font: inherit; color: var(--fg); background: var(--card); border: 0; padding: 4px 10px; cursor: pointer; }
+.segmented button + button { border-left: 1px solid var(--line); }
+.segmented button[aria-pressed=true] { background: var(--accent); color: #fff; }
+.count { color: var(--muted); }
+main { padding: 16px; display: grid; gap: 16px; }
+article { border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 12px; }
+article h2 { font-size: 15px; margin: 0; word-break: break-all; }
+.meta { color: var(--muted); margin: 2px 0 8px; }
+.meta a { color: var(--accent); }
+.badge { display: inline-block; border-radius: 10px; padding: 0 8px; font-size: 12px; border: 1px solid currentColor; margin-right: 4px; }
+.same { color: var(--same); } .minor { color: var(--minor); } .broken { color: var(--broken); } .font { color: var(--font); }
+.panels { display: grid; gap: 12px; align-items: start; }
+.panels.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panels.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panels.one { grid-template-columns: minmax(0, 1fr); }
+.panels.wide.two, .panels.wide.four { grid-template-columns: minmax(0, 1fr); }
+figure { margin: 0; }
+figcaption { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+figure img { display: block; max-width: 100%; height: auto; background: #fff; border: 1px solid var(--line); cursor: zoom-in; image-rendering: auto; }
+.missing { color: var(--muted); font-style: italic; padding: 12px; border: 1px dashed var(--line); border-radius: 4px; }
+.flip figcaption strong { color: var(--accent); }
+.hint { color: var(--muted); font-size: 12px; }
+#lightbox { position: fixed; inset: 0; z-index: 5; background: #0d1117; display: none; flex-direction: column; }
+#lightbox.open { display: flex; }
+#lightbox .bar { background: #0d1117; border-bottom: 1px solid #3d444d; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; color: #e6edf3; padding: 10px 16px; }
+#lightbox .bar .name { font-weight: 600; word-break: break-all; }
+#lightbox .stage { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 8px 16px 16px; }
+#lightbox .stage img { background: #fff; max-width: none; }
+#lightbox .stage.fit img { width: auto !important; max-width: 100%; max-height: 100%; }
+#lightbox button.close { margin-left: auto; }
+@media (max-width: 700px) {
+  header { position: static; }
+  .panels.two, .panels.four { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>weasysvg corpus</h1>
+  <p class="intro" id="intro"></p>
+  <div class="controls">
+    <span class="segmented" id="mode" role="group" aria-label="Layout">
+      <button type="button" data-mode="two">Side by side</button>
+      <button type="button" data-mode="flip">Flip</button>
+      <button type="button" data-mode="four">All four</button>
+    </span>
+    <span class="segmented" id="zoom" role="group" aria-label="Panel size">
+      <button type="button" data-zoom="1">1×</button>
+      <button type="button" data-zoom="2">2×</button>
+    </span>
+    <label>Left <select id="left"></select></label>
+    <label>Right <select id="right"></select></label>
+    <label>Group <select id="group"><option value="">all</option></select></label>
+    <label>weasysvg <select id="verdict"><option value="">any verdict</option></select></label>
+    <input type="search" id="search" placeholder="Filter by name" aria-label="Filter by name">
+    <span class="count" id="count"></span>
+  </div>
+</header>
+<main id="list"></main>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Full size">
+  <div class="bar">
+    <span class="name" id="lb-name"></span>
+    <span class="segmented" id="lb-renderers"></span>
+    <span class="segmented" id="lb-zoom" role="group" aria-label="Zoom">
+      <button type="button" data-zoom="1">1×</button>
+      <button type="button" data-zoom="2">2×</button>
+      <button type="button" data-zoom="4">4×</button>
+      <button type="button" data-zoom="fit">Fit</button>
+    </span>
+    <span class="hint">1-4 renderer, Space flips left and right, + - zoom, ← → previous and next, Esc closes</span>
+    <span class="segmented close"><button type="button" id="lb-close">Close</button></span>
+  </div>
+  <div class="stage" id="lb-stage"><img id="lb-image" alt=""></div>
+</div>
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+"use strict";
+const data = JSON.parse(document.getElementById("data").textContent);
+const renderers = data.renderers;
+const groups = data.groups;
+const labels = { same: "same as Chromium", minor: "minor difference", font: "other font only", broken: "broken" };
+const state = { mode: "two", zoom: 1, left: "chromium", right: "weasysvg", group: "", verdict: "", search: "" };
+let lightboxZoom = "1";
+
+function load() {
+  try { Object.assign(state, JSON.parse(localStorage.getItem("weasysvg-comparison") || "{}")); } catch (error) { /* storage unavailable */ }
+}
+function save() {
+  try { localStorage.setItem("weasysvg-comparison", JSON.stringify({ mode: state.mode, zoom: state.zoom, left: state.left, right: state.right })); } catch (error) { /* storage unavailable */ }
+}
+function element(tag, attributes, children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attributes || {})) {
+    if (key === "text") node.textContent = value; else node.setAttribute(key, value);
+  }
+  for (const child of children || []) node.append(child);
+  return node;
+}
+function badge(verdict) {
+  return element("span", { class: "badge " + (verdict || ""), text: labels[verdict] || "n/a" });
+}
+function panel(item, key, caption) {
+  const path = item.panels[key];
+  const children = [element("figcaption", {}, caption || [renderers[key]])];
+  if (path) {
+    const image = element("img", { src: path, alt: item.name + " in " + renderers[key], loading: "lazy", width: item.width * state.zoom, height: item.height * state.zoom });
+    image.addEventListener("click", () => openLightbox(item, key));
+    children.push(image);
+  } else {
+    children.push(element("div", { class: "missing", text: item.errors[key] || "no panel" }));
+  }
+  return element("figure", { class: key }, children);
+}
+function flipPanel(item) {
+  const caption = element("figcaption", {}, []);
+  const figure = panel(item, state.left, [caption]);
+  figure.classList.add("flip");
+  let showing = state.left;
+  const show = (key) => {
+    showing = key;
+    caption.replaceChildren(element("strong", { text: renderers[key] }), " - hover or tap to see " + renderers[key === state.left ? state.right : state.left]);
+    const image = figure.querySelector("img");
+    if (image && item.panels[key]) image.src = item.panels[key];
+  };
+  show(state.left);
+  figure.addEventListener("mouseenter", () => show(state.right));
+  figure.addEventListener("mouseleave", () => show(state.left));
+  figure.addEventListener("touchstart", () => show(showing === state.left ? state.right : state.left), { passive: true });
+  return figure;
+}
+function card(item) {
+  const source = element("a", { href: "svg/" + item.source, text: item.source });
+  const meta = element("p", { class: "meta" }, [source, " · WeasyPrint ", badge(item.native), " weasysvg ", badge(item.verdict)]);
+  const children = [element("h2", { text: item.name }), meta];
+  if (item.what) children.push(element("p", { class: "meta", text: item.what }));
+  const wide = item.width >= 2 * item.height;
+  let panels;
+  if (state.mode === "flip") panels = element("div", { class: "panels one" }, [flipPanel(item)]);
+  else if (state.mode === "four") panels = element("div", { class: "panels four" + (wide ? " wide" : "") }, ["chromium", "weasysvg", "resvg", "weasyprint"].map((key) => panel(item, key)));
+  else panels = element("div", { class: "panels two" + (wide ? " wide" : "") }, [panel(item, state.left), panel(item, state.right)]);
+  children.push(panels);
+  return element("article", { id: item.name }, children);
+}
+function visible() {
+  const search = state.search.toLowerCase();
+  return data.items.filter((item) => (!state.group || item.group === state.group)
+    && (!state.verdict || item.verdict === state.verdict)
+    && (!search || item.name.toLowerCase().includes(search)));
+}
+function render() {
+  const items = visible();
+  document.getElementById("list").replaceChildren(...items.map(card));
+  document.getElementById("count").textContent = items.length + " of " + data.items.length;
+  for (const button of document.querySelectorAll("#mode button")) button.setAttribute("aria-pressed", String(button.dataset.mode === state.mode));
+  for (const button of document.querySelectorAll("#zoom button")) button.setAttribute("aria-pressed", String(Number(button.dataset.zoom) === state.zoom));
+  document.getElementById("left").disabled = state.mode === "four";
+  document.getElementById("right").disabled = state.mode === "four";
+}
+
+let current = null;
+let currentKey = "chromium";
+function openLightbox(item, key) {
+  current = item;
+  currentKey = key;
+  document.getElementById("lightbox").classList.add("open");
+  showLightbox();
+}
+function showLightbox() {
+  document.getElementById("lb-name").textContent = current.name;
+  const image = document.getElementById("lb-image");
+  image.src = current.panels[currentKey] || "";
+  image.alt = current.name + " in " + renderers[currentKey];
+  image.style.width = lightboxZoom === "fit" ? "" : current.width * Number(lightboxZoom) + "px";
+  document.getElementById("lb-stage").classList.toggle("fit", lightboxZoom === "fit");
+  for (const button of document.querySelectorAll("#lb-zoom button")) button.setAttribute("aria-pressed", String(button.dataset.zoom === lightboxZoom));
+  for (const button of document.querySelectorAll("#lb-renderers button")) {
+    button.setAttribute("aria-pressed", String(button.dataset.key === currentKey));
+    button.disabled = !current.panels[button.dataset.key];
+  }
+}
+function closeLightbox() {
+  document.getElementById("lightbox").classList.remove("open");
+  current = null;
+}
+function step(direction) {
+  const items = visible();
+  const index = items.indexOf(current);
+  if (index < 0) return;
+  current = items[(index + direction + items.length) % items.length];
+  showLightbox();
+}
+
+function setup() {
+  load();
+  document.getElementById("intro").textContent = data.intro;
+  for (const id of ["left", "right"]) {
+    const select = document.getElementById(id);
+    for (const [key, label] of Object.entries(renderers)) select.append(element("option", { value: key, text: label }));
+    select.value = state[id];
+    select.addEventListener("change", () => { state[id] = select.value; save(); render(); });
+  }
+  const group = document.getElementById("group");
+  for (const [key, label] of Object.entries(groups)) group.append(element("option", { value: key, text: label }));
+  group.addEventListener("change", () => { state.group = group.value; render(); });
+  const verdict = document.getElementById("verdict");
+  for (const [key, label] of Object.entries(labels)) verdict.append(element("option", { value: key, text: label + " (" + data.counts[key] + ")" }));
+  verdict.addEventListener("change", () => { state.verdict = verdict.value; render(); });
+  const search = document.getElementById("search");
+  search.addEventListener("input", () => { state.search = search.value; render(); });
+  for (const button of document.querySelectorAll("#mode button")) {
+    button.addEventListener("click", () => { state.mode = button.dataset.mode; save(); render(); });
+  }
+  const bar = document.getElementById("lb-renderers");
+  Object.entries(renderers).forEach(([key, label], index) => {
+    const button = element("button", { type: "button", "data-key": key, text: (index + 1) + " " + label });
+    button.addEventListener("click", () => { currentKey = key; showLightbox(); });
+    bar.append(button);
+  });
+  for (const button of document.querySelectorAll("#zoom button")) {
+    button.addEventListener("click", () => { state.zoom = Number(button.dataset.zoom); save(); render(); });
+  }
+  for (const button of document.querySelectorAll("#lb-zoom button")) {
+    button.addEventListener("click", () => { lightboxZoom = button.dataset.zoom; showLightbox(); });
+  }
+  document.getElementById("lb-close").addEventListener("click", closeLightbox);
+  document.getElementById("lightbox").addEventListener("click", (event) => { if (event.target.id === "lb-stage") closeLightbox(); });
+  document.addEventListener("keydown", (event) => {
+    if (!current) return;
+    const keys = Object.keys(renderers);
+    if (event.key === "Escape") closeLightbox();
+    else if (event.key === "ArrowRight") step(1);
+    else if (event.key === "ArrowLeft") step(-1);
+    else if (event.key === "+" || event.key === "-") {
+      const steps = ["fit", "1", "2", "4"];
+      const index = steps.indexOf(lightboxZoom) + (event.key === "+" ? 1 : -1);
+      lightboxZoom = steps[Math.min(Math.max(index, 0), steps.length - 1)];
+      showLightbox();
+    }
+    else if (event.key === " ") { currentKey = currentKey === state.left ? state.right : state.left; showLightbox(); }
+    else if (/^[1-4]$/.test(event.key) && current.panels[keys[Number(event.key) - 1]]) { currentKey = keys[Number(event.key) - 1]; showLightbox(); }
+    else return;
+    event.preventDefault();
+  });
+  render();
+}
+setup();
+</script>
+</body>
+</html>

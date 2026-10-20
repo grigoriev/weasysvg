@@ -29,7 +29,7 @@ make upstream           # gap probes and hook snapshot, WeasyPrint alone (upstre
 make hooks              # write upstream/hooks.json for the installed WeasyPrint
 make visual-baseline    # write corpus/baseline.json, weasysvg and WeasyPrint alone
 make visual-check       # compare with corpus/baseline.json, fails when weasysvg got worse
-make comparison         # write corpus/COMPARISON.md and its panels in corpus/render
+make comparison         # write corpus/COMPARISON.md, corpus/comparison.html (GitHub Pages), panels in corpus/render
 uv build                # wheel and sdist
 ```
 
