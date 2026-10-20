@@ -265,6 +265,14 @@ def test_complex_clip_in_bounding_box_units_without_a_box() -> None:
     render(svg(f'<defs>{clip}</defs><g clip-path="url(#c)"/>'))
 
 
+@pytest.mark.parametrize("shape", ['<g clip-path="url(#c)"><rect width="200" height="100" fill="red"/></g>', '<circle cx="100" cy="50" r="50" fill="red" clip-path="url(#c)"/>'])
+def test_bounding_box_clip_on_any_element(shape: str) -> None:
+    # The left half of the box, for a group or a circle as for a rect
+    pdf = render(svg(f'<defs><clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath></defs>{shape}'))
+    assert near(pixel(pdf, 56, 30), RED)
+    assert near(pixel(pdf, 90, 30), WHITE)
+
+
 def test_text_in_a_clip_path_clips() -> None:
     clip = '<clipPath id="c"><text x="10" y="80" font-size="80" font-weight="bold">II</text></clipPath>'
     pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))

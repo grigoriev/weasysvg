@@ -10,8 +10,8 @@ Touches:
 - ``svg.defs.paint_mask``: replaced. Region of an objectBoundingBox mask, maskContentUnits, a cycle
   through mask="..." is broken, mask="..." on the <mask> itself is ignored as in Chromium, and the tag
   of the <mask> is restored, else the walk draws it as a <g>.
-- a complex clip path, through ``_core``: one whose children carry clip-path, clip-rule="evenodd",
-  text or <use>. One W clip cannot express it: it becomes an alpha soft mask, each child filled by its
+- a complex clip path, through ``_core``: one in objectBoundingBox units, or whose children carry
+  clip-path, clip-rule="evenodd", text or <use>. One W clip cannot express it: it becomes an alpha soft mask, each child filled by its
   clip-rule. WeasyPrint dropped such children, ignored clip-rule and painted clip text in black.
 - ``svg.Node.override_iter``: a list instead of a one-shot iterator, so a node can be walked twice.
 - ``svg.SVG.draw_node``, through ``_core``: mix-blend-mode as an isolated group, and a mask on a container
@@ -364,6 +364,9 @@ def complex_clip(svg: Any, node: Any) -> Any:
     # A clip path being drawn is tagged <g>: a cycle back to it ends here
     if clip is None or clip.tag != "clipPath":
         return None
+    # WeasyPrint sizes an objectBoundingBox clip by x, y, width and height: right for a <rect> only
+    if clip.get("clipPathUnits") == "objectBoundingBox":
+        return clip
     for child in clip:
         if child.get("clip-path") or child.get("clip-rule") == "evenodd" or child.tag in ("text", "use"):
             return clip
