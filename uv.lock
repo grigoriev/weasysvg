@@ -1579,6 +1579,8 @@ name = "weasysvg"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "fonttools", version = "4.65.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "fonttools", version = "4.67.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "weasyprint" },
 ]
 
@@ -1598,6 +1600,7 @@ visual = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fonttools", specifier = ">=4.59.2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "==2.4.0" },
     { name = "numpy", marker = "python_full_version >= '3.12' and extra == 'visual'", specifier = "==2.5.4" },
     { name = "playwright", marker = "extra == 'visual'", specifier = "==1.64.0" },

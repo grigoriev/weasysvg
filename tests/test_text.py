@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+import io
 import math
 import re
+from collections import OrderedDict
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
+from fontTools.ttLib import TTFont
 from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
+from weasyprint.text.fonts import get_hb_object_data
 
-from weasysvg import text
+from weasysvg import ink, text
 from weasysvg.text import baseline_shift, drop_nested_text
 
 
@@ -128,18 +133,35 @@ def test_decoration_lines(value: str, lines: int) -> None:
 
 
 @pytest.mark.parametrize(
-    ("font_size", "ascent", "underline_position", "underline_thickness", "expected"),
+    ("font_size", "ascent", "expected"),
     [
-        # Measured in Chromium: Liberation Serif at 24 px, Liberation Sans at 37 px
-        (24, 21.39, -1.441, 1.172, [(2.0, 2.4), (-23.0, 2.4), (-8.2, 2.4)]),
-        (37, 33.495, -1.210, 2.710, [(2.0, 3.7), (-36.0, 3.7), (-12.85, 3.7)]),
-        # A font without an underline position: a gap of half the thickness, one at least
-        (8, 7.0, 0.0, 0.5, [(1.0, 1.0), (-8.0, 1.0), (-2.833, 1.0)]),
+        # Measured in Chromium: Liberation Serif at 24 px, Liberation Sans at 37 px, and a small font
+        (24, 21.39, [(2.0, 2.4), (-23.0, 2.4), (-8.2, 2.4)]),
+        (37, 33.495, [(2.0, 3.7), (-36.0, 3.7), (-12.85, 3.7)]),
+        # At 8 px the line is drawn 1 px thick, but placed by its 0.8
+        (8, 7.0, [(1.0, 1.0), (-7.0, 1.0), (-2.733, 1.0)]),
     ],
 )
-def test_decoration_lines_sit_where_chromium_puts_them(font_size: float, ascent: float, underline_position: float, underline_thickness: float, expected: list[tuple[float, float]]) -> None:
-    lines = text.chromium_lines(["underline", "overline", "line-through"], font_size, ascent, underline_position, underline_thickness)
+def test_decoration_lines_sit_where_chromium_puts_them(font_size: float, ascent: float, expected: list[tuple[float, float]]) -> None:
+    lines = text.chromium_lines(["underline", "overline", "line-through"], font_size, ascent)
     assert lines == [pytest.approx(line, abs=1e-3) for line in expected]
+
+
+@pytest.mark.parametrize(
+    ("font_size", "gap"),
+    [
+        # Read from the PDF Chromium prints, for Liberation Sans, Liberation Sans Bold, Liberation Serif,
+        # Noto Sans and DejaVu Sans alike: the gap follows the thickness of the line, not the font
+        (8, 1.0),
+        (12, 1.0),
+        (18, 1.0),
+        (24, 2.0),
+        (37, 2.0),
+        (60, 3.0),
+    ],
+)
+def test_the_underline_gap_follows_the_line_not_the_font(font_size: float, gap: float) -> None:
+    assert text.chromium_lines(["underline"], font_size, font_size * 0.9)[0][0] == gap
 
 
 def test_decoration_lines_are_a_tenth_of_the_font_size() -> None:
@@ -160,6 +182,84 @@ def test_decoration_lines_follow_the_scale_of_the_svg(decoration: str) -> None:
     scaled = lines(f'<text x="1" y="5" font-size="3" text-decoration="{decoration}">Decor</text>', ' viewBox="0 0 20 10"')
     assert plain
     assert scaled == [pytest.approx(value / 10, abs=1e-3) for value in plain]
+
+
+def line_pieces(pdf: bytes) -> list[tuple[float, float]]:
+    """The left and right end of each thin rectangle: the pieces of the decoration lines."""
+    found = re.findall(r"([-\d.]+) [-\d.]+ ([-\d.]+) ([-\d.]+) re", content(pdf))
+    return sorted((float(x), float(x) + float(width)) for x, width, height in found if 0 < float(height) < 10)
+
+
+@pytest.mark.parametrize(("decoration", "pieces"), [("underline", 2), ("overline", 1), ("line-through", 1)])
+def test_an_underline_skips_the_ink_of_descenders(decoration: str, pieces: int) -> None:
+    # "agya": the descenders of g and y cut one gap in the underline, their gaps merged; nothing crosses the
+    # overline, and a line-through skips no ink
+    pdf = render(svg(f'<text x="10" y="60" font-size="40" text-decoration="{decoration}">agya</text>', height=100))
+    assert len(line_pieces(pdf)) == pieces
+
+
+@pytest.mark.parametrize("body", ['<text x="10" y="50" text-decoration="underline">_</text>', '<path id="p" d="M 10 50 H 200" fill="none"/><text text-decoration="underline"><textPath href="#p">_</textPath></text>'])
+def test_a_line_all_under_ink_paints_no_empty_path(body: str) -> None:
+    # The underscore crosses the whole underline: nothing is left to fill, and a paint operator needs a path
+    lines = content(render(svg(body))).split("\n")
+    painted = [lines[index - 1] for index, line in enumerate(lines) if line in ("f", "S", "B")]
+    assert all(line.endswith((" re", " l", " c", " m", "h")) for line in painted)
+
+
+def test_a_line_without_descenders_is_whole() -> None:
+    assert len(line_pieces(render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">Decor</text>', height=100)))) == 1
+
+
+def test_a_gap_clears_the_ink_by_the_thickness_of_the_line() -> None:
+    # The gap around the g: its ink in the band of the line, 4 units wider on each side, within its advance
+    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">ogo</text>', height=100))
+    (_, gap_start), (gap_end, _) = line_pieces(pdf)
+    assert 8 < gap_end - gap_start < 8 + 0.7 * 40
+
+
+@pytest.mark.parametrize(
+    ("cuts", "expected"),
+    [
+        ([(40, 50)], [(0, 36), (54, 100)]),
+        # Gaps that meet merge; a gap past an end leaves no piece there
+        ([(40, 50), (55, 60), (98, 120)], [(0, 36), (64, 94)]),
+        ([(-10, 120)], []),
+        ([], [(0, 100)]),
+    ],
+)
+def test_skipped_pieces(cuts: list[tuple[float, float]], expected: list[tuple[float, float]]) -> None:
+    assert ink.skipped(0, 100, cuts, 4) == expected
+
+
+def test_the_band_of_a_cubic_curve() -> None:
+    # A CFF font draws cubic curves: the curve and the closing line cross y = 0 near x = 50
+    pen = ink._BandPen(None, -10, 10)
+    pen.moveTo((0, -50))
+    pen.curveTo((0, 0), (100, 0), (100, 50))
+    pen.closePath()
+    assert 30 < pen.left < pen.right < 70
+
+
+def test_a_glyph_outside_its_font_has_no_ink() -> None:
+    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
+    ink._FONTS["test"] = (path.read_bytes(), 0, 1000)
+    assert ink._extent("test", 10**6, 0, 1) is None
+
+
+def test_a_font_without_outlines_has_no_ink() -> None:
+    # A color emoji font holds bitmaps only (CBDT, sbix): no glyf, CFF or CFF2 table to read outlines from
+    font = TTFont(Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf")
+    del font["glyf"], font["loca"]
+    data = io.BytesIO()
+    font.save(data)
+    ink._FONTS["bitmaps"] = (data.getvalue(), 0, 1000)
+    assert ink._extent("bitmaps", 10, 0, 1) is None
+
+
+def test_a_character_no_font_has_cuts_nothing() -> None:
+    # The .notdef box of an unknown character is no glyph of the run: the underline stays whole
+    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">\U0010fffd</text>', height=100))
+    assert len(line_pieces(pdf)) == 1
 
 
 def test_decoration_skips_positioned_glyphs_and_blank_runs() -> None:
@@ -190,7 +290,7 @@ def test_failing_decoration_lines_restore_the_state() -> None:
 
     fake, node = SimpleNamespace(stream=stream, set_graphical_state=failing, fill_stroke=failing), SimpleNamespace()
     with pytest.raises(RuntimeError):
-        text._draw_lines(fake, node, 12, 0, 10, [(5, 1)])
+        text._draw_lines(fake, node, 12, [(0, 5, 10, 1)])
     assert stream.depth == 0
 
 
@@ -574,3 +674,81 @@ def test_arabic_letter_spacing_needs_no_leading_shift() -> None:
     arrays = re.findall(r"\[([^\]]*)\] TJ", content(render(svg(body, height=200))))
     assert len(arrays) > 1
     assert not any(re.match(r"(<>)?-?[\d.]", array) for array in arrays[1:])
+
+
+def test_text_without_underline_or_overline_reads_no_glyphs(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Only a line that skips ink needs the glyphs: other text pays nothing for it
+    calls: list[Any] = []
+
+    def recording(*args: Any) -> list[ink.Glyph]:
+        calls.append(args)
+        return []
+
+    monkeypatch.setattr(ink, "run_glyphs", recording)
+    pdf = render(svg('<text x="10" y="50">plain</text><text x="10" y="80" text-decoration="line-through">struck</text>'))
+    assert "plain" in text_of(pdf)
+    assert calls == []
+
+
+def test_a_font_file_is_read_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Each run of each text reads the same font, at five sizes: its file is read and hashed once
+    reads: list[Any] = []
+
+    def recording(face: Any) -> Any:
+        reads.append(face)
+        return get_hb_object_data(face)
+
+    monkeypatch.setattr(ink, "get_hb_object_data", recording)
+    ink._FACES.clear()
+    lines = "".join(f'<text x="10" y="{20 + 15 * index}" font-size="{12 + index}" text-decoration="underline">line {index}</text>' for index in range(5))
+    render(svg(lines, height=100))
+    assert len(reads) == 1
+
+
+def test_a_glyph_of_a_dropped_font_has_no_ink_until_it_comes_back() -> None:
+    # The run was laid out, then its font left the bounded cache: the line keeps its piece. Once the font
+    # is read again, its glyphs cut the line again
+    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
+    font = TTFont(path)
+    glyph = ink.Glyph("dropped", font.getGlyphID("p"), 0, 0, 0.01)
+    ink._FONTS.pop("dropped", None)
+    assert ink.intercepts([glyph], 0, 1) == []
+    ink._FONTS["dropped"] = (path.read_bytes(), 0, 1000)
+    assert len(ink.intercepts([glyph], 0, 1)) == 1
+
+
+@pytest.fixture
+def fresh_caches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Caches of this test alone: fake faces must not stay under addresses a real face can take later."""
+    monkeypatch.setattr(ink, "_FACES", OrderedDict())
+    monkeypatch.setattr(ink, "_FONTS", OrderedDict())
+
+
+def test_an_unreadable_font_has_no_ink(fresh_caches: None) -> None:
+    # HarfBuzz may take a font fontTools rejects: the line stays whole, the render goes on
+    ink._FONTS["unreadable"] = (b"no font at all", 0, 1000)
+    assert ink.intercepts([ink.Glyph("unreadable", 1, 0, 0, 0.01)], 0, 1) == []
+
+
+@pytest.mark.usefixtures("fresh_caches")
+def test_the_faces_of_one_collection_have_keys_of_their_own(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A .ttc file holds several faces: each face reads its own outlines
+    from weasyprint.text.ffi import ffi
+
+    faces = [ffi.new("int *", index) for index in range(2)]
+    monkeypatch.setattr(ink, "get_pango_font_hb_face", lambda font: font)
+    monkeypatch.setattr(ink, "get_hb_object_data", lambda face: bytes(bytearray(b"one collection")))
+    monkeypatch.setattr(ink, "harfbuzz", SimpleNamespace(hb_face_get_index=lambda face: face[0], hb_face_get_upem=lambda face: 1000))
+    keys = [ink._font_key(face) for face in faces]
+    assert keys[0] != keys[1]
+    assert [ink._FONTS[key][1] for key in keys] == [0, 1]
+    # One copy of the file serves both faces
+    assert ink._FONTS[keys[0]][0] is ink._FONTS[keys[1]][0]
+
+
+@pytest.mark.usefixtures("fresh_caches")
+def test_the_font_caches_are_bounded() -> None:
+    for index in range(ink.MAX_FONTS + 10):
+        ink._remember(ink._FACES, index, (str(index), None))
+    assert len(ink._FACES) == ink.MAX_FONTS
+    assert 0 not in ink._FACES

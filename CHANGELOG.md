@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `weasysvg.install()` patches WeasyPrint 70.x to render SVG close to Chromium: `<foreignObject>`,
   conditional processing, vector filter chains (blur, exact for a plain rect, color matrices and
   transfer functions included), masks set before the path, pattern and gradient fixes, `mix-blend-mode`, unclipped
-  opacity groups, marker orientation, text baselines from font metrics, text-anchor per text chunk, filters, masks and clips on text, circles of the right length, dots of zero-length dashes in place in PDFium, negative dash offsets of odd dash arrays, decorations placed as in Chromium, font-size
+  opacity groups, marker orientation, text baselines from font metrics, text-anchor per text chunk, filters, masks and clips on text, circles of the right length, dots of zero-length dashes in place in PDFium, negative dash offsets of odd dash arrays, decorations placed as in Chromium with underlines that skip the ink of the glyphs, font-size
   keywords, and Chromium font selection. No SVG content is rasterized: the PDF stays vector.
 - `feTurbulence`, drawn as an image of the noise, and `feComposite` arithmetic.
 - Python 3.10 to 3.14 and PyPy 3.11, the versions WeasyPrint 70 supports.

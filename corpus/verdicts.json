@@ -121,7 +121,7 @@
   "reference": "chromium",
   "reference_why": "resvg draws the underline under 'waiting' through the descenders; Chromium skips their ink.",
   "verdict": "close",
-  "what": "The underline under 'waiting' runs through the descenders; Chromium skips their ink.",
+  "what": "The underline under 'waiting' runs whole: the text has a textLength, so it is laid out character by character and skips no ink. Chromium cuts it under each glyph.",
   "native_verdict": "close",
   "native_what": "The underline under 'waiting' is missing."
  },
@@ -264,8 +264,8 @@
   "name": "drawio__connect-shapes",
   "reference": "chromium",
   "reference_why": "resvg draws the labels in a serif.",
-  "verdict": "close",
-  "what": "The underlines of the links run through the descenders; Chromium skips their ink. The remote GIFs are blocked in every rendering, by policy.",
+  "verdict": "same",
+  "what": "Matches, the underlines of the links skip the ink as in Chromium. The remote GIFs are blocked in every rendering, by policy.",
   "native_verdict": "close",
   "native_what": "The links lose their underline."
  },
@@ -993,8 +993,8 @@
   "name": "resvg__text-textPath--with-underline",
   "reference": "chromium",
   "reference_why": "resvg and the resvg suite draw a thinner underline, from the font, through the descenders; Chromium a tenth of the font size, skipping the ink.",
-  "verdict": "close",
-  "what": "The underline runs under the descenders too: Chromium breaks it around them.",
+  "verdict": "same",
+  "what": "Matches: the underline breaks around the descenders, as in Chromium.",
   "native_verdict": "differs",
   "native_what": "No text on the path."
  },

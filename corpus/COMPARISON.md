@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 41 | 104 |
-| 🟡 close to the reference | 20 | 9 |
+| ✅ matches the reference | 41 | 106 |
+| 🟡 close to the reference | 20 | 7 |
 | ❌ differs from the reference | 54 | 1 |
 
 References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
@@ -210,7 +210,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg draws the underline under &#x27;waiting&#x27; through the descenders; Chromium skips their ink. |
-| 🟡 | weasysvg | **close to the reference** | The underline under &#x27;waiting&#x27; runs through the descenders; Chromium skips their ink. |
+| 🟡 | weasysvg | **close to the reference** | The underline under &#x27;waiting&#x27; runs whole: the text has a textLength, so it is laid out character by character and skips no ink. Chromium cuts it under each glyph. |
 | 🟡 | WeasyPrint | **close to the reference** | The underline under &#x27;waiting&#x27; is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -436,7 +436,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg draws the labels in a serif. |
-| 🟡 | weasysvg | **close to the reference** | The underlines of the links run through the descenders; Chromium skips their ink. The remote GIFs are blocked in every rendering, by policy. |
+| ✅ | weasysvg | **matches the reference** | Matches, the underlines of the links skip the ink as in Chromium. The remote GIFs are blocked in every rendering, by policy. |
 | 🟡 | WeasyPrint | **close to the reference** | The links lose their underline. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -1576,7 +1576,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg and the resvg suite draw a thinner underline, from the font, through the descenders; Chromium a tenth of the font size, skipping the ink. |
-| 🟡 | weasysvg | **close to the reference** | The underline runs under the descenders too: Chromium breaks it around them. |
+| ✅ | weasysvg | **matches the reference** | Matches: the underline breaks around the descenders, as in Chromium. |
 | ❌ | WeasyPrint | **differs from the reference** | No text on the path. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
