@@ -65,6 +65,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.pdf.stream:Stream.add_group": "_core, filters, paint groups",
     "weasyprint.pdf.stream:Stream.set_alpha_state": "filters blur masks, paint clip masks",
     "weasyprint.pdf.stream:Stream.add_pattern": "paint._scaled_add_pattern",
+    "weasyprint.pdf.stream:Stream.create_interpolation_function": "paint._scaled_add_pattern forces its exponent n to 1",
     "weasyprint.pdf.stream:Stream.clone": "groups start with an identity ctm",
     "weasyprint.css:ComputedStyle.__missing__": "fonts._computed_families, called through COMPUTER_FUNCTIONS",
     "weasyprint.css:AnonymousStyle.__missing__": "fonts._computed_families, called through COMPUTER_FUNCTIONS",
@@ -85,28 +86,39 @@ def _names(node: ast.AST) -> list[str]:
     return [target.id for target in targets if isinstance(target, ast.Name)]
 
 
-def _definition(tree: ast.Module, qualified: str) -> ast.AST:
+def _definitions(tree: ast.Module, qualified: str) -> list[ast.AST]:
+    """Every definition of the last name, a property getter and its setter included."""
     scope: ast.AST = tree
-    for part in qualified.split("."):
+    *outer, last = qualified.split(".")
+    for part in outer:
         found = next((node for node in ast.iter_child_nodes(scope) if part in _names(node)), None)
         if found is None:
             raise LookupError(qualified)
         scope = found
-    return scope
+    nodes = [node for node in ast.iter_child_nodes(scope) if last in _names(node)]
+    if not nodes:
+        raise LookupError(qualified)
+    return nodes
+
+
+def _source(source: str, node: ast.AST) -> str:
+    """The source of a definition with its decorators: @property turned @cached_property matters."""
+    decorators = [ast.get_source_segment(source, decorator) or "" for decorator in getattr(node, "decorator_list", [])]
+    return "".join(f"@{decorator}\n" for decorator in decorators) + textwrap.dedent(ast.get_source_segment(source, node) or "")
 
 
 def fingerprint(target: str) -> str:
-    """The hash of the syntax tree of target, or "missing" when the module or the name is gone."""
+    """The hash of the source of target, or "missing" when the module or the name is gone."""
     module, qualified = target.split(":")
     spec = importlib.util.find_spec(module)
     if spec is None or spec.origin is None:
         return "missing"
     source = Path(spec.origin).read_text()
     try:
-        segment = ast.get_source_segment(source, _definition(ast.parse(source), qualified)) or ""
+        nodes = _definitions(ast.parse(source), qualified)
     except LookupError:
         return "missing"
-    return hashlib.sha256(_bare(textwrap.dedent(segment)).encode()).hexdigest()[:16]
+    return hashlib.sha256(_bare("\n".join(_source(source, node) for node in nodes)).encode()).hexdigest()[:16]
 
 
 def _bare(code: str) -> str:

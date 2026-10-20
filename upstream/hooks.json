@@ -38,7 +38,7 @@
    "used_by": "text.drop_invalid_rotate: rotate parsed during the cascade"
   },
   "weasyprint.svg:Node.tag": {
-   "fingerprint": "59bb0c65bc516409",
+   "fingerprint": "b0c2efa82a2772aa",
    "used_by": "clip paths, masks and the root are retagged <g> while they draw"
   },
   "weasyprint.svg:TAGS": {
@@ -152,6 +152,10 @@
   "weasyprint.pdf.stream:Stream.add_pattern": {
    "fingerprint": "a904666c25081fe1",
    "used_by": "paint._scaled_add_pattern"
+  },
+  "weasyprint.pdf.stream:Stream.create_interpolation_function": {
+   "fingerprint": "b1feacaa57a4e477",
+   "used_by": "paint._scaled_add_pattern forces its exponent n to 1"
   },
   "weasyprint.pdf.stream:Stream.clone": {
    "fingerprint": "e2d455211bb7a2d8",
