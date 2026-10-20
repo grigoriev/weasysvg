@@ -61,8 +61,10 @@ def _font_key(pango_font: Any, description: int) -> str:
     if key is None or key not in _FONTS:
         face = get_pango_font_hb_face(pango_font)
         data = get_hb_object_data(face)
-        key = hashlib.sha1(data, usedforsecurity=False).hexdigest()
-        _remember(_FONTS, key, (data, harfbuzz.hb_face_get_index(face), harfbuzz.hb_face_get_upem(face)))
+        # The faces of a collection share their file: the index tells them apart
+        index = harfbuzz.hb_face_get_index(face)
+        key = f"{hashlib.sha1(data, usedforsecurity=False).hexdigest()}:{index}"
+        _remember(_FONTS, key, (data, index, harfbuzz.hb_face_get_upem(face)))
         _remember(_FACES, identity, key)
     return key
 
@@ -147,8 +149,6 @@ class _BandPen(BasePen):  # type: ignore[misc]  # fontTools ships no type inform
 @functools.lru_cache(maxsize=4096)
 def _extent(key: str, glyph: int, low: float, high: float) -> tuple[float, float] | None:
     """Where the outline of glyph lies within the band from low to high, in font units, y up."""
-    if key not in _FONTS:
-        return None  # dropped from the cache since the run was laid out
     font = _font(key)
     if not any(table in font for table in ("glyf", "CFF ", "CFF2")):
         return None  # bitmap glyphs only (CBDT, sbix): no outline to skip
@@ -165,6 +165,8 @@ def intercepts(glyphs: list[Glyph], top: float, bottom: float) -> list[tuple[flo
     """Where the glyphs cross the band from top to bottom, below the baseline positive, in user units."""
     out = []
     for glyph in glyphs:
+        if glyph.font not in _FONTS:
+            continue  # dropped from the cache since the run was laid out: outside the caches of _extent
         # The band in the font units of the glyph, y up from its own baseline
         low, high = (glyph.y - bottom) / glyph.scale, (glyph.y - top) / glyph.scale
         extent = _extent(glyph.font, glyph.index, round(low, 3), round(high, 3))

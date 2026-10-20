@@ -657,9 +657,30 @@ def test_a_font_file_is_read_once(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(reads) == 1
 
 
-def test_a_glyph_of_a_dropped_font_has_no_ink() -> None:
-    # The run was laid out, then its font left the bounded cache: the line keeps its piece
-    assert ink._extent("dropped", 0, 0, 1) is None
+def test_a_glyph_of_a_dropped_font_has_no_ink_until_it_comes_back() -> None:
+    # The run was laid out, then its font left the bounded cache: the line keeps its piece. Once the font
+    # is read again, its glyphs cut the line again
+    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
+    font = TTFont(path)
+    glyph = ink.Glyph("dropped", font.getGlyphID("p"), 0, 0, 0.01)
+    ink._FONTS.pop("dropped", None)
+    assert ink.intercepts([glyph], 0, 1) == []
+    ink._FONTS["dropped"] = (path.read_bytes(), 0, 1000)
+    assert len(ink.intercepts([glyph], 0, 1)) == 1
+
+
+def test_the_faces_of_one_collection_have_keys_of_their_own(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A .ttc file holds several faces: each face reads its own outlines
+    from weasyprint.text.ffi import ffi
+
+    fonts = [ffi.new("int *") for _ in range(2)]
+    faces = {int(ffi.cast("uintptr_t", font)): index for index, font in enumerate(fonts)}
+    monkeypatch.setattr(ink, "get_pango_font_hb_face", lambda font: faces[int(ffi.cast("uintptr_t", font))])
+    monkeypatch.setattr(ink, "get_hb_object_data", lambda face: b"one collection")
+    monkeypatch.setattr(ink, "harfbuzz", SimpleNamespace(hb_face_get_index=lambda face: face, hb_face_get_upem=lambda face: 1000))
+    keys = [ink._font_key(font, 0) for font in fonts]
+    assert keys[0] != keys[1]
+    assert [ink._FONTS[key][1] for key in keys] == [0, 1]
 
 
 def test_the_font_caches_are_bounded() -> None:
