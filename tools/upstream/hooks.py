@@ -72,19 +72,26 @@ HOOKS: dict[str, str] = {
 }
 
 
+def _names(node: ast.AST) -> list[str]:
+    """The names a top-level node defines: a function, a class, or the targets of an assignment."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return [node.name]
+    if isinstance(node, ast.Assign):
+        targets = node.targets
+    elif isinstance(node, ast.AnnAssign):
+        targets = [node.target]
+    else:
+        return []
+    return [target.id for target in targets if isinstance(target, ast.Name)]
+
+
 def _definition(tree: ast.Module, qualified: str) -> ast.AST:
     scope: ast.AST = tree
     for part in qualified.split("."):
-        for node in ast.iter_child_nodes(scope):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == part:
-                scope = node
-                break
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target] if isinstance(node, ast.AnnAssign) else []
-            if any(isinstance(target, ast.Name) and target.id == part for target in targets):
-                scope = node
-                break
-        else:
+        found = next((node for node in ast.iter_child_nodes(scope) if part in _names(node)), None)
+        if found is None:
             raise LookupError(qualified)
+        scope = found
     return scope
 
 
