@@ -380,12 +380,16 @@ def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, flo
         if primitive is None:
             raise Unsupported(child.tag)
         out = primitive(chain, child)
+        if len(out) > MAX_LAYERS:
+            raise Unsupported("too many layers")
         chain.last = out
         if child.get("result"):
             chain.results[child.get("result")] = out
     return chain.last
 
 
+# The most layers one chain may have: feMerge and feComposite can double them at each primitive
+MAX_LAYERS = 64
 # The largest filter region coordinate, in user units
 MAX_REGION = 1e7
 
@@ -522,6 +526,8 @@ class Restyle:
 
 
 RESTYLE: ContextVar[Restyle | None] = ContextVar("weasysvg_restyle", default=None)
+# While the passes of a blur draw, a blur inside draws sharp: nested blurs would cost 50 ** depth draws
+BLURRING: ContextVar[bool] = ContextVar("weasysvg_blurring", default=False)
 # The recoloring of the source being drawn: every parsed color goes through it
 RECOLOR: ContextVar[tuple[Recolor, ...]] = ContextVar("weasysvg_recolor", default=())
 HIDDEN = {"fill": "none", "stroke": "none"}
@@ -641,6 +647,7 @@ def _gray(value: float) -> Any:
 
 def _draw_into(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, target: Any, mode: Restyle | None, recolor: tuple[Recolor, ...] = ()) -> None:
     previous, token, colors = svg.stream, RESTYLE.set(mode), RECOLOR.set(recolor)
+    blurring = BLURRING.set(True) if mode is not None else None
     svg.stream = target
     # original is the draw_node of WeasyPrint: the node itself does not pass the wrapper of _core
     restyled = _core.restyle(svg, node, font_size)
@@ -651,6 +658,8 @@ def _draw_into(svg: Any, original: Callable[..., None], node: Any, font_size: fl
         svg.stream = previous
         RESTYLE.reset(token)
         RECOLOR.reset(colors)
+        if blurring is not None:
+            BLURRING.reset(blurring)
 
 
 def _fill_through(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, target: Any, mode: Restyle, gray: float, box: Region) -> None:
@@ -719,7 +728,7 @@ def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: 
 
 def _draw_layer(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region) -> None:
     stream.transform(e=layer.dx, f=layer.dy)
-    sigma = _sigma(layer)
+    sigma = 0.0 if BLURRING.get() else _sigma(layer)
     if layer.kind == "flood":
         stream.set_color(_with_alpha(layer.rgba, layer.opacity))
         stream.rectangle(*cast(Region, layer.region))

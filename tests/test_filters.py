@@ -523,3 +523,31 @@ def test_a_failing_layer_restores_the_stream(layer: Layer, opacity: float) -> No
     assert stream.depth == 0
     assert filters.RESTYLE.get() is None
     assert filters.RECOLOR.get() == ()
+
+
+# ---------------- bounded work ----------------
+
+
+def test_nested_blurs_draw_their_inner_blur_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A blur inside a blurred element is drawn sharp in the passes of the outer one: no 50 ** depth draws
+    calls = []
+    original = filters._blur_mask
+
+    def counted(*args: Any) -> None:
+        calls.append(1)
+        original(*args)
+
+    monkeypatch.setattr(filters, "_blur_mask", counted)
+    blur = '<filter id="b"><feGaussianBlur stdDeviation="2"/></filter>'
+    body = f'<defs>{blur}</defs><g filter="url(#b)"><g filter="url(#b)"><g filter="url(#b)"><rect x="20" y="20" width="60" height="40" fill="red"/></g></g></g>'
+    pdf = render(svg(body, height=120))
+    assert len(calls) == 1
+    assert near(pixel(pdf, 37, 30), RED, 40)
+
+
+def test_layer_fan_out_is_capped(caplog: pytest.LogCaptureFixture) -> None:
+    merges = "".join(f'<feMerge result="r"><feMergeNode in="{"r" if i else "SourceGraphic"}"/><feMergeNode in="{"r" if i else "SourceGraphic"}"/></feMerge>' for i in range(8))
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(filtered(merges))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert "too many layers" in caplog.text
