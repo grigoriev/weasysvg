@@ -285,7 +285,7 @@ def measure_text(svg: Any, node: Any, font_size: float) -> None:
         # A box cached before the text was measured lacks it
         node.bounding_box = None
         node.attrib.update(saved)
-        del outer._resources["XObject"][scratch.id]
+        outer._resources["XObject"].pop(scratch.id, None)
 
 
 def _draw_clipped(self: Any, original: Callable[..., None], node: Any, font_size: float, fill_stroke: bool, context: Any, effects: _Effects, filter_opacity: Any) -> None:
