@@ -21,7 +21,7 @@ from typing import Any
 
 from weasyprint.svg import utils as wp_utils
 
-from . import glyphs, pathdata
+from . import glyphs, ink, pathdata
 from .pathdata import Polyline
 
 XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
@@ -125,15 +125,21 @@ def _place(svg: Any, node: Any, font_size: float, state: _State, advances: list[
     return placed
 
 
-def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[tuple[float, float]]) -> None:
-    for index, (_, width, origin, cos, sin) in enumerate(placed):
+Decoration = tuple[float, float, float | None]  # top, thickness, how far it skips ink or None
+
+
+def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> None:
+    for index, (character, width, origin, cos, sin) in enumerate(placed):
         # The line runs on under the letter-spacing, up to the next character
         length = width + (letter_spacing if index + 1 < len(placed) else 0)
-        for top, thickness in decorations:
-            _turned_rectangle(svg.stream, origin, cos, sin, (0, top, length, thickness))
+        for top, thickness, dilation in decorations:
+            # Each character skips its own ink, in its own frame
+            cuts = ink.intercepts(characters.get(character, []), top, top + thickness) if dilation is not None else []
+            for left, right in ink.skipped(0, length, cuts, dilation or 0):
+                _turned_rectangle(svg.stream, origin, cos, sin, (left, top, right - left, thickness))
 
 
-def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advances: list[tuple[str, float]], decorations: list[tuple[float, float]]) -> None:
+def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advances: list[tuple[str, float]], decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> None:
     """Draw each character of node on the path, with its decoration lines."""
     placed = _place(svg, node, font_size, state, advances)
     if not placed:
@@ -145,7 +151,7 @@ def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advan
         fill, stroke = svg.set_graphical_state(node, font_size)
         glyphs.show(svg, style, fill, stroke, items)
         if decorations:
-            _decorate(svg, placed, svg.length(node.get("letter-spacing"), font_size), decorations)
+            _decorate(svg, placed, svg.length(node.get("letter-spacing"), font_size), decorations, characters)
             svg.fill_stroke(fill, stroke)
     finally:
         svg.stream.pop_state()

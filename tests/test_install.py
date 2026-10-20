@@ -122,7 +122,8 @@ def test_text_scale_counts_every_transform(monkeypatch: pytest.MonkeyPatch, body
 
     monkeypatch.setattr(_core, "text_scale", recording)
     render(svg(body, extra=extra))
-    assert seen == [pytest.approx(expected)]
+    assert seen
+    assert all(value == pytest.approx(expected) for value in seen)
 
 
 def test_px_per_unit_without_a_stream_is_one() -> None:

@@ -993,8 +993,8 @@
   "name": "resvg__text-textPath--with-underline",
   "reference": "both",
   "reference_why": "",
-  "verdict": "close",
-  "what": "The underline runs under the descenders too: Chromium breaks it around them.",
+  "verdict": "same",
+  "what": "Matches: the underline breaks around the descenders, as in Chromium.",
   "native_verdict": "differs",
   "native_what": "No text on the path."
  },

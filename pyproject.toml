@@ -30,6 +30,8 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    # ink.py reads glyph outlines; WeasyPrint 70 requires it already
+    "fonttools>=4.59.2",
     "weasyprint>=70,<71",
 ]
 
@@ -107,5 +109,5 @@ show_error_codes = true
 
 # WeasyPrint ships no type information
 [[tool.mypy.overrides]]
-module = ["weasyprint.*", "weasyprint", "pypdfium2.*", "numpy.*"]
+module = ["weasyprint.*", "weasyprint", "pypdfium2.*", "numpy.*", "fontTools.*"]
 ignore_missing_imports = true

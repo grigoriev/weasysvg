@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 47 | 110 |
-| 🟡 close to the reference | 15 | 3 |
+| ✅ matches the reference | 47 | 111 |
+| 🟡 close to the reference | 15 | 2 |
 | ❌ differs from the reference | 53 | 1 |
 
 References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
@@ -1576,7 +1576,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium and resvg |  |
-| 🟡 | weasysvg | **close to the reference** | The underline runs under the descenders too: Chromium breaks it around them. |
+| ✅ | weasysvg | **matches the reference** | Matches: the underline breaks around the descenders, as in Chromium. |
 | ❌ | WeasyPrint | **differs from the reference** | No text on the path. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
@@ -12,7 +13,7 @@ import pytest
 from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 
-from weasysvg import text
+from weasysvg import ink, text
 from weasysvg.text import baseline_shift, drop_nested_text
 
 
@@ -179,6 +180,66 @@ def test_decoration_lines_follow_the_scale_of_the_svg(decoration: str) -> None:
     assert scaled == [pytest.approx(value / 10, abs=1e-3) for value in plain]
 
 
+def line_pieces(pdf: bytes) -> list[tuple[float, float]]:
+    """The left and right end of each thin rectangle: the pieces of the decoration lines."""
+    found = re.findall(r"([-\d.]+) [-\d.]+ ([-\d.]+) ([-\d.]+) re", content(pdf))
+    return sorted((float(x), float(x) + float(width)) for x, width, height in found if 0 < float(height) < 10)
+
+
+@pytest.mark.parametrize(("decoration", "pieces"), [("underline", 2), ("overline", 1), ("line-through", 1)])
+def test_an_underline_skips_the_ink_of_descenders(decoration: str, pieces: int) -> None:
+    # "agya": the descenders of g and y cut one gap in the underline, their gaps merged; nothing crosses the
+    # overline, and a line-through skips no ink
+    pdf = render(svg(f'<text x="10" y="60" font-size="40" text-decoration="{decoration}">agya</text>', height=100))
+    assert len(line_pieces(pdf)) == pieces
+
+
+def test_a_line_without_descenders_is_whole() -> None:
+    assert len(line_pieces(render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">Decor</text>', height=100)))) == 1
+
+
+def test_a_gap_clears_the_ink_by_the_thickness_of_the_line() -> None:
+    # The gap around the g: its ink in the band of the line, 4 units wider on each side, within its advance
+    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">ogo</text>', height=100))
+    (_, gap_start), (gap_end, _) = line_pieces(pdf)
+    assert 8 < gap_end - gap_start < 8 + 0.7 * 40
+
+
+@pytest.mark.parametrize(
+    ("cuts", "expected"),
+    [
+        ([(40, 50)], [(0, 36), (54, 100)]),
+        # Gaps that meet merge; a gap past an end leaves no piece there
+        ([(40, 50), (55, 60), (98, 120)], [(0, 36), (64, 94)]),
+        ([(-10, 120)], []),
+        ([], [(0, 100)]),
+    ],
+)
+def test_skipped_pieces(cuts: list[tuple[float, float]], expected: list[tuple[float, float]]) -> None:
+    assert ink.skipped(0, 100, cuts, 4) == expected
+
+
+def test_the_band_of_a_cubic_curve() -> None:
+    # A CFF font draws cubic curves: the curve and the closing line cross y = 0 near x = 50
+    pen = ink._BandPen(None, -10, 10)
+    pen.moveTo((0, -50))
+    pen.curveTo((0, 0), (100, 0), (100, 50))
+    pen.closePath()
+    assert 30 < pen.left < pen.right < 70
+
+
+def test_a_glyph_outside_its_font_has_no_ink() -> None:
+    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
+    ink._FONTS["test"] = (path.read_bytes(), 0)
+    assert ink._extent("test", 10**6, 0, 1) is None
+
+
+def test_a_character_no_font_has_cuts_nothing() -> None:
+    # The .notdef box of an unknown character is no glyph of the run: the underline stays whole
+    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">\U0010fffd</text>', height=100))
+    assert len(line_pieces(pdf)) == 1
+
+
 def test_decoration_skips_positioned_glyphs_and_blank_runs() -> None:
     pdf = render(svg('<text x="10" y="50 60" text-decoration="underline">AB</text><text x="10" y="80" dy="1 2" text-decoration="underline">CD</text><text x="10" y="90" text-decoration="underline"> </text>'))
     assert rectangles(pdf) == 0
@@ -207,7 +268,7 @@ def test_failing_decoration_lines_restore_the_state() -> None:
 
     fake, node = SimpleNamespace(stream=stream, set_graphical_state=failing, fill_stroke=failing), SimpleNamespace()
     with pytest.raises(RuntimeError):
-        text._draw_lines(fake, node, 12, 0, 10, [(5, 1)])
+        text._draw_lines(fake, node, 12, [(0, 5, 10, 1)])
     assert stream.depth == 0
 
 
