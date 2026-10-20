@@ -60,7 +60,9 @@ or `browser` where headless Chromium matches no `systemLanguage`. `reference_why
 is wrong. `verdict` and `native_verdict` are `better`, `same`, `close` or `differs` against that reference, and
 `what` and `native_what` say what differs. Judge at full size, zoomed in, never from a thumbnail:
 `make review` (after `make visual-baseline`) rasterizes the PDFs at 192 dpi, measures each pair in an
-8 x 8 grid and writes `tools/visual/out/review`, a sheet per SVG with the differing cells framed. "both"
+8 x 8 grid, by the mean of each cell and by its worst tile of 8 px, so a small missing mark counts too.
+It writes `tools/visual/out/review`, a sheet per SVG with the cells framed where weasysvg differs from the
+reference. "both"
 holds where Chromium and resvg differ only by antialiasing and glyphs placed within 1 CSS px; a
 geometric difference, an element missing or a color, picks one of them and says why. For a resvg test
 the expected image of the resvg suite decides. "same" holds where no cell shows such a difference.

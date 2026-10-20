@@ -13,9 +13,13 @@ twice as many here, while antialiasing stays one px wide.
 For each pair that matters the script measures the mean difference in each cell of an N x N grid, the
 least over shifts of one px, and writes:
 
-- out/review/review.json: per SVG and pair, the worst cell and the number of cells past CELL_LIMIT;
-- out/review/<name>.png: the renderings in a row, each cell where weasysvg differs from Chromium framed
-  in red, and those cells of Chromium and weasysvg side by side.
+- out/review/review.json: per SVG and pair, the worst cell and the number of cells that differ, and
+  the renderings that are missing;
+- out/review/<name>.png: the renderings in a row, each cell where weasysvg differs from the reference of
+  corpus/verdicts.json framed in red, and those cells of the reference and weasysvg side by side.
+
+A cell differs when its mean passes CELL_LIMIT, or when one tile of TILE px in it passes TILE_LIMIT: a
+small mark, missing in a large cell, barely moves the mean of the cell.
 
 The numbers point at the cells to look at; the verdict comes from looking at them. Chromium and resvg are
 one reference ("both") only where they agree in every cell.
@@ -44,6 +48,9 @@ PDFS = {"chromium": VISUAL / "chromium", "weasysvg": VISUAL / "weasysvg" / "pdf"
 PAIRS = (("chromium", "resvg"), ("chromium", "suite"), ("resvg", "suite"), ("weasysvg", "chromium"), ("weasysvg", "resvg"), ("weasysvg", "suite"), ("weasyprint", "chromium"), ("weasyprint", "resvg"))
 # A cell differs when its mean difference passes this many of 255: antialiasing alone stays below
 CELL_LIMIT = 4.0
+TILE = 8  # px, tiles overlap by half: a mark of 5 px has 4 x 4 px inside one tile
+# A tile differs past this: a glyph hinted apart or an antialiased edge reaches 40, a 5 px mark 64
+TILE_LIMIT = 48.0
 SHIFT = 1  # px: the offset a cell may have and still match
 MAX_ZOOMED = 12
 
@@ -104,11 +111,35 @@ def from_suite(item: dict[str, Any], box: tuple[int, int, int, int], scale: int)
     return on_page(expected.resize((width, round(width * expected.height / expected.width)), Image.Resampling.LANCZOS), item, box, scale)
 
 
-def cells(a: Image.Image, b: Image.Image, grid: int) -> list[tuple[float, tuple[int, int, int, int]]]:
-    """The mean difference of each cell of a grid x grid split, worst first, with its box.
+Cell = tuple[float, float, tuple[int, int, int, int]]  # mean, worst tile, box
 
-    Each cell takes the least difference over shifts of b by up to SHIFT px: an edge placed a fraction of
-    a pixel apart, which antialiasing spreads over two pixels, is no difference to the eye.
+
+def tile_peak(parts: list[Any]) -> float:
+    """The highest mean difference of the TILE x TILE tiles of a cell, a tile every TILE / 2 px, each at its best shift.
+
+    parts holds the difference of the cell at each shift. A partial tile at the edges counts as whole.
+    """
+    half = TILE // 2
+    height, width = parts[0].shape
+    padded = np.zeros((len(parts), -(-height // half) * half, -(-width // half) * half))
+    padded[:, :height, :width] = parts
+    quarters = padded.reshape(len(parts), padded.shape[1] // half, half, padded.shape[2] // half, half).mean(axis=(2, 4))
+    if quarters.shape[1] > 1:
+        quarters = (quarters[:, 1:] + quarters[:, :-1]) / 2
+    if quarters.shape[2] > 1:
+        quarters = (quarters[:, :, 1:] + quarters[:, :, :-1]) / 2
+    return float(np.max(np.min(quarters, axis=0)))
+
+
+def differs(cell: Cell) -> bool:
+    return cell[0] > CELL_LIMIT or cell[1] > TILE_LIMIT
+
+
+def cells(a: Image.Image, b: Image.Image, grid: int) -> list[Cell]:
+    """The mean difference and the worst tile of each cell of a grid x grid split, worst mean first, with its box.
+
+    Each cell, and each tile in it, takes the least difference over shifts of b by up to SHIFT px: an edge
+    placed a fraction of a pixel apart, which antialiasing spreads over two pixels, is no difference to the eye.
     """
     first, second = np.asarray(a, dtype=np.int16), np.asarray(b, dtype=np.int16)
     height, width = first.shape[:2]
@@ -118,12 +149,13 @@ def cells(a: Image.Image, b: Image.Image, grid: int) -> list[tuple[float, tuple[
         for column in range(grid):
             box = (column * width // grid, row * height // grid, (column + 1) * width // grid, (row + 1) * height // grid)
             if box[2] > box[0] and box[3] > box[1]:
-                out.append((round(min(float(diff[box[1] : box[3], box[0] : box[2]].mean()) for diff in diffs), 2), box))
+                parts = [diff[box[1] : box[3], box[0] : box[2]] for diff in diffs]
+                out.append((round(min(float(part.mean()) for part in parts), 2), round(tile_peak(parts), 2), box))
     return sorted(out, key=lambda entry: -entry[0])
 
 
-def sheet(images: dict[str, Image.Image], bad: list[tuple[int, int, int, int]], path: Path) -> None:
-    """The renderings in a row with the differing cells framed, then those cells of Chromium and weasysvg."""
+def sheet(images: dict[str, Image.Image], reference: str, bad: list[tuple[int, int, int, int]], path: Path) -> None:
+    """The renderings in a row with the differing cells framed, then those cells of the reference and weasysvg."""
     shown = [key for key in ("chromium", "suite", "resvg", "weasysvg") if key in images]
     width, height = images["chromium"].size
     row = Image.new("RGB", (len(shown) * (width + 10), height + 20), (60, 60, 60))
@@ -136,7 +168,7 @@ def sheet(images: dict[str, Image.Image], bad: list[tuple[int, int, int, int]], 
             draw.rectangle((x + box[0], 20 + box[1], x + box[2], 20 + box[3]), outline="red")
     tiles = []
     for box in bad[:MAX_ZOOMED]:
-        pair = [images[key].crop(box) for key in ("chromium", "weasysvg")]
+        pair = [images[key].crop(box) for key in (reference, "weasysvg")]
         tile = Image.new("RGB", (pair[0].width * 2 + 6, pair[0].height), (200, 0, 0))
         tile.paste(pair[0], (0, 0))
         tile.paste(pair[1], (pair[0].width + 6, 0))
@@ -150,7 +182,13 @@ def sheet(images: dict[str, Image.Image], bad: list[tuple[int, int, int, int]], 
     out.save(path)
 
 
-def review(item: dict[str, Any], grid: int, scale: int) -> dict[str, Any] | None:
+def references(reference: str, images: dict[str, Image.Image]) -> list[str]:
+    """The renderings weasysvg is judged against: both for "both", Chromium for "browser"."""
+    keys = {"both": ["chromium", "resvg"], "resvg": ["resvg"]}.get(reference, ["chromium"])
+    return [key for key in keys if key in images] or ["chromium"]
+
+
+def review(item: dict[str, Any], reference: str, grid: int, scale: int) -> dict[str, Any] | None:
     box = crop_box(item, scale)
     if box is None:
         return None
@@ -162,10 +200,12 @@ def review(item: dict[str, Any], grid: int, scale: int) -> dict[str, Any] | None
     for a, b in PAIRS:
         if a in images and b in images:
             measured = cells(images[a], images[b], grid)
-            pairs[f"{a}~{b}"] = {"worst": measured[0][0], "cells": sum(1 for value, _ in measured if value > CELL_LIMIT)}
-    bad = [cell for value, cell in cells(images["chromium"], images["weasysvg"], grid) if value > CELL_LIMIT] if "weasysvg" in images else []
-    sheet(images, bad, OUT / f"{item['name']}.png")
-    return {"name": item["name"], "pairs": pairs}
+            pairs[f"{a}~{b}"] = {"worst": measured[0][0], "cells": sum(1 for cell in measured if differs(cell))}
+    if "weasysvg" in images:
+        keys = references(reference, images)
+        bad = list(dict.fromkeys(cell[2] for key in keys for cell in cells(images[key], images["weasysvg"], grid) if differs(cell)))
+        sheet(images, keys[0], bad, OUT / f"{item['name']}.png")
+    return {"name": item["name"], "pairs": pairs, "missing": sorted(set(found) - set(images))}
 
 
 def main() -> None:
@@ -181,7 +221,8 @@ def main() -> None:
         from make_references import print_pdfs
 
         asyncio.run(print_pdfs(missing))
-    results = [result for item in items if (result := review(item, args.grid, args.scale))]
+    chosen = {verdict["name"]: verdict["reference"] for verdict in json.loads((CORPUS / "verdicts.json").read_text())}
+    results = [result for item in items if (result := review(item, chosen.get(item["name"], "chromium"), args.grid, args.scale))]
     (OUT / "review.json").write_text(json.dumps(results, indent=1) + "\n")
     print(f"{len(results)} SVGs reviewed at {args.scale}x into {OUT.relative_to(ROOT)}")
 
