@@ -50,8 +50,11 @@ def in_px(svg: str) -> str:
     return svg
 
 
-def render_resvg(item: dict[str, Any], target: Path) -> None:
-    """The SVG through resvg on white, at the width of the page, cropped to its ink as the references are."""
+def render_resvg(item: dict[str, Any], target: Path) -> str | None:
+    """The SVG through resvg on white, at the width of the page, cropped to its ink as the references are.
+
+    Returns why there is no panel: resvg refused the SVG, or drew nothing. The page shows it in the cell.
+    """
     target.unlink(missing_ok=True)
     svg = CORPUS / "svg" / item["source"]
     try:
@@ -70,14 +73,15 @@ def render_resvg(item: dict[str, Any], target: Path) -> None:
     except BaseException as error:  # noqa: BLE001  a resvg panic surfaces as a BaseException
         if isinstance(error, (KeyboardInterrupt, SystemExit)):
             raise
-        print(f"{item['name']}: resvg failed: {repr(error)[:200]}")
-        return
+        return f"resvg error: {error}"[:200]
     image = Image.open(io.BytesIO(png)).convert("RGBA")
     flat = Image.new("RGB", image.size, "white")
     flat.paste(image, mask=image.getchannel("A"))
     box = ink_box([flat])
-    if box is not None:
-        flat.crop(padded(box, flat.size)).save(target, optimize=True)
+    if box is None:
+        return "resvg draws nothing"
+    flat.crop(padded(box, flat.size)).save(target, optimize=True)
+    return None
 
 
 def anchor(title: str) -> str:
@@ -85,19 +89,19 @@ def anchor(title: str) -> str:
     return "".join(c for c in title.lower().replace(" ", "-") if c.isalnum() or c in "-_")
 
 
-def cell(name: str, label: str, folder: str) -> str:
+def cell(name: str, label: str, folder: str, missing: str) -> str:
     path = f"{folder}/{name}.png"
     if not (CORPUS / path).exists():
-        return "n/a"
+        return html.escape(missing)
     return f'<a href="{path}"><img src="{path}" width="{WIDTH}" alt="{name} in {label}"></a>'
 
 
-def entry(item: dict[str, Any], verdict: dict[str, Any]) -> str:
+def entry(item: dict[str, Any], verdict: dict[str, Any], resvg_error: str | None) -> str:
     name = item["name"]
     what = verdict.get("what") or ""
     note = f" {html.escape(what)}" if what else ""
     header = "| " + " | ".join(label for label, _ in COLUMNS) + " |"
-    row = "| " + " | ".join(cell(name, label, folder) for label, folder in COLUMNS) + " |"
+    row = "| " + " | ".join(cell(name, label, folder, (resvg_error if label == "resvg" else None) or "n/a") for label, folder in COLUMNS) + " |"
     source = f"[`{item['source']}`](svg/{item['source']})"
     return f"### {name}\n\n{source}. WeasyPrint: {verdict.get('native_verdict', 'n/a')}, weasysvg: **{verdict.get('verdict', 'n/a')}**.{note}\n\n{header}\n|---|---|---|---|\n{row}\n"
 
@@ -109,7 +113,7 @@ def summary(verdicts: list[dict[str, Any]], version: str) -> str:
     return "\n".join(lines)
 
 
-def page() -> str:
+def page(resvg_errors: dict[str, str]) -> str:
     index = json.loads((CORPUS / "index.json").read_text())
     verdicts = {v["name"]: v for v in json.loads((CORPUS / "verdicts.json").read_text())}
     version = json.loads((CORPUS / "baseline.json").read_text()).get("weasyprint", "")
@@ -121,7 +125,7 @@ def page() -> str:
     sections = []
     for group, items in groups.items():
         sections.append(f"## {GROUPS.get(group, group)}\n")
-        sections += [entry(item, verdicts.get(item["name"], {})) for item in items]
+        sections += [entry(item, verdicts.get(item["name"], {}), resvg_errors.get(item["name"])) for item in items]
     intro = (
         "# Corpus comparison\n\n"
         "<!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->\n\n"
@@ -137,9 +141,13 @@ def page() -> str:
 def main() -> None:
     panels = CORPUS / "render" / "resvg"
     panels.mkdir(parents=True, exist_ok=True)
+    errors = {}
     for item in json.loads((CORPUS / "index.json").read_text()):
-        render_resvg(item, panels / f"{item['name']}.png")
-    PAGE.write_text(page())
+        error = render_resvg(item, panels / f"{item['name']}.png")
+        if error:
+            errors[item["name"]] = error
+            print(f"{item['name']}: {error}")
+    PAGE.write_text(page(errors))
     print(f"wrote {PAGE.relative_to(ROOT)}")
 
 
