@@ -8,12 +8,12 @@
 <style>
 :root {
   --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --card: #f6f8fa;
-  --accent: #0969da; --same: #1a7f37; --close: #9a6700; --differs: #cf222e;
+  --accent: #0969da; --same: #1a7f37; --close: #9a6700; --differs: #cf222e; --better: #8250df;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --card: #151b23;
-    --accent: #4493f8; --same: #3fb950; --close: #d29922; --differs: #f85149;
+    --accent: #4493f8; --same: #3fb950; --close: #d29922; --differs: #f85149; --better: #ab7df8;
   }
 }
 * { box-sizing: border-box; }
@@ -36,9 +36,16 @@ article { border: 1px solid var(--line); border-radius: 8px; background: var(--c
 article h2 { font-size: 15px; margin: 0; word-break: break-all; }
 .meta { color: var(--muted); margin: 2px 0 8px; }
 .meta a { color: var(--accent); }
-.badge { display: inline-block; border-radius: 10px; padding: 0 8px; font-size: 12px; border: 1px solid currentColor; margin-right: 4px; }
-.v-same { color: var(--same); } .v-close { color: var(--close); } .v-differs { color: var(--differs); }
-.verdict { margin: 2px 0; }
+.v-same { color: var(--same); } .v-close { color: var(--close); } .v-differs { color: var(--differs); } .v-better { color: var(--better); } .v-reference { color: var(--accent); }
+/* The verdicts of one SVG: the reference, then each rendering against it */
+table.verdicts { border-collapse: collapse; margin: 6px 0 10px; font-size: 13px; }
+table.verdicts td { padding: 3px 10px 3px 0; vertical-align: top; border-top: 1px solid var(--line); }
+table.verdicts tr:first-child td { border-top: 0; }
+table.verdicts .icon { width: 18px; padding-right: 6px; }
+table.verdicts .icon svg { display: block; width: 16px; height: 16px; margin-top: 2px; }
+table.verdicts .who { font-weight: 600; white-space: nowrap; }
+table.verdicts .status { white-space: nowrap; font-weight: 600; }
+table.verdicts .what { color: var(--muted); }
 /* The panel of the reference: the one the verdicts compare against */
 figcaption .ref { color: var(--accent); font-weight: 600; }
 .panels { display: grid; gap: 12px; align-items: start; }
@@ -154,8 +161,34 @@ function element(tag, attributes, children) {
   for (const child of children || []) node.append(child);
   return node;
 }
-function badge(verdict) {
-  return element("span", { class: "badge v-" + (verdict || "none"), text: labels[verdict] || "n/a" });
+const SVG_NS = "http://www.w3.org/2000/svg";
+// One icon per status, drawn in the color of its class: a check, a wave, a cross, an arrow up, a target
+const ICONS = {
+  same: ["M4.5 8.2l2.3 2.3 4.7-4.8"],
+  close: ["M4.5 7c1.2-1.2 2.3-1.2 3.5 0s2.3 1.2 3.5 0", "M4.5 10c1.2-1.2 2.3-1.2 3.5 0s2.3 1.2 3.5 0"],
+  differs: ["M5.5 5.5l5 5", "M10.5 5.5l-5 5"],
+  better: ["M8 11.5v-7", "M5 7.5l3-3 3 3"],
+  reference: ["M8 6a2 2 0 1 1 0 4a2 2 0 1 1 0-4"],
+};
+function icon(status) {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  const parts = [["circle", { cx: "8", cy: "8", r: "7" }], ...(ICONS[status] || []).map((d) => ["path", { d }])];
+  for (const [tag, attributes] of parts) {
+    const shape = document.createElementNS(SVG_NS, tag);
+    for (const [key, value] of Object.entries({ ...attributes, fill: "none", stroke: "currentColor", "stroke-width": "1.6", "stroke-linecap": "round", "stroke-linejoin": "round" })) shape.setAttribute(key, value);
+    svg.append(shape);
+  }
+  return svg;
+}
+function verdictRow(status, who, label, what) {
+  return element("tr", { class: "v-" + status }, [
+    element("td", { class: "icon" }, [icon(status)]),
+    element("td", { class: "who", text: who }),
+    element("td", { class: "status", text: label }),
+    element("td", { class: "what", text: what || "" }),
+  ]);
 }
 // The SVG itself, drawn by this browser: an <img> with the width of the <img> on the page of the references
 // and its own height, as there, cropped by its box to the box of the Chromium panel. Every length is a
@@ -210,12 +243,13 @@ function panel(item, key) {
 }
 function card(item) {
   const source = element("a", { href: "svg/" + item.source, text: item.source });
-  const reference = data.references[item.reference] || "n/a";
-  const meta = element("p", { class: "meta" }, [source, " · reference: " + reference + (item.referenceWhy ? ". " + item.referenceWhy : "")]);
-  const children = [element("h2", { text: item.name }), meta];
-  for (const [label, verdict, what] of [["weasysvg", item.verdict, item.what], ["WeasyPrint", item.native, item.nativeWhat]]) {
-    children.push(element("p", { class: "verdict" }, [label + " ", badge(verdict), what ? " " + what : ""]));
-  }
+  const meta = element("p", { class: "meta" }, [source]);
+  const rows = [
+    verdictRow("reference", "Reference", data.references[item.reference] || "n/a", item.referenceWhy),
+    verdictRow(item.verdict, "weasysvg", labels[item.verdict] || "n/a", item.what),
+    verdictRow(item.native, "WeasyPrint", labels[item.native] || "n/a", item.nativeWhat),
+  ];
+  const children = [element("h2", { text: item.name }), meta, element("table", { class: "verdicts" }, [element("tbody", {}, rows)])];
   children.push(element("div", { class: "panels all" }, Object.keys(renderers).map((key) => panel(item, key))));
   return element("article", { id: item.name }, children);
 }

@@ -57,7 +57,7 @@ with the fonts of `corpus/fonts`. Run it after adding an SVG or a font, and afte
 
 Each entry of `corpus/verdicts.json` names a reference: `chromium`, `resvg`, `both` where they agree,
 or `browser` where headless Chromium matches no `systemLanguage`. `reference_why` says why one renderer
-is wrong. `verdict` and `native_verdict` are `same`, `close` or `differs` against that reference, and
+is wrong. `verdict` and `native_verdict` are `better`, `same`, `close` or `differs` against that reference, and
 `what` and `native_what` say what differs. Judge at full size, zoomed in, never from a thumbnail.
 
 ## Pull requests
