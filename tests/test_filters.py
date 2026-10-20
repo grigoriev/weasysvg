@@ -985,6 +985,7 @@ def test_a_filter_on_anchored_text_covers_the_drawn_text() -> None:
     flood = '<filter id="f"><feFlood flood-color="black"/></filter>'
     pdf = render(svg(f'<defs>{flood}</defs><text x="100" y="60" font-size="40" text-anchor="middle" filter="url(#f)">HH</text>'))
     # Below the baseline only the flood is black: it spans the text, centered on x=100 as the text is
-    black = [x for x in range(200) if gray_at(pdf, x, 65) > 0.9]
+    image = rasterize(pdf, 96 / 72).convert("L")
+    black = [x for x in range(200) if cast(int, image.getpixel((x, 65))) < 26]
     assert black, "the filter is drawn"
     assert abs((black[0] + black[-1]) / 2 - 100) < 3
