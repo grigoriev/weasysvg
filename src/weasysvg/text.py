@@ -7,6 +7,11 @@ Touches:
 - ``svg.Node.cascade``: font-size keywords. ``size()`` knows none, so "initial" or "medium" gave 0.
   The cascade rewrites the attribute once, so every reader of font-size sees a length.
 - a tree pass: a <text> inside a <text> is not rendered, as in browsers.
+
+WeasyPrint lays SVG text out one character at a time: Arabic lost its joining and its order,
+ligatures and kerning were gone. A run with one position at most, no rotate and no textLength is laid
+out whole instead, by Pango, as Chromium does. letter-spacing goes to Pango too, which leaves cursive
+scripts joined (css-text-3, cursive tracking). Other runs keep the layout of WeasyPrint.
 """
 
 from __future__ import annotations
@@ -17,9 +22,10 @@ from xml.etree import ElementTree as ET
 
 from weasyprint import svg as wp_svg
 from weasyprint.css.properties import INITIAL_VALUES
-from weasyprint.svg.bounding_box import is_valid_bounding_box
-from weasyprint.svg.utils import normalize
-from weasyprint.text.ffi import FROM_UNITS, ffi, pango
+from weasyprint.matrix import Matrix
+from weasyprint.svg.bounding_box import extend_bounding_box, is_valid_bounding_box
+from weasyprint.svg.utils import normalize, size
+from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.line_break import Layout
 
 from . import _core
@@ -174,8 +180,110 @@ def _draw_lines(svg: Any, node: Any, font_size: float, x: float, width: float, r
 # ---------------- the text() replacement ----------------
 
 
+POSITIONS = ("x", "y", "dx", "dy")
+# Cursive scripts take no letter-spacing (css-text-3): Arabic, Syriac, N'Ko, Mandaic, Mongolian,
+# Hanifi Rohingya, Adlam and the Arabic presentation forms
+CURSIVE = ((0x0600, 0x08FF), (0x1800, 0x18AF), (0x10D00, 0x10D3F), (0x1E900, 0x1E95F), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
+
+
+def _cursive(character: str) -> bool:
+    code = ord(character)
+    return any(low <= code <= high for low, high in CURSIVE)
+
+
+def _track(layout: Any, spacing: float) -> float:
+    """Letter-spacing on the characters outside cursive scripts only; return the new line width.
+
+    Pango spaces every character alike, which tears Arabic letters apart. Chromium spaces the rest, the
+    spaces between Arabic words included.
+    """
+    attributes = pango.pango_attr_list_new()
+    start = 0
+    for character in layout.text:
+        end = start + len(character.encode())
+        if not _cursive(character):
+            attribute = pango.pango_attr_letter_spacing_new(int(spacing * TO_UNITS))
+            attribute.start_index, attribute.end_index = start, end
+            pango.pango_attr_list_change(attributes, attribute)
+        start = end
+    pango.pango_layout_set_attributes(layout.layout, attributes)
+    pango.pango_attr_list_unref(attributes)
+    line, _ = layout.get_first_line()
+    logical = ffi.new("PangoRectangle *")
+    pango.pango_layout_line_get_extents(line, ffi.NULL, logical)
+    width: float = logical.width * FROM_UNITS
+    return width
+
+
+def _whole_run(node: Any) -> bool:
+    """A run Pango can lay out whole: per-character positions, rotate and textLength need WeasyPrint."""
+    if not node.text or any(node.get(name) for name in ("rotate", "textLength", "display-anchor")):
+        return False
+    return all(len(normalize(node.attrib.get(name, "")).split()) <= 1 for name in POSITIONS)
+
+
+def _position(node: Any, name: str, font_size: float, reference: float) -> float | None:
+    values = normalize(node.attrib.get(name, "")).split()
+    return size(values[0], font_size, reference) if values else None
+
+
+def _draw_run(svg: Any, node: Any, font_size: float) -> None:
+    """The text of the node laid out and drawn as one run, positioned as text() of WeasyPrint does."""
+    from weasyprint.draw.text import draw_emojis, draw_first_line
+    from weasyprint.text.line_break import split_first_line
+
+    style = _style(svg, node, font_size)
+    if node.get("direction") in ("ltr", "rtl"):
+        style["direction"] = node.get("direction")
+    letter_spacing = svg.length(node.get("letter-spacing"), font_size)
+    tracked = bool(letter_spacing) and any(_cursive(character) for character in node.text)
+    if letter_spacing and not tracked:
+        style["letter_spacing"] = letter_spacing
+    layout, _, _, width, height, baseline = split_first_line(node.text, style, svg.context, float("inf"), 0)
+    if tracked:
+        # split_first_line hands the layout back deactivated
+        layout.reactivate(style)
+        width = _track(layout, letter_spacing)
+        layout.deactivate()
+
+    x, y = _position(node, "x", font_size, svg.inner_width), _position(node, "y", font_size, svg.inner_height)
+    if x is not None:
+        svg.cursor_d_position[0] = 0
+    if y is not None:
+        svg.cursor_d_position[1] = 0
+    svg.cursor_d_position[0] += _position(node, "dx", font_size, svg.inner_width) or 0
+    svg.cursor_d_position[1] += _position(node, "dy", font_size, svg.inner_height) or 0
+    x = svg.cursor_position[0] if x is None else x
+    y = svg.cursor_position[1] if y is None else y
+    svg.cursor_position = x + width, y
+    x_position, y_position = x + svg.cursor_d_position[0], y + svg.cursor_d_position[1]
+    points = ((x_position, y_position - baseline), (x_position + width, y_position - baseline + height))
+    node.text_bounding_box = extend_bounding_box(node.text_bounding_box, points)
+
+    # The state after the bounding box, for gradients and patterns, before drawing
+    svg.stream.push_state()
+    try:
+        fill, stroke = svg.set_graphical_state(node, font_size)
+        svg.stream.begin_text()
+        layout.reactivate(style)
+        if tracked:
+            _track(layout, letter_spacing)
+        svg.fill_stroke(fill, stroke, text=True)
+        text_box = sys.modules["weasyprint.svg.text"].TextBox(layout, style)
+        text_box.baseline = baseline
+        emojis = draw_first_line(svg.stream, text_box, "none", "none", Matrix(d=-1, e=x_position, f=y_position))
+        svg.stream.end_text()
+    finally:
+        svg.stream.pop_state()
+    draw_emojis(svg.stream, style, x, y, emojis)
+
+
 def _draw_decorated(svg: Any, node: Any, font_size: float) -> Any:
-    result = _ORIGINAL_TEXT(svg, node, font_size)
+    if _whole_run(node):
+        _draw_run(svg, node, font_size)
+        result = None
+    else:
+        result = _ORIGINAL_TEXT(svg, node, font_size)
     if FEATURES["decoration"]:
         _decorate(svg, node, font_size)
     return result

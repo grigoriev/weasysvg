@@ -164,3 +164,48 @@ def test_each_use_keeps_its_own_font_family() -> None:
     pdf = render(svg(body, height=100))
     assert b"Liberation-Mono" in pdf
     assert b"DejaVu-Serif" in pdf
+
+
+# ---------------- whole runs ----------------
+
+
+def glyphs(pdf: bytes) -> list[str]:
+    """The glyph ids the PDF shows, in order: a joined Arabic letter has another glyph than a lone one."""
+    shown = "".join(re.findall(r"\[([^\]]*)\] TJ", content(pdf)))
+    return re.findall(r"[0-9a-f]{4}", "".join(re.findall(r"<([0-9a-f]+)>", shown)))
+
+
+def test_simple_runs_are_laid_out_whole(monkeypatch: pytest.MonkeyPatch) -> None:
+    runs: list[str] = []
+    original = text._draw_run
+
+    def spy(svg_: Any, node: Any, size: float) -> None:
+        runs.append(node.text)
+        original(svg_, node, size)
+
+    monkeypatch.setattr(text, "_draw_run", spy)
+    body = '<text x="10" y="30" dx="2" dy="1" direction="rtl">whole</text><text x="10 20" y="60">split</text><text x="10" y="90" rotate="10">turned</text><text y="20" letter-spacing="3">spaced</text>'
+    pdf = render(svg(body, height=100))
+    assert runs == ["whole", "spaced"]
+    assert "whole" in text_of(pdf)
+
+
+def test_cursive_text_keeps_its_letters_joined() -> None:
+    arabic = "بعض النص الطويل"
+    plain = glyphs(render(svg(f'<text x="10" y="50" font-size="18">{arabic}</text>', width=300)))
+    spaced = glyphs(render(svg(f'<text x="10" y="50" font-size="18" letter-spacing="10">{arabic}</text>', width=300)))
+    # The spaces may go to runs of their own
+    assert [glyph for glyph in spaced if glyph != "0003"] == [glyph for glyph in plain if glyph != "0003"]
+
+
+def test_letter_spacing_reaches_the_spaces_only() -> None:
+    # Two spaces between three Arabic words: 20 px wider, not 10 per letter
+    style = text._style(SimpleNamespace(font_config=None), SimpleNamespace(get={"font-family": "DejaVu Sans"}.get), 18)
+    from weasyprint.text.fonts import FontConfiguration
+    from weasyprint.text.line_break import split_first_line
+
+    style.font_config = FontConfiguration()
+    layout, _, _, width, _, _ = split_first_line("بعض النص الطويل", style, None, float("inf"), 0)
+    layout.reactivate(style)
+    assert abs(text._track(layout, 10) - width - 20) < 3
+    layout.deactivate()
