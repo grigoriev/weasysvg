@@ -16,6 +16,7 @@ make test BASE=pypy:3.11-slim-trixie    # the same on PyPy
 make visual                         # the visual bench, in Docker
 make upstream                       # probes of the WeasyPrint gaps and hooked internals
 make visual-check                   # the bench against corpus/baseline.json
+make comparison                     # corpus/COMPARISON.md and its panels in corpus/render
 uv build                            # wheel and sdist
 ```
 
@@ -41,6 +42,10 @@ The unit tests check the PDF structure. The bench checks what it looks like:
 `make visual ARGS="--only drawio"` renders the names that contain `drawio`. The bench is a dev tool, not
 a CI gate. The mismatch guides the eye; the verdicts in `corpus/verdicts.json` are the judgment. Update
 a verdict when a change makes a rendering better or worse.
+
+A change that alters a rendering or a verdict also runs `make comparison` and commits
+`corpus/COMPARISON.md` and `corpus/render`. The page shows each SVG in Chromium, resvg, WeasyPrint alone
+and WeasyPrint with weasysvg.
 
 Never judge a rendering with poppler (`pdftoppm`, Evince, Okular). Its Splash backend drops WeasyPrint
 gradients, and its cairo backend drops soft masks that PDFium and Quartz apply. Use PDFium, which is the

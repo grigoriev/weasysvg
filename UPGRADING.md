@@ -43,6 +43,7 @@ Renovate does not merge it on its own. Work on that branch, or on `chore/weasypr
    - `make hooks` writes `upstream/hooks.json` for WeasyPrint N.
    - `make visual-baseline` writes `corpus/baseline.json`.
    - Review the verdicts in `corpus/verdicts.json` and the counts in `README.md`.
+   - `make comparison` writes `corpus/COMPARISON.md` and its panels.
    - Add the upgrade to `CHANGELOG.md`.
 8. Open the pull request. Run the CodeRabbit review before the push, as for any change.
 

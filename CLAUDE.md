@@ -29,6 +29,7 @@ make upstream           # gap probes and hook snapshot, WeasyPrint alone (upstre
 make hooks              # write upstream/hooks.json for the installed WeasyPrint
 make visual-baseline    # write corpus/baseline.json, weasysvg and WeasyPrint alone
 make visual-check       # compare with corpus/baseline.json, fails when weasysvg got worse
+make comparison         # write corpus/COMPARISON.md and its panels in corpus/render
 uv build                # wheel and sdist
 ```
 
@@ -103,7 +104,8 @@ run in a process of their own: `tests/helpers.py` installs weasysvg on import.
   computed in Python (turbulence, recolored images) count against MAX_PIXEL_WORK per SVG.
 - WeasyPrint internals change between majors: a new hook needs a test that fails when the hooked
   function changes shape.
-- A rendering change updates `corpus/verdicts.json` and, for a new gap or a fixed one, the README.
+- A rendering change updates `corpus/verdicts.json`, `corpus/COMPARISON.md` (`make comparison`) and, for
+  a new gap or a fixed one, the README.
 
 ## CI/CD
 
