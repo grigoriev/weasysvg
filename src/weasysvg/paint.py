@@ -8,7 +8,8 @@ Touches:
 - ``svg.defs.draw_pattern``: the tile origin in pattern space, x and y included; attributes and tag are
   restored after each use.
 - ``svg.defs.paint_mask``: replaced. Region of an objectBoundingBox mask, maskContentUnits, a cycle
-  through mask="..." is broken, and the tag of the <mask> is restored, else the walk draws it as a <g>.
+  through mask="..." is broken, mask="..." on the <mask> itself is ignored as in Chromium, and the tag
+  of the <mask> is restored, else the walk draws it as a <g>.
 - ``svg.Node.override_iter``: a list instead of a one-shot iterator, so a node can be walked twice.
 - ``svg.SVG.draw_node``, through ``_core``: mix-blend-mode as an isolated group, and a mask on a container
   is set before its children are drawn. ``svg.NOT_INHERITED_ATTRIBUTES`` gains mix-blend-mode.
@@ -282,6 +283,8 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
         if not box:
             return
     saved_transform = mask.attrib.get("transform")
+    # Chromium ignores mask on a <mask> element
+    saved_mask = mask.attrib.pop("mask", None)
     tag = mask._etree_node.tag
     token = _ACTIVE_MASKS.set((*_ACTIVE_MASKS.get(), mask))
     svg_stream = svg.stream
@@ -296,6 +299,8 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
         _ACTIVE_MASKS.reset(token)
         # Without this the walk later meets a <g> where the <mask> was, and draws its content
         mask._etree_node.tag = tag
+        if saved_mask is not None:
+            mask.attrib["mask"] = saved_mask
         if saved_transform is None:
             mask.attrib.pop("transform", None)
         else:

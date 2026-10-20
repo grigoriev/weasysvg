@@ -189,6 +189,16 @@ def test_mask_that_references_itself() -> None:
     assert near(pixel(pdf, 120, 30), WHITE)
 
 
+@pytest.mark.parametrize("cycle", [False, True])
+def test_mask_attribute_on_a_mask_is_ignored(cycle: bool) -> None:
+    # Chromium ignores mask on a <mask>: the black half of b would hide the whole left half otherwise
+    other = ' mask="url(#a)"' if cycle else ""
+    defs = f'<mask id="a" mask="url(#b)"><rect width="200" height="100" fill="white"/></mask><mask id="b"{other}><rect width="100" height="100" fill="black"/></mask>'
+    pdf = render(svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="red" mask="url(#a)"/>'))
+    assert near(pixel(pdf, 30, 30), RED)
+    assert near(pixel(pdf, 120, 30), RED)
+
+
 def test_mask_on_an_empty_group_is_skipped() -> None:
     body = (
         '<defs><mask id="m"><rect width="1" height="1" fill="white"/></mask><mask id="c" maskContentUnits="objectBoundingBox"><rect width="1" height="1"/></mask></defs>'
