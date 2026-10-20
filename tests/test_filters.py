@@ -645,3 +645,11 @@ def test_a_filtered_leaf_in_a_blur_grows_once() -> None:
         return pixel(render(svg(body, height=120)), 24, 30)
 
     assert near(halo(' filter="url(#s)"'), halo(""), 6)
+
+
+def test_invalid_stop_opacity_under_a_recolor_counts_as_opaque() -> None:
+    gradient = '<linearGradient id="g"><stop stop-color="red" stop-opacity="abc"/><stop offset="1" stop-color="red"/></linearGradient>'
+    target = f'<defs>{gradient}</defs><rect x="20" y="20" width="60" height="40" fill="url(#g)" filter="url(#f)"/>'
+    red, green, blue = pixel(render(filtered('<feColorMatrix type="saturate" values="0"/>', target=target)), 30, 30)
+    assert red < 200
+    assert abs(red - green) < 4

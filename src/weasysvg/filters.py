@@ -881,7 +881,11 @@ def sampled_stops(stops: list[Any], font_size: float) -> list[_Stop]:
         offset = max(min(offset, 1.0), parsed[-1][0] if parsed else 0.0)
         rgba = _ORIGINAL_COLOR(stop.get("stop-color", "black"))
         red, green, blue = rgba.to("srgb").coordinates
-        parsed.append((offset, (red, green, blue, rgba.alpha * alpha_value(stop.get("stop-opacity", 1)))))
+        try:
+            stop_opacity = alpha_value(stop.get("stop-opacity", 1))
+        except ValueError:
+            stop_opacity = 1.0  # Chromium reads an invalid stop-opacity as 1, as paint._visible_stops does
+        parsed.append((offset, (red, green, blue, rgba.alpha * stop_opacity)))
     out = []
     for (start, first), (end, second) in zip(parsed, parsed[1:], strict=False):
         for i in range(GRADIENT_SAMPLES):
