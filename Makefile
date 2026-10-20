@@ -1,0 +1,24 @@
+# Tests and the visual bench run in Docker: WeasyPrint needs Pango, which macOS lacks.
+IMAGE ?= weasysvg-test
+BASE ?= python:3.14-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
+RUN = docker run --rm --volume "$(CURDIR):/src"
+
+.PHONY: lint test test-image visual visual-image
+
+lint:
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy src tests tools
+
+test-image:
+	docker build --file Dockerfile.test --target test --build-arg BASE="$(BASE)" --tag $(IMAGE):test .
+
+test: test-image
+	$(RUN) $(IMAGE):test
+
+visual-image:
+	docker build --file Dockerfile.test --target visual --build-arg BASE="$(BASE)" --tag $(IMAGE):visual .
+
+# make visual ARGS="--only drawio" renders one group or name
+visual: visual-image
+	$(RUN) $(IMAGE):visual uv run --frozen --all-extras python tools/visual/bench.py $(ARGS)

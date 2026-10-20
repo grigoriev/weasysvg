@@ -1,0 +1,807 @@
+[
+ {
+  "name": "diagrams__kroki-blockdiag",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "Checked at full size in PDFium, cairo and Quartz: the shadows are blurred, as in Chromium. The thumbnail is too small to show it.",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-bpmn",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-c4plantuml",
+  "verdict": "same",
+  "native_verdict": "font",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-d2",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-d2-arch",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-erd",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-excalidraw",
+  "verdict": "same",
+  "native_verdict": "font",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-graphviz",
+  "verdict": "same",
+  "native_verdict": "font",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-mermaid-er",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-mermaid-mindmap",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-mermaid-state",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-nomnoml",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-pikchr",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-plantuml-activity",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-plantuml-sequence",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-structurizr",
+  "verdict": "same",
+  "native_verdict": "font",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-svgbob",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-vegalite",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__kroki-wavedrom",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-class",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-er",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-flowchart",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-gantt",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-gitgraph",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-journey",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-mindmap",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-pie",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-sequence",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "diagrams__mermaid-ink-state",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "drawio__connect-shapes",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "Remote GIFs are blocked in all three renderings (policy).",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "drawio__flowchart.drawio",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "drawio__infographic",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "drawio__infographic2",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "drawio__notion-template.drawio",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "drawio__svgfile",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "fo__mdn-foreignobject",
+  "verdict": "minor",
+  "native_verdict": "broken",
+  "what": "No scrollbar on the overflow:auto box, so text reflows into that width; harmless in print.",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "fo__rich-html",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Bitmap_VS_SVG",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "Shows 'Raster'/'Vector' via switch, spec-correct for English; Chromium shows no heading.",
+  "reference_agrees_with": "weasyprint"
+ },
+ {
+  "name": "real__wm-Flag_of_Brazil",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Flag_of_Switzerland",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Flag_of_the_United_Kingdom",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Git-logo",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Inkscape_Logo",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Kubernetes_logo_without_workmark",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-OSI_Model_v1",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Openstreetmap_logo",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Magnifier handle is drawn only as its blurred shadow; the black handle and yellow ferrules are missing.",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Python-logo-notext",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-SVG_Logo",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Simple_Periodic_Table_Chart-blocks",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Tux",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "real__wm-Wikimedia-logo",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "resvg__filters-feColorMatrix--type=luminanceToAlpha",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feComposite--operator=arithmetic-with-large-k1-4",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feComposite--operator=over",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feDropShadow--hsla-color",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feDropShadow--with-percent-offset",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feFlood--seagreen",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feFlood--with-opacity-on-target-element",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feGaussianBlur--small-stdDeviation",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feGaussianBlur--stdDeviation=0-5",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feOffset--complex-transform",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feOffset--fractional-offset",
+  "verdict": "same",
+  "native_verdict": "minor",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feTurbulence--baseFrequency=0.01",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-feTurbulence--type=invalid",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-filter--in=SourceAlpha",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-filter--on-the-root-svg",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-filter-functions--blur-function-two-values",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__filters-filter-functions--drop-shadow-function-comma-separated",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__masking-clipPath--clip-path-on-children",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Only the small center square shows; the clipped star is missing.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__masking-clipPath--on-a-horizontal-line",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__masking-mask--invalid-child",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__masking-mask--recursive-on-self",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Frame draws but the masked green gradient is missing.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__paint-servers-pattern--nested-objectBoundingBox",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__paint-servers-pattern--text-child",
+  "verdict": "font",
+  "native_verdict": "font",
+  "what": "Serif pattern text instead of reference sans; tiles now show full 'Text', grid matches.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__paint-servers-radialGradient--fr=0.2",
+  "verdict": "minor",
+  "native_verdict": "broken",
+  "what": "Gradient matches reference except one white pixel at the exact center (possibly a PDFium artifact of the fr focal circle).",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__paint-servers-radialGradient--gradientTransform-via-href",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__painting-marker--on-ArcTo",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Mid marker missing and start/end markers point in wrong directions.",
+  "reference_agrees_with": "neither"
+ },
+ {
+  "name": "resvg__painting-marker--orient=auto-on-M-C-C-4",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Start and mid markers rotated about 90 degrees wrong.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__painting-mix-blend-mode--screen",
+  "verdict": "minor",
+  "native_verdict": "broken",
+  "what": "Screen blend present but the overlap is more saturated teal than the reference's pale tones.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__painting-mix-blend-mode--xor",
+  "verdict": "minor",
+  "native_verdict": "minor",
+  "what": "Overlap gradient slightly more saturated yellow-green than reference.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__painting-paint-order--duplicates",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__painting-paint-order--invalid",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__painting-stroke-dasharray--0-n-with-round-caps",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__painting-stroke-dasharray--odd-count",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__shapes-path--M-H-H-implicit",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__shapes-path--M-T",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-style--class-selector",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-style--iD-selector",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-switch--single-child",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-switch--with-attributes",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-symbol--with-transform",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "Matches Chromium (SVG 2 applies symbol transform); the SVG 1.1 reference ignores it.",
+  "reference_agrees_with": "neither"
+ },
+ {
+  "name": "resvg__structure-symbol--with-viewBox-and-custom-use-size",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-systemLanguage--on-clipPath",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-systemLanguage--on-defs",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "weasyprint"
+ },
+ {
+  "name": "resvg__structure-transform--scale-without-Y",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-transform--skewY",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-use--with-size",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__structure-use--xlink-to-svg-element-with-rect",
+  "verdict": "same",
+  "native_verdict": "same",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-dominant-baseline--auto",
+  "verdict": "font",
+  "native_verdict": "font",
+  "what": "Serif typeface instead of reference sans; baseline matches.",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "resvg__text-dominant-baseline--reset-size",
+  "verdict": "font",
+  "native_verdict": "font",
+  "what": "Serif typeface instead of reference sans; baseline matches.",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "resvg__text-letter-spacing--0",
+  "verdict": "font",
+  "native_verdict": "font",
+  "what": "Serif typeface, narrower; position matches.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-letter-spacing--on-Arabic",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Arabic letters unjoined and spaced apart instead of connected words.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-text--nested",
+  "verdict": "same",
+  "native_verdict": "broken",
+  "what": "",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-text--x-and-y-with-less-values-than-characters",
+  "verdict": "font",
+  "native_verdict": "font",
+  "what": "Serif typeface; per-character positions match.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-text-decoration--line-through",
+  "verdict": "font",
+  "native_verdict": "broken",
+  "what": "Serif typeface; line-through present.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-text-decoration--style-resolving-3",
+  "verdict": "font",
+  "native_verdict": "broken",
+  "what": "Serif typeface; line-through present with correct fill and stroke.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-textPath--with-invalid-path-and-xlink-href",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Extra text drawn at the top edge, partly outside the frame; reference shows no text.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-textPath--with-underline",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Text not laid on the path; it sits underlined at the top edge, clipped.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-tspan--mixed",
+  "verdict": "font",
+  "native_verdict": "font",
+  "what": "Serif typeface; colors and positions match.",
+  "reference_agrees_with": "n/a"
+ },
+ {
+  "name": "resvg__text-tspan--only-with-y",
+  "verdict": "font",
+  "native_verdict": "font",
+  "what": "Serif typeface; position matches.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Vertical writing mode ignored: text horizontal with overlapping glyphs.",
+  "reference_agrees_with": "chromium"
+ },
+ {
+  "name": "resvg__text-writing-mode--tb-with-rotate",
+  "verdict": "broken",
+  "native_verdict": "broken",
+  "what": "Vertical writing mode ignored: text laid out horizontally.",
+  "reference_agrees_with": "neither"
+ }
+]

@@ -1,0 +1,105 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/claude-code) when working with this repository.
+
+## Project Overview
+
+weasysvg is a plugin for WeasyPrint 70.x that renders SVG natively and close to Chromium. One
+`weasysvg.install()` call monkeypatches WeasyPrint internals for the whole process. resvg (resvg-py) is
+an optional extra that rasterizes only the filter subtrees PDF cannot express.
+
+## Tech Stack
+
+- **Python**: 3.10+ and PyPy 3.11, as WeasyPrint 70 supports them (the target services run 3.14)
+- **Package Manager**: uv
+- **Build Backend**: hatchling, `src/` layout
+- **Linting/Formatting**: ruff, line length 240
+- **Type Checking**: mypy (strict mode); WeasyPrint has no types, so its objects are `Any`
+- **Testing**: pytest with pytest-cov, in Docker (WeasyPrint needs Pango)
+
+## Common Commands
+
+```bash
+uv sync --all-extras    # install dependencies
+make lint               # ruff check, ruff format --check, mypy src tests tools
+make test               # pytest with coverage in Docker (Dockerfile.test, stage "test")
+make visual             # visual bench in Docker (stage "visual"), report in tools/visual/out/report.html
+uv build                # wheel and sdist
+```
+
+## Architecture
+
+`src/weasysvg/`, one module per feature. `install()` in `__init__.py` calls each module's `install()`
+once.
+
+- `_core.py`: the two shared hooks. `images.SVGImage.__init__` runs the tree passes on the parsed
+  XML (conditional 10, nested_text 15, empty_presentation 20, foreign_object 30) and wraps the URL
+  fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
+- `conditional.py`: `<switch>`, `requiredExtensions`, `systemLanguage`.
+- `foreign_object.py`: stashes the XHTML in an attribute, lays all objects of one SVG out as one
+  WeasyPrint document (one page each), draws each page into the SVG stream. Also patches
+  `layout.block.table_layout` inside a foreignObject.
+- `filters.py`: evaluates a filter chain into vector layers, or decides to go raster.
+- `raster.py`: builds a standalone SVG for one element and renders it with resvg.
+- `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
+- `text.py`, `fonts.py`: SVG text, Chromium font selection.
+- `fetch.py`: one fetch per URL and SVG.
+
+Every patch keeps a reference to the original WeasyPrint function and restores the attributes it
+changes on a node: WeasyPrint walks `<use>` targets, gradients and patterns more than once.
+
+## Testing
+
+- `tests/helpers.py` renders an SVG through an `<img>` data URL with uncompressed streams. `render()`
+  fails when a `gs` operator appears inside path construction.
+- Assert on PDF operators (`streams()`, `content()`), extracted text (`text_of()`) and PDFium pixels
+  (`pixel()`, 72 dpi, so CSS px times 0.75).
+- `raster._RESVG` is the switch for resvg: set it to `False` to test the vector path, or to a stand-in
+  with `svg_to_bytes`.
+- Coverage is 100% of lines. Two branches cannot be reached: `conditional.py` (a failing element whose
+  parent no longer holds it) and `filters._silhouette` (a layer kind outside the four).
+
+## Visual regression bench
+
+`tools/visual/bench.py` renders `corpus/svg`, compares with `corpus/reference/chromium` and writes a
+report. It is a dev tool, not a CI gate. `corpus/verdicts.json` holds the visual verdict per SVG.
+
+**Never judge a rendering with poppler.** Splash drops WeasyPrint gradients and cairo drops soft masks.
+Use PDFium (`tools/visual/imaging.py`), and check a disputed case in Quartz (macOS Preview).
+
+Every corpus file needs a cleared license and an entry in `corpus/SOURCES.md`. Never reformat corpus
+files: pre-commit excludes them.
+
+## Code Style
+
+- Strict mypy typing; WeasyPrint objects are `Any`.
+- Comments say why a patch exists, with the browser behavior it copies.
+- No em-dashes, American spelling.
+
+## Review focus
+
+- A patch must restore every attribute, tag and stream method it changes, also on an exception
+  (`try`/`finally`). A leak shows as wrong output on the second `<use>` of the same element.
+- No graphics state (`gs`) between path construction and its paint operator: viewers ignore it.
+- Untrusted SVG: `foreignObject` content and resvg documents must not reach files or URLs outside the
+  URL fetcher of the caller. Raster sizes stay capped (`raster.SETTINGS`).
+- WeasyPrint internals change between majors: a new hook needs a test that fails when the hooked
+  function changes shape.
+- A rendering change updates `corpus/verdicts.json` and, for a new gap or a fixed one, the README.
+
+## CI/CD
+
+- **CI** (`ci.yml`): actionlint and zizmor; tests on Python 3.10 to 3.14 and PyPy 3.11 with Pango and fonts from apt;
+  SonarCloud; build.
+- **Scorecard** (`scorecard.yml`): OpenSSF Scorecard, weekly and on push to main.
+- **Release** (`release.yml`): on `v*` tags, tests, then a GitHub release with the wheel, the sdist
+  and a signed provenance bundle. Not published to PyPI yet.
+- Every action is pinned by SHA, `${{ }}` values reach `run:` through `env:`, checkouts use
+  `persist-credentials: false`.
+
+## Release Process
+
+1. Add each change under `## [Unreleased]` in `CHANGELOG.md`, in the pull request that makes it.
+2. Run the **Bump Version & Release** workflow with `patch`, `minor` or `major`. It writes the
+   version to `pyproject.toml` and `README.md`, cuts the changelog, commits, tags `vX.Y.Z` and pushes.
+3. The tag triggers `release.yml`, which creates the GitHub release.

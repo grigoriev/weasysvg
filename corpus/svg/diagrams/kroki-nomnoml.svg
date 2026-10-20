@@ -1,0 +1,118 @@
+<svg version="1.1" baseProfile="full" width="314.0" height="472.0" viewBox="0 0 314 472" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events">
+	<desc >[Pirate|eyeCount: Int|raid();pillage()|
+	  [beard]--[parrot]
+	  [beard]-:&gt;[foul mouth]
+	]
+	[&lt;abstract&gt;Marauder]&lt;:--[Pirate]
+	[Pirate]- 0..7[mischief]</desc>
+	<g stroke-width="1.0" text-align="left" font="12pt Helvetica, Arial, sans-serif" font-size="12pt" font-family="Helvetica" font-weight="bold" font-style="normal">
+		<g font-family="Helvetica" font-size="12pt" font-weight="bold" font-style="normal" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round" stroke="#33322E">
+			<g stroke="transparent" fill="transparent">
+				<rect x="0.0" y="0.0" height="472.0" width="314.0" stroke="none"></rect>
+			</g>
+			<g transform="translate(8, 8)" fill="#33322E">
+				<g transform="translate(20, 20)" fill="#33322E" font-family="Helvetica" font-size="12pt" font-weight="normal" font-style="normal">
+					<g stroke-dasharray="6 6">
+						<path d="M129.0 45.3 L129 52 L129 72 L129.0 72.0 " fill="none"></path>
+					</g>
+					<path d="M134.3 45.3 L129.0 45.3 L123.7 45.3 L129.0 32.0 Z"></path>
+					<text x="91.0" y="376.0" stroke="none">0..7</text>
+					<path d="M129.0 344.0 L129 364 L129 384 L129.0 384.0 " fill="none"></path>
+					<g data-name="Pirate">
+						<g fill="#eee8d5" stroke="#33322E" data-name="Pirate">
+							<rect x="0.0" y="72.0" height="272.0" width="258.0" data-name="Pirate"></rect>
+							<path d="M0.0 104.0 L258.0 104.0" fill="none" data-name="Pirate"></path>
+							<path d="M0.0 136.0 L258.0 136.0" fill="none" data-name="Pirate"></path>
+							<path d="M0.0 184.0 L258.0 184.0" fill="none" data-name="Pirate"></path>
+						</g>
+						<g transform="translate(0, 72)" font-family="Helvetica" font-size="12pt" font-weight="bold" font-style="normal" data-name="Pirate" data-compartment="0">
+							<g transform="translate(8, 8)" fill="#33322E" text-align="center" data-name="Pirate" data-compartment="0">
+								<text x="121.0" y="14.1" stroke="none" text-anchor="middle" data-name="Pirate" data-compartment="0">Pirate</text>
+								
+							</g>
+						</g>
+						<g transform="translate(0, 104)" font-family="Helvetica" font-size="12pt" font-weight="normal" font-style="normal" data-name="Pirate" data-compartment="1">
+							<g transform="translate(8, 8)" fill="#33322E" text-align="left" data-name="Pirate" data-compartment="1">
+								<text x="0.0" y="14.1" stroke="none" data-name="Pirate" data-compartment="1">eyeCount: Int</text>
+								
+							</g>
+						</g>
+						<g transform="translate(0, 136)" font-family="Helvetica" font-size="12pt" font-weight="normal" font-style="normal" data-name="Pirate" data-compartment="2">
+							<g transform="translate(8, 8)" fill="#33322E" text-align="left" data-name="Pirate" data-compartment="2">
+								<text x="0.0" y="14.1" stroke="none" data-name="Pirate" data-compartment="2">raid()</text>
+								<text x="0.0" y="30.3" stroke="none" data-name="Pirate" data-compartment="2">pillage()</text>
+								
+							</g>
+						</g>
+						<g transform="translate(0, 184)" font-family="Helvetica" font-size="12pt" font-weight="normal" font-style="normal" data-name="Pirate" data-compartment="3">
+							<g transform="translate(8, 8)" fill="#33322E" data-name="Pirate" data-compartment="3">
+								<g transform="translate(20, 20)" fill="#eee8d5" font-family="Helvetica" font-size="12pt" font-weight="normal" font-style="normal" data-name="Pirate" data-compartment="3">
+									<g stroke-dasharray="6 6" data-name="Pirate" data-compartment="3">
+										<path d="M65.1 32.0 L31.5 52 L31.5 72 L31.5 72.0 " fill="none" data-name="Pirate" data-compartment="3"></path>
+									</g>
+									<path d="M118.9 32.0 L152.5 52 L152.5 58.66666666666667 L152.5 58.7 " fill="none" data-name="Pirate" data-compartment="3"></path>
+									<path d="M147.2 58.7 L152.5 58.7 L157.8 58.7 L152.5 72.0 Z" data-name="Pirate" data-compartment="3"></path>
+									<g data-name="beard">
+										<g fill="#fdf6e3" stroke="#33322E" data-name="beard">
+											<rect x="61.0" y="0.0" height="32.0" width="62.0" data-name="beard"></rect>
+										</g>
+										<g transform="translate(61, 0)" font-family="Helvetica" font-size="12pt" font-weight="bold" font-style="normal" data-name="beard" data-compartment="0">
+											<g transform="translate(8, 8)" fill="#33322E" text-align="center" data-name="beard" data-compartment="0">
+												<text x="23.0" y="14.1" stroke="none" text-anchor="middle" data-name="beard" data-compartment="0">beard</text>
+												
+											</g>
+										</g>
+									</g>
+									<g data-name="parrot">
+										<g fill="#fdf6e3" stroke="#33322E" data-name="parrot">
+											<rect x="0.0" y="72.0" height="32.0" width="63.0" data-name="parrot"></rect>
+										</g>
+										<g transform="translate(0, 72)" font-family="Helvetica" font-size="12pt" font-weight="bold" font-style="normal" data-name="parrot" data-compartment="0">
+											<g transform="translate(8, 8)" fill="#33322E" text-align="center" data-name="parrot" data-compartment="0">
+												<text x="23.5" y="14.1" stroke="none" text-anchor="middle" data-name="parrot" data-compartment="0">parrot</text>
+												
+											</g>
+										</g>
+									</g>
+									<g data-name="foul mouth">
+										<g fill="#fdf6e3" stroke="#33322E" data-name="foul mouth">
+											<rect x="103.0" y="72.0" height="32.0" width="99.0" data-name="foul mouth"></rect>
+										</g>
+										<g transform="translate(103, 72)" font-family="Helvetica" font-size="12pt" font-weight="bold" font-style="normal" data-name="foul mouth" data-compartment="0">
+											<g transform="translate(8, 8)" fill="#33322E" text-align="center" data-name="foul mouth" data-compartment="0">
+												<text x="41.5" y="14.1" stroke="none" text-anchor="middle" data-name="foul mouth" data-compartment="0">foul mouth</text>
+												
+											</g>
+										</g>
+									</g>
+								</g>
+							</g>
+						</g>
+					</g>
+					<g data-name="Marauder">
+						<g fill="#eee8d5" stroke="#33322E" data-name="Marauder">
+							<rect x="83.0" y="0.0" height="32.0" width="92.0" data-name="Marauder"></rect>
+						</g>
+						<g transform="translate(83, 0)" font-family="Helvetica" font-size="12pt" font-weight="normal" font-style="italic" data-name="Marauder" data-compartment="0">
+							<g transform="translate(8, 8)" fill="#33322E" text-align="center" data-name="Marauder" data-compartment="0">
+								<text x="38.0" y="14.1" stroke="none" text-anchor="middle" data-name="Marauder" data-compartment="0">Marauder</text>
+								
+							</g>
+						</g>
+					</g>
+					<g data-name="mischief">
+						<g fill="#eee8d5" stroke="#33322E" data-name="mischief">
+							<rect x="88.5" y="384.0" height="32.0" width="81.0" data-name="mischief"></rect>
+						</g>
+						<g transform="translate(88.5, 384)" font-family="Helvetica" font-size="12pt" font-weight="bold" font-style="normal" data-name="mischief" data-compartment="0">
+							<g transform="translate(8, 8)" fill="#33322E" text-align="center" data-name="mischief" data-compartment="0">
+								<text x="32.5" y="14.1" stroke="none" text-anchor="middle" data-name="mischief" data-compartment="0">mischief</text>
+								
+							</g>
+						</g>
+					</g>
+				</g>
+			</g>
+		</g>
+	</g>
+</svg>
