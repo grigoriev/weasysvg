@@ -7,7 +7,7 @@ Touches:
 - ``svg.Node.cascade``: font-size keywords. ``size()`` knows none, so "initial" or "medium" gave 0.
   The cascade rewrites the attribute once, so every reader of font-size sees a length.
 - a tree pass: a <text> inside a <text> is not rendered, as in browsers.
-- a tree pass: a rotate list with a value that is no number is dropped, as in Chromium. WeasyPrint
+- a tree pass: a rotate list with a value that is no finite number is dropped, as in Chromium. WeasyPrint
   parses it during the cascade, and one bad value lost the whole SVG.
 
 WeasyPrint lays SVG text out one character at a time: Arabic lost its joining and its order,
@@ -18,6 +18,7 @@ scripts joined (css-text-3, cursive tracking). Other runs keep the layout of Wea
 
 from __future__ import annotations
 
+import math
 import sys
 from typing import Any
 from xml.etree import ElementTree as ET
@@ -94,8 +95,10 @@ def drop_invalid_rotate(root: ET.Element) -> None:
         if value is None or local_name(element.tag) not in TEXT_TAGS:
             continue
         try:
-            [float(number) for number in normalize(value).split()]
+            valid = all(math.isfinite(float(number)) for number in normalize(value).split())
         except ValueError:
+            valid = False
+        if not valid:
             del element.attrib["rotate"]
 
 

@@ -321,9 +321,10 @@ def test_vertical_text_positions_and_rotation() -> None:
     assert glyph_matrices(render(svg('<text x="50" y="30" writing-mode="tb">   </text>'))) == []
 
 
+@pytest.mark.parametrize("value", ["10 abc", "10 inf", "nan"])
 @pytest.mark.parametrize("mode", ["", ' writing-mode="tb"'])
-def test_a_broken_rotate_is_ignored(mode: str) -> None:
-    # WeasyPrint parses rotate during the cascade: "abc" lost the whole SVG
-    matrices = glyph_matrices(render(svg(f'<text x="50 60" y="30"{mode} rotate="10 abc">AB</text><g rotate="x"/>')))
+def test_a_broken_rotate_is_ignored(mode: str, value: str) -> None:
+    # WeasyPrint parses rotate during the cascade and turns by it: "abc" or "inf" lost the whole SVG
+    matrices = glyph_matrices(render(svg(f'<text x="50 60" y="30"{mode} rotate="{value}">AB</text><g rotate="x"/>')))
     assert len(matrices) == 2
     assert [round(matrix[1], 3) for matrix in matrices] == ([1, 1] if mode else [0, 0])
