@@ -254,3 +254,41 @@ def parse(data: str | None) -> list[Segment]:
     except ValueError:
         pass
     return builder.segments
+
+
+class Polyline:
+    """A path flattened to chords, for points and tangents at a distance along it."""
+
+    def __init__(self, segments: list[Segment], transform: Callable[[float, float], Point] | None = None) -> None:
+        self.points: list[Point] = []
+        self.lengths: list[float] = []
+        for segment in segments:
+            if segment.kind == "move":
+                continue
+            for point in segment.polyline():
+                point = transform(*point) if transform else point
+                if self.points:
+                    (x0, y0), (x1, y1) = self.points[-1], point
+                    if (x0, y0) == (x1, y1):
+                        continue
+                    self.lengths.append(self.lengths[-1] + math.hypot(x1 - x0, y1 - y0))
+                else:
+                    self.lengths.append(0.0)
+                self.points.append(point)
+
+    @property
+    def length(self) -> float:
+        return self.lengths[-1] if self.lengths else 0.0
+
+    def at(self, distance: float) -> tuple[Point, float] | None:
+        """The point at distance along the path and the angle of the path there, or None off the path."""
+        if len(self.points) < 2 or not 0 <= distance <= self.length:
+            return None
+        low, high = 0, len(self.lengths) - 1
+        while high - low > 1:
+            middle = (low + high) // 2
+            low, high = (middle, high) if self.lengths[middle] <= distance else (low, middle)
+        (x0, y0), (x1, y1) = self.points[low], self.points[high]
+        span = self.lengths[high] - self.lengths[low]
+        t = (distance - self.lengths[low]) / span if span else 0.0
+        return (x0 + (x1 - x0) * t, y0 + (y1 - y0) * t), math.atan2(y1 - y0, x1 - x0)

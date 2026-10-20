@@ -11,7 +11,7 @@ import pytest
 from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 
-from weasysvg import text
+from weasysvg import text, textpath
 from weasysvg.text import baseline_shift, drop_nested_text
 
 
@@ -215,3 +215,73 @@ def test_missing_glyphs_fall_back_to_sans_serif() -> None:
     # Chromium takes a character the family lacks from the sans-serif list: DejaVu Sans, not FreeSerif
     pdf = render(svg('<text x="10" y="50" font-family="serif">a بعض</text>', width=300))
     assert b"DejaVu-Sans" in pdf
+
+
+# ---------------- textPath ----------------
+
+WAVE = '<path id="w" d="M 20 80 C 60 20 140 20 180 80 S 300 140 420 60"/>'
+
+
+def glyph_matrices(pdf: bytes) -> list[tuple[float, ...]]:
+    return [tuple(float(value) for value in match) for match in re.findall(r"([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) Tm", content(pdf))]
+
+
+def test_text_follows_its_path() -> None:
+    pdf = render(svg(f'<defs>{WAVE}</defs><text><textPath href="#w">Wave</textPath></text>', width=440, height=160))
+    matrices = glyph_matrices(pdf)
+    assert len(matrices) == 4
+    # The path climbs at the start: the first character is turned, counterclockwise on screen
+    a, b = matrices[0][:2]
+    assert a < 0.95 and b < -0.2
+    assert "Wave" in text_of(pdf).replace("\r\n", "").replace(" ", "")
+
+
+def test_text_path_offsets_anchors_and_tspans() -> None:
+    body = f'<defs>{WAVE}</defs><text fill="blue" font-size="12"><textPath href="#w" startOffset="50%" text-anchor="middle" dx="1" dy="-2" letter-spacing="1">ab <tspan fill="red" dy="1">cd</tspan> ef</textPath></text>'
+    pdf = render(svg(body, width=440, height=160))
+    xs = [matrix[4] for matrix in glyph_matrices(pdf)]
+    assert len(xs) == 6
+    # The middle of the run sits near the middle of the path, about 230 units along it
+    assert 180 < sum(xs) / len(xs) < 240
+
+
+def test_text_path_from_the_path_attribute_and_a_transform() -> None:
+    body = '<defs><path id="t" d="M 0 0 H 100" transform="translate(20 50)"/></defs><text><textPath href="#t">A</textPath></text><text><textPath path="M 20 90 H 120">B</textPath></text>'
+    pdf = render(svg(body, height=120))
+    matrices = glyph_matrices(pdf)
+    assert [round(matrix[1], 3) for matrix in matrices] == [0, 0]
+    assert sorted(round(matrix[5]) for matrix in matrices) == [50, 90]
+
+
+@pytest.mark.parametrize("reference", ['path="q" href="w"', 'href="#nowhere"', 'href="#r"', ""])
+def test_unresolvable_text_path_draws_nothing(reference: str) -> None:
+    body = f'<defs>{WAVE}<rect id="r" width="1" height="1"/></defs><text><textPath {reference}>Gone <tspan>too</tspan></textPath></text>'
+    pdf = render(svg(body, width=440, height=160))
+    assert glyph_matrices(pdf) == []
+
+
+def test_text_path_characters_off_the_path_are_not_drawn() -> None:
+    body = '<text><textPath path="M 10 50 H 40">A long run of text</textPath></text>'
+    assert 0 < len(glyph_matrices(render(svg(body)))) < 5
+
+
+@pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
+def test_text_path_decorations(decoration: str) -> None:
+    body = f'<text text-decoration="{decoration}" letter-spacing="2"><textPath path="M 10 50 H 190">a b</textPath></text>'
+    pdf = render(svg(body))
+    # One rectangle per character, the space included, each a closed path of four corners
+    assert len(re.findall(r" l\n[-\d. ]+ l\n[-\d. ]+ l\nh", content(pdf))) == 3
+
+
+def test_anchor_restyle_skips_plain_text() -> None:
+    node_with = type("Node", (), {"tag": "text", "attrib": {}, "get": dict.get, "__iter__": lambda self: iter(())})()
+    assert textpath.anchor_restyle(None, node_with, 12) is None
+    assert textpath.anchor_restyle(None, SimpleNamespace(tag="g"), 12) is None
+
+
+def test_text_path_anchored_at_its_end() -> None:
+    # No direct text and a child that is no text: the <tspan> alone ends at the end of the path
+    body = '<text text-anchor="end"><textPath path="M 10 50 H 190" startOffset="100%"><desc>note</desc><tspan>end</tspan></textPath></text>'
+    xs = [matrix[4] for matrix in glyph_matrices(render(svg(body)))]
+    assert len(xs) == 3
+    assert 150 < min(xs) < 190

@@ -28,7 +28,7 @@ from weasyprint.svg.utils import normalize, size
 from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.line_break import Layout
 
-from . import _core
+from . import _core, textpath
 from .conditional import local_name
 from .fonts import FALLBACK, resolve_families
 
@@ -289,9 +289,68 @@ def _draw_decorated(svg: Any, node: Any, font_size: float) -> Any:
     return result
 
 
+# ---------------- textPath ----------------
+
+
+def _family(svg: Any, node: Any) -> str:
+    families = node.get("font-family") or ""
+    return f"{resolve_families(families, svg.font_config)}, {FALLBACK}" if FEATURES["fonts"] else families
+
+
+def _advances(svg: Any, node: Any, font_size: float) -> list[tuple[str, float]]:
+    """Each character of the node with its advance, laid out one at a time as on a path."""
+    from weasyprint.text.line_break import split_first_line
+
+    if not node.text:
+        return []
+    style = _style(svg, node, font_size)
+    # A <tspan> measured ahead of its drawing has its family not resolved yet
+    style["font_family"] = [family.strip() for family in _family(svg, node).split(",")]
+    return [(character, split_first_line(character, style, svg.context, float("inf"), 0)[3]) for character in node.text]
+
+
+def _path_decorations(svg: Any, node: Any, font_size: float) -> list[tuple[float, float]]:
+    """Top and thickness of each decoration line, below the baseline positive."""
+    lines = [line for line in DECORATION_LINES if line in (node.get("text-decoration") or "").split()]
+    if not lines:
+        return []
+    style = _style(svg, node, font_size)
+    # Layout measures the lines it is asked for only
+    style["text_decoration_line"] = set(lines)
+    layout = Layout(style)
+    layout.set_text(node.text or "x")
+    out = []
+    if "underline" in lines:
+        out.append((-layout.underline_position, layout.underline_thickness))
+    if "overline" in lines:
+        out.append((-layout.ascent, layout.underline_thickness))
+    if "line-through" in lines:
+        out.append((-layout.strikethrough_position, layout.strikethrough_thickness))
+    layout.deactivate()
+    return out
+
+
+def _draw_on_path(svg: Any, node: Any, font_size: float) -> bool:
+    """Draw node on its text path, if it has one; return whether it had."""
+    if node.tag == "text":
+        textpath.CURRENT.set(None)
+        return False
+    if node.tag == "textPath":
+        state = textpath.start(svg, node, font_size, _advances)
+    else:
+        found = textpath.current(node)
+        if found is None:
+            return False
+        state = found
+    textpath.draw(svg, node, font_size, state, _style(svg, node, font_size), _advances(svg, node, font_size), _path_decorations(svg, node, font_size))
+    return True
+
+
 def draw_text(svg: Any, node: Any, font_size: float) -> Any:
     if FEATURES["fonts"]:
         node.attrib["font-family"] = f"{resolve_families(node.get('font-family') or '', svg.font_config)}, {FALLBACK}"
+    if _draw_on_path(svg, node, font_size):
+        return None
     if not FEATURES["baseline"] or node.get("display-anchor"):
         return _draw_decorated(svg, node, font_size)
     # text() knows a fixed ascent of 0.8em only: hide the attribute, shift around the call instead
@@ -315,6 +374,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     FEATURES.update(fonts=fonts, baseline=baseline, decoration=decoration)
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
+    _core.add_restyler(textpath.anchor_restyle)
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:
             wp_svg.TAGS[tag] = draw_text

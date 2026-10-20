@@ -764,16 +764,16 @@
  },
  {
   "name": "resvg__text-textPath--with-invalid-path-and-xlink-href",
-  "verdict": "broken",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Extra text drawn at the top edge, partly outside the frame; reference shows no text.",
+  "what": "Neither the path attribute nor the href resolves: nothing is drawn, as in Chromium.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-textPath--with-underline",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Text not laid on the path; it sits underlined at the top edge, clipped.",
+  "what": "Text follows the path as in Chromium; the underline is a little thinner and closer to the glyphs.",
   "reference_agrees_with": "chromium"
  },
  {

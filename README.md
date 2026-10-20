@@ -88,7 +88,7 @@ change between releases.
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
-| Text | A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` from the font, font-size keywords, nested `<text>` ignored. |
+| Text | `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` from the font, font-size keywords, nested `<text>` ignored. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
@@ -102,10 +102,10 @@ review:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 103 |
-| minor difference | 10 | 5 |
+| same as Chromium | 40 | 104 |
+| minor difference | 10 | 6 |
 | other font only | 11 | 0 |
-| broken | 54 | 7 |
+| broken | 54 | 5 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
 differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
@@ -114,7 +114,8 @@ which has no scrollbar for `overflow: auto` (print has no use for one). The verd
 
 ## Known gaps
 
-- `textPath` and vertical `writing-mode` are not supported.
+- Vertical `writing-mode` is not supported.
+- On a `textPath` each character is laid out alone, so Arabic does not join there. Underlines skip no ink.
 - A blur treats every point by its distance to the nearest edge: sharp corners and thin filled shapes
   come out a little darker than in Chromium.
 - `feTurbulence`, `feComposite` arithmetic, lighting, morphology, convolution and displacement have no
