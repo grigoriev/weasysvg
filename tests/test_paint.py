@@ -553,3 +553,8 @@ def test_a_round_shape_has_the_length_of_its_arc(shape: str, first_curve: list[f
     # A wider control point makes the outline longer: dashes along it drift
     curves = re.findall(r"((?:-?[\d.]+ ){6})c\b", content(render(svg(shape))))
     assert [float(number) for number in curves[0].split()] == pytest.approx(first_curve, abs=0.01)
+
+
+@pytest.mark.parametrize("shape", ['<circle cx="100" cy="50" r="0"/>', '<ellipse cx="100" cy="50" rx="40" ry="-5"/>', '<circle cx="100" cy="50"/>'])
+def test_a_round_shape_without_a_radius_draws_nothing(shape: str) -> None:
+    assert not re.search(r"\bc\b", content(render(svg(shape))))
