@@ -792,16 +792,16 @@
  },
  {
   "name": "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Vertical writing mode ignored: text horizontal with overlapping glyphs.",
+  "what": "Vertical, BCA top to bottom as in Chromium. Chromium anchors the run by its extent after dy, so its columns sit about 40 px lower.",
   "reference_agrees_with": "chromium"
  },
  {
   "name": "resvg__text-writing-mode--tb-with-rotate",
-  "verdict": "broken",
+  "verdict": "minor",
   "native_verdict": "broken",
-  "what": "Vertical writing mode ignored: text laid out horizontally.",
+  "what": "Vertical: CJK upright, Latin and Arabic sideways, each turned by rotate. The test marks the result as undefined; the run is longer than in Chromium.",
   "reference_agrees_with": "neither"
  }
 ]

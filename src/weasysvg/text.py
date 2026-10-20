@@ -28,7 +28,7 @@ from weasyprint.svg.utils import normalize, size
 from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.line_break import Layout
 
-from . import _core, textpath
+from . import _core, textpath, vertical
 from .conditional import local_name
 from .fonts import FALLBACK, resolve_families
 
@@ -330,6 +330,43 @@ def _path_decorations(svg: Any, node: Any, font_size: float) -> list[tuple[float
     return out
 
 
+def _laid_out(node: Any) -> bool:
+    """A node textpath.py or vertical.py lays out: text-anchor must read start to WeasyPrint."""
+    if node.tag == "textPath":
+        return True
+    if node.tag == "text":
+        return vertical.vertical(node) or any(child.tag == "textPath" for child in node)
+    return node.tag in ("tspan", "a") and (textpath.current(node) is not None or vertical.current(node) is not None)
+
+
+def anchor_restyle(_svg: Any, node: Any, _font_size: float) -> dict[str, str | None] | None:
+    """text-anchor reads start to WeasyPrint on text this module lays out; ANCHOR keeps the value."""
+    if not _laid_out(node):
+        return None
+    # The children cascade the original anchor first: they keep their own copy of it
+    list(node)
+    new = {"text-anchor": "start", textpath.ANCHOR: node.get(textpath.ANCHOR) or node.get("text-anchor", "start")}
+    saved = {key: node.attrib.get(key) for key in new}
+    node.attrib.update(new)
+    return saved
+
+
+def _draw_vertical(svg: Any, node: Any, font_size: float) -> bool:
+    """Draw node down the y axis, if it is vertical text; return whether it was."""
+    if node.tag == "text":
+        if not vertical.vertical(node):
+            vertical.CURRENT.set(None)
+            return False
+        run = vertical.start(svg, node, textpath._texts(node, font_size), _advances)
+    else:
+        found = vertical.current(node)
+        if found is None:
+            return False
+        run = found
+    vertical.draw(svg, node, font_size, run, _style(svg, node, font_size), _advances(svg, node, font_size))
+    return True
+
+
 def _draw_on_path(svg: Any, node: Any, font_size: float) -> bool:
     """Draw node on its text path, if it has one; return whether it had."""
     if node.tag == "text":
@@ -349,7 +386,7 @@ def _draw_on_path(svg: Any, node: Any, font_size: float) -> bool:
 def draw_text(svg: Any, node: Any, font_size: float) -> Any:
     if FEATURES["fonts"]:
         node.attrib["font-family"] = f"{resolve_families(node.get('font-family') or '', svg.font_config)}, {FALLBACK}"
-    if _draw_on_path(svg, node, font_size):
+    if _draw_vertical(svg, node, font_size) or _draw_on_path(svg, node, font_size):
         return None
     if not FEATURES["baseline"] or node.get("display-anchor"):
         return _draw_decorated(svg, node, font_size)
@@ -374,7 +411,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     FEATURES.update(fonts=fonts, baseline=baseline, decoration=decoration)
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
-    _core.add_restyler(textpath.anchor_restyle)
+    _core.add_restyler(anchor_restyle)
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:
             wp_svg.TAGS[tag] = draw_text

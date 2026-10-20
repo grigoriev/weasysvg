@@ -47,6 +47,7 @@ once.
 - `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.
 - `text.py`, `fonts.py`: SVG text, Chromium font selection.
 - `textpath.py`: characters placed along a `pathdata.Polyline`, for `<textPath>` and its `<tspan>`.
+- `vertical.py`: vertical `writing-mode`, characters placed down the y axis.
 - `fetch.py`: one fetch per URL and SVG.
 
 Every patch keeps a reference to the original WeasyPrint function and restores the attributes it

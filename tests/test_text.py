@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from types import SimpleNamespace
 from typing import Any
@@ -11,7 +12,7 @@ import pytest
 from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 
-from weasysvg import text, textpath
+from weasysvg import text
 from weasysvg.text import baseline_shift, drop_nested_text
 
 
@@ -274,9 +275,9 @@ def test_text_path_decorations(decoration: str) -> None:
 
 
 def test_anchor_restyle_skips_plain_text() -> None:
-    node_with = type("Node", (), {"tag": "text", "attrib": {}, "get": dict.get, "__iter__": lambda self: iter(())})()
-    assert textpath.anchor_restyle(None, node_with, 12) is None
-    assert textpath.anchor_restyle(None, SimpleNamespace(tag="g"), 12) is None
+    node_with = type("Node", (), {"tag": "text", "attrib": {}, "get": lambda self, *args: self.attrib.get(*args), "__iter__": lambda self: iter(())})()
+    assert text.anchor_restyle(None, node_with, 12) is None
+    assert text.anchor_restyle(None, SimpleNamespace(tag="g"), 12) is None
 
 
 def test_text_path_anchored_at_its_end() -> None:
@@ -285,3 +286,34 @@ def test_text_path_anchored_at_its_end() -> None:
     xs = [matrix[4] for matrix in glyph_matrices(render(svg(body)))]
     assert len(xs) == 3
     assert 150 < min(xs) < 190
+
+
+# ---------------- vertical text ----------------
+
+
+def test_vertical_text_runs_down() -> None:
+    body = '<text x="50" y="20" writing-mode="tb" font-size="20">AB<tspan fill="red">日</tspan></text>'
+    matrices = glyph_matrices(render(svg(body, height=120)))
+    assert len(matrices) == 3
+    (a1, b1, *_rest1, ya), (_a2, _b2, *_rest2, yb), (a3, b3, *_rest3, yc) = matrices
+    # Latin lies sideways, turned clockwise; the CJK character stands upright below it
+    assert round(a1, 3) == 0 and round(b1, 3) == 1
+    assert (round(a3, 3), round(b3, 3)) == (1, 0)
+    assert ya < yb < yc
+
+
+@pytest.mark.parametrize(("anchor", "first"), [("start", 100), ("middle", 80), ("end", 60)])
+def test_vertical_text_anchor(anchor: str, first: float) -> None:
+    body = f'<text x="50" y="100" writing-mode="vertical-rl" text-anchor="{anchor}" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=200)))
+    # Upright: the baseline of the first character lies its ascent below the top of its em box
+    assert first < matrices[0][5] < first + 20
+
+
+def test_vertical_text_positions_and_rotation() -> None:
+    body = '<text x="50 80" y="30" dx="1" dy="2" rotate="30" writing-mode="tb" font-size="20">A B</text>'
+    matrices = glyph_matrices(render(svg(body, height=120)))
+    assert matrices[1][4] > matrices[0][4] + 20
+    # Sideways and turned 30 degrees further: 120 degrees in all
+    assert round(math.degrees(math.atan2(matrices[0][1], matrices[0][0]))) == 120
+    assert glyph_matrices(render(svg('<text x="50" y="30" writing-mode="tb">   </text>'))) == []

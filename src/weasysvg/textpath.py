@@ -8,8 +8,8 @@ place the run, letter-spacing and dx move along the path, dy across it. Decorati
 under each character.
 
 The text bounding box stays empty, and text-anchor reads "start" to draw_node of WeasyPrint while a
-<text> with a <textPath> draws (anchor_restyle): its anchor group, bounded by that box, would clip the
-run away, or shift it once more. ANCHOR keeps the value for start().
+<text> with a <textPath> draws (text.anchor_restyle): its anchor group, bounded by that box, would clip
+the run away, or shift it once more. ANCHOR keeps the value for start().
 """
 
 from __future__ import annotations
@@ -92,23 +92,6 @@ def current(node: Any) -> _State | None:
     """The path a <tspan> continues on, when it lies inside the <textPath> being drawn."""
     state = CURRENT.get()
     return state if state is not None and id(node) in state.nodes else None
-
-
-def _has_text_path(node: Any) -> bool:
-    return any(child.tag == "textPath" for child in node)
-
-
-def anchor_restyle(_svg: Any, node: Any, _font_size: float) -> dict[str, str | None] | None:
-    """text-anchor reads start to WeasyPrint on a <text> with a <textPath>, the <textPath> and its text."""
-    on_path = node.tag == "textPath" or (node.tag == "text" and _has_text_path(node)) or (node.tag in ("tspan", "a") and current(node) is not None)
-    if not on_path:
-        return None
-    # The children cascade the original anchor first: they keep their own copy of it
-    list(node)
-    new = {"text-anchor": "start", ANCHOR: node.get(ANCHOR) or node.get("text-anchor", "start")}
-    saved = {key: node.attrib.get(key) for key in new}
-    node.attrib.update(new)
-    return saved
 
 
 def _turned_rectangle(stream: Any, origin: tuple[float, float], cos: float, sin: float, box: tuple[float, float, float, float]) -> None:
