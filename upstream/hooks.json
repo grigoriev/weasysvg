@@ -1,0 +1,173 @@
+{
+ "weasyprint": "70.0",
+ "hooks": {
+  "weasyprint.images:SVGImage.__init__": {
+   "fingerprint": "3b9638a1dd917a25",
+   "used_by": "_core: tree passes and fetcher wrappers run before it"
+  },
+  "weasyprint.svg:SVG.__init__": {
+   "fingerprint": "1c2ceb4060c97583",
+   "used_by": "_core, paint: svg.paths, svg.masks, svg.filters, cursor state"
+  },
+  "weasyprint.svg:SVG.draw_node": {
+   "fingerprint": "3e14b48840ec2684",
+   "used_by": "_core._draw_node and _draw_with_effects mirror its order of effects"
+  },
+  "weasyprint.svg:SVG.set_graphical_state": {
+   "fingerprint": "64e852909af7633d",
+   "used_by": "paint.set_graphical_state"
+  },
+  "weasyprint.svg:SVG.draw_markers": {
+   "fingerprint": "b3bdac61521dd31b",
+   "used_by": "markers.vertices writes the form it reads"
+  },
+  "weasyprint.svg:Node.cascade": {
+   "fingerprint": "3918fd436da24f7d",
+   "used_by": "text.cascade; restylers cascade children before they change a node"
+  },
+  "weasyprint.svg:Node.__iter__": {
+   "fingerprint": "a89ec74388b81e9f",
+   "used_by": "restylers rely on cached children"
+  },
+  "weasyprint.svg:Node.override_iter": {
+   "fingerprint": "2b27629276b3a8fd",
+   "used_by": "paint._materialized_override_iter"
+  },
+  "weasyprint.svg:Node.text_children": {
+   "fingerprint": "e55a09064236dd34",
+   "used_by": "text.drop_invalid_rotate: rotate parsed during the cascade"
+  },
+  "weasyprint.svg:Node.tag": {
+   "fingerprint": "59bb0c65bc516409",
+   "used_by": "clip paths, masks and the root are retagged <g> while they draw"
+  },
+  "weasyprint.svg:TAGS": {
+   "fingerprint": "7a908f74c587f641",
+   "used_by": "markers, text, foreign_object register drawing functions"
+  },
+  "weasyprint.svg:NOT_INHERITED_ATTRIBUTES": {
+   "fingerprint": "b1f1b6182b76681a",
+   "used_by": "paint adds mix-blend-mode and isolation"
+  },
+  "weasyprint.svg.defs:draw_gradient": {
+   "fingerprint": "a8ca52d80fdd1c19",
+   "used_by": "paint.draw_gradient, filters._recolored_gradient"
+  },
+  "weasyprint.svg.defs:draw_pattern": {
+   "fingerprint": "aeba3a23b4f6718e",
+   "used_by": "paint.draw_pattern"
+  },
+  "weasyprint.svg.defs:paint_mask": {
+   "fingerprint": "ad1627ab16540da2",
+   "used_by": "paint.paint_mask replaces it"
+  },
+  "weasyprint.svg.defs:use": {
+   "fingerprint": "848a3b9f26224482",
+   "used_by": "restylers and clips walk <use> trees"
+  },
+  "weasyprint.svg.defs:apply_filters": {
+   "fingerprint": "7bba33c377db9f89",
+   "used_by": "_core removes filter before draw_node applies it"
+  },
+  "weasyprint.svg.utils:color": {
+   "fingerprint": "d385585a249c6f4b",
+   "used_by": "filters._color recolors through it"
+  },
+  "weasyprint.svg.utils:alpha_value": {
+   "fingerprint": "d948fc6617c03f73",
+   "used_by": "paint._visible_stops, filters"
+  },
+  "weasyprint.svg.utils:transform": {
+   "fingerprint": "8a6e6d6d93d5eb35",
+   "used_by": "paint gradient and pattern matrices"
+  },
+  "weasyprint.svg.text:text": {
+   "fingerprint": "388f5046ffe009d3",
+   "used_by": "text._draw_run, textpath, vertical repeat its positioning"
+  },
+  "weasyprint.svg.text:TextBox": {
+   "fingerprint": "af3cf2f8fbba9a1c",
+   "used_by": "glyphs.show, text._draw_run"
+  },
+  "weasyprint.svg.path:path": {
+   "fingerprint": "aae4c7fd39caf0e7",
+   "used_by": "markers rebuild the vertices it leaves"
+  },
+  "weasyprint.svg.shapes:line": {
+   "fingerprint": "80283ea514b5459e",
+   "used_by": "markers"
+  },
+  "weasyprint.svg.shapes:polyline": {
+   "fingerprint": "eedc80eba7268700",
+   "used_by": "markers"
+  },
+  "weasyprint.svg.shapes:polygon": {
+   "fingerprint": "538b208662c12099",
+   "used_by": "markers"
+  },
+  "weasyprint.svg.bounding_box:is_valid_bounding_box": {
+   "fingerprint": "c65967bdc34ab826",
+   "used_by": "filters, paint"
+  },
+  "weasyprint.layout.table:table_layout": {
+   "fingerprint": "2a3b93a2ef31dc5c",
+   "used_by": "foreign_object._table_layout"
+  },
+  "weasyprint.draw:draw_page": {
+   "fingerprint": "bb94e03fa11357ef",
+   "used_by": "foreign_object draws its pages into the SVG stream"
+  },
+  "weasyprint.draw.text:draw_first_line": {
+   "fingerprint": "7669a3733dcd8597",
+   "used_by": "glyphs.show, text._draw_run"
+  },
+  "weasyprint.draw.text:draw_emojis": {
+   "fingerprint": "3282757b03b6037d",
+   "used_by": "text._draw_run"
+  },
+  "weasyprint.text.line_break:split_first_line": {
+   "fingerprint": "9380a97a4028fc78",
+   "used_by": "glyphs, text, textpath, vertical"
+  },
+  "weasyprint.text.line_break:Layout.setup": {
+   "fingerprint": "f378d059e7ef24a5",
+   "used_by": "text._track sets attributes after it"
+  },
+  "weasyprint.text.line_break:Layout.set_text": {
+   "fingerprint": "470e0077dcbd0ccd",
+   "used_by": "text._track sets attributes after it"
+  },
+  "weasyprint.text.line_break:Layout.reactivate": {
+   "fingerprint": "91237cd37707d804",
+   "used_by": "text._track runs again after it"
+  },
+  "weasyprint.pdf.stream:Stream.add_group": {
+   "fingerprint": "d8781b7b3242be5e",
+   "used_by": "_core, filters, paint groups"
+  },
+  "weasyprint.pdf.stream:Stream.set_alpha_state": {
+   "fingerprint": "1c570e0b507a14dd",
+   "used_by": "filters blur masks, paint clip masks"
+  },
+  "weasyprint.pdf.stream:Stream.add_pattern": {
+   "fingerprint": "a904666c25081fe1",
+   "used_by": "paint._scaled_add_pattern"
+  },
+  "weasyprint.pdf.stream:Stream.clone": {
+   "fingerprint": "e2d455211bb7a2d8",
+   "used_by": "groups start with an identity ctm"
+  },
+  "weasyprint.css:ComputedStyle.__missing__": {
+   "fingerprint": "25dc2c1180807ffb",
+   "used_by": "fonts._computed_families, called through COMPUTER_FUNCTIONS"
+  },
+  "weasyprint.css:AnonymousStyle.__missing__": {
+   "fingerprint": "cd749cb7f5caf5d5",
+   "used_by": "fonts._computed_families, called through COMPUTER_FUNCTIONS"
+  },
+  "weasyprint.urls:URLFetcherResponse": {
+   "fingerprint": "61a2239c24175368",
+   "used_by": "fetch.CachingFetcher"
+  }
+ }
+}
