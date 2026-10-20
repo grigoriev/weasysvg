@@ -2,7 +2,7 @@
 
 <!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->
 
-Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg-py 0.5.0); WeasyPrint 70.0 alone; and WeasyPrint 70.0 with weasysvg. The WeasyPrint panels are PDFium rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see [`verdicts.json`](verdicts.json). Click a panel for its full size.
+Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg-py 0.5.0); WeasyPrint 70.0 alone; and WeasyPrint 70.0 with weasysvg. The WeasyPrint panels are PDFium rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see [`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large panels and a flip between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.
 
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|

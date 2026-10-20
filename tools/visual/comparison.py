@@ -27,7 +27,11 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS = ROOT / "corpus"
+INDEX = CORPUS / "index.json"
 PAGE = CORPUS / "COMPARISON.md"
+# The interactive page, for GitHub Pages: the template next to this script, with the data put in
+HTML_PAGE = CORPUS / "comparison.html"
+HTML_TEMPLATE = Path(__file__).with_name("comparison.html")
 WIDTH = 200  # px of each panel on the page; a click opens the full image
 GROUPS = {
     "diagrams": "Diagrams from kroki and mermaid.ink",
@@ -55,9 +59,17 @@ def in_px(svg: str) -> str:
     return svg
 
 
+def inside(path: Path) -> Path:
+    """The path, resolved, if it lies inside the corpus: the names in index.json never lead out of it."""
+    resolved = path.resolve()
+    if not resolved.is_relative_to(CORPUS.resolve()):
+        raise SystemExit(f"{path} lies outside {CORPUS}")
+    return resolved
+
+
 def render_resvg(item: dict[str, Any]) -> Image.Image | str:
     """The page of the SVG through resvg, on white, at the width of the page; or why there is none."""
-    svg = CORPUS / "svg" / item["source"]
+    svg = inside(CORPUS / "svg" / item["source"])
     try:
         # The families Chromium resolves the generic names to, in the visual image
         png = bytes(
@@ -85,6 +97,7 @@ def render_resvg(item: dict[str, Any]) -> Image.Image | str:
 def panels(item: dict[str, Any]) -> str | None:
     """Write the four panels of item, each cropped to the ink of the Chromium reference. Returns a resvg failure."""
     name, box = item["name"], item.get("reference_box")
+    inside(CORPUS / "render" / f"{name}.png")  # a name with a path in it would write elsewhere
     for _, folder in COLUMNS:
         (CORPUS / folder / f"{name}.png").unlink(missing_ok=True)
     if not box:
@@ -137,7 +150,7 @@ def summary(verdicts: list[dict[str, Any]], version: str) -> str:
 
 
 def page(resvg_errors: dict[str, str]) -> str:
-    index = json.loads((CORPUS / "index.json").read_text())
+    index = json.loads((INDEX).read_text())
     verdicts = {v["name"]: v for v in json.loads((CORPUS / "verdicts.json").read_text())}
     version = json.loads((CORPUS / "baseline.json").read_text()).get("weasyprint", "")
     resvg_version = importlib.metadata.version("resvg-py")
@@ -156,22 +169,64 @@ def page(resvg_errors: dict[str, str]) -> str:
         f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. The WeasyPrint panels are PDFium "
         "rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the "
         "ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see "
-        "[`verdicts.json`](verdicts.json). Click a panel for its full size.\n\n"
+        "[`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large "
+        "panels and a flip between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.\n\n"
     )
     return intro + summary(list(verdicts.values()), version) + "\n\n" + contents + "\n\n" + "\n".join(sections)
+
+
+def html_page(resvg_errors: dict[str, str]) -> str:
+    """The interactive page: the template with the panels, verdicts and notes of every SVG as JSON."""
+    verdicts = {v["name"]: v for v in json.loads((CORPUS / "verdicts.json").read_text())}
+    version = json.loads((CORPUS / "baseline.json").read_text()).get("weasyprint", "")
+    counts = Counter(v.get("verdict") for v in verdicts.values())
+    items = []
+    for item in json.loads((INDEX).read_text()):
+        name, verdict = item["name"], verdicts.get(item["name"], {})
+        found = {label.lower(): f"{folder}/{name}.png" for label, folder in COLUMNS if (CORPUS / folder / f"{name}.png").exists()}
+        size = Image.open(CORPUS / found["chromium"]).size if "chromium" in found else (0, 0)
+        items.append(
+            {
+                "name": name,
+                "group": item["group"],
+                "source": item["source"],
+                "verdict": verdict.get("verdict"),
+                "native": verdict.get("native_verdict"),
+                "what": verdict.get("what") or "",
+                "width": size[0],
+                "height": size[1],
+                "panels": {label.lower(): found.get(label.lower()) for label, _ in COLUMNS},
+                "errors": {"resvg": resvg_errors[name]} if name in resvg_errors else {},
+            }
+        )
+    data = {
+        "intro": (
+            f"Each SVG of the corpus in Chromium, the reference; resvg (resvg-py {importlib.metadata.version('resvg-py')}); "
+            f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. Every panel is cropped to the ink of the "
+            "Chromium reference, so the four line up pixel for pixel. Click a panel for its full size."
+        ),
+        "renderers": {label.lower(): label for label, _ in COLUMNS},
+        "groups": GROUPS,
+        # Every verdict, those no SVG has included: the filter lists them all
+        "counts": {key: counts[key] for key in VERDICTS},
+        "items": items,
+    }
+    # "</" inside the JSON would end the script element
+    return HTML_TEMPLATE.read_text().replace("/*DATA*/", json.dumps(data).replace("</", "<\\/"))
 
 
 def main() -> None:
     for _, folder in COLUMNS:
         (CORPUS / folder).mkdir(parents=True, exist_ok=True)
     errors = {}
-    for item in json.loads((CORPUS / "index.json").read_text()):
+    for item in json.loads((INDEX).read_text()):
         error = panels(item)
         if error:
             errors[item["name"]] = error
             print(f"{item['name']}: {error}")
     PAGE.write_text(page(errors))
-    print(f"wrote {PAGE.relative_to(ROOT)}")
+    HTML_PAGE.write_text(html_page(errors))
+    print(f"wrote {PAGE.relative_to(ROOT)} and {HTML_PAGE.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

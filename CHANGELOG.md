@@ -20,4 +20,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   snapshot of the internals it hooks, a bench baseline, and a weekly run against the newest WeasyPrint.
 - A visual regression corpus of 115 SVGs with Chromium and resvg references, and a bench that
   compares weasysvg with Chromium.
-- `corpus/COMPARISON.md`: every corpus SVG in Chromium, resvg, WeasyPrint alone and with weasysvg.
+- `corpus/COMPARISON.md` and the interactive `corpus/comparison.html` on GitHub Pages: every corpus SVG
+  in Chromium, resvg, WeasyPrint alone and with weasysvg.

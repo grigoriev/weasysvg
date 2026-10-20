@@ -16,7 +16,7 @@ make test BASE=pypy:3.11-slim-trixie    # the same on PyPy
 make visual                         # the visual bench, in Docker
 make upstream                       # probes of the WeasyPrint gaps and hooked internals
 make visual-check                   # the bench against corpus/baseline.json
-make comparison                     # corpus/COMPARISON.md and its panels in corpus/render
+make comparison                     # corpus/COMPARISON.md, corpus/comparison.html, panels in corpus/render
 uv build                            # wheel and sdist
 ```
 
@@ -44,7 +44,7 @@ a CI gate. The mismatch guides the eye; the verdicts in `corpus/verdicts.json` a
 a verdict when a change makes a rendering better or worse.
 
 A change that alters a rendering or a verdict also runs `make comparison` and commits
-`corpus/COMPARISON.md` and `corpus/render`. The page shows each SVG in Chromium, resvg (rendered by
+`corpus/COMPARISON.md`, `corpus/comparison.html` and `corpus/render`. The page shows each SVG in Chromium, resvg (rendered by
 resvg-py of the `visual` extra), WeasyPrint alone and WeasyPrint with weasysvg.
 
 Never judge a rendering with poppler (`pdftoppm`, Evince, Okular). Its Splash backend drops WeasyPrint
