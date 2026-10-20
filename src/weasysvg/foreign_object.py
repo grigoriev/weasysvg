@@ -6,7 +6,9 @@ Touches:
 - ``svg.TAGS['foreignObject']``: all objects of one SVG are laid out in one document, one page each;
 - ``layout.block.table_layout``: inside a foreignObject a table taller than its rows gives the
   extra height to the rows, as browsers do (Mermaid centers its labels that way);
-- a UA stylesheet for the sub-document: what Chromium does differently in an SVG used as an image.
+- a UA stylesheet for the sub-document: what Chromium does differently in an SVG used as an image;
+- ``formatting_structure.build.marker_to_box``: inside a foreignObject an outside disc, circle or square
+  marker is the shape Chromium paints, sized and placed from the ascent of the font, not a glyph.
 """
 
 from __future__ import annotations
@@ -17,11 +19,16 @@ from xml.etree import ElementTree as ET
 
 import weasyprint
 from weasyprint import svg as wp_svg
+from weasyprint.css.properties import Dimension
 from weasyprint.draw import draw_page
+from weasyprint.formatting_structure import boxes as wp_boxes
+from weasyprint.formatting_structure import build as wp_build
 from weasyprint.layout import block as wp_block
 from weasyprint.layout import table as wp_table
 from weasyprint.layout.table import add_top_padding
 from weasyprint.svg.utils import size as wp_size
+from weasyprint.text.ffi import FROM_UNITS, ffi, pango
+from weasyprint.text.line_break import Layout
 
 from . import _core, conditional
 from .conditional import local_name
@@ -290,6 +297,76 @@ def _table_layout(*args: Any, **kwargs: Any) -> Any:
     return result
 
 
+# ---------------- list markers ----------------
+
+_ORIGINAL_MARKER_TO_BOX = wp_build.marker_to_box
+SYMBOL_MARKERS = frozenset(("disc", "circle", "square"))
+CORNERS = ("top_left", "top_right", "bottom_right", "bottom_left")
+SIDES = ("top", "right", "bottom", "left")
+MARKER_PADDING = 7  # px, kCMarkerPaddingPx of Blink
+
+
+def _ascent(style: Any) -> int:
+    """The ascent of the first font of style, in whole px as Chromium counts it."""
+    layout = Layout(style)
+    try:
+        layout.set_text("x")
+        line, _ = layout.get_first_line()
+        logical = ffi.new("PangoRectangle *")
+        pango.pango_layout_line_get_extents(line, ffi.NULL, logical)
+        ascent: int = round(-logical.y * FROM_UNITS)
+        return ascent
+    finally:
+        layout.deactivate()
+
+
+def _symbol_marker(marker: Any, kind: str) -> None:
+    """Give an outside marker the shape Chromium paints for kind, in place of its glyph.
+
+    Blink (ListMarker) works from the ascent A of the font: with offset = A * 2 // 3, the shape is
+    (offset + 1) // 2 px wide, 1 px into a box offset + 8 px wide that ends where the text starts, and
+    its top lies A - 3 * (A - offset) // 2 px above the baseline.
+    """
+    ascent = _ascent(marker.style)
+    offset = ascent * 2 // 3
+    width = (offset + 1) // 2
+    shape = wp_boxes.InlineBlockBox.anonymous_from(marker, [])
+    # The anonymous style is shared with the line box that will wrap the shape: change a copy
+    style = shape.style = shape.style.copy()
+    # An inline-block with no line sits on the baseline by its bottom margin edge
+    # The shape lies 1 px inside the outer edge of the box: the left one, the right one in a right-to-left list
+    outer, inner_side = ("margin_right", "margin_left") if style["direction"] == "rtl" else ("margin_left", "margin_right")
+    style[outer] = Dimension(1, "px")
+    style[inner_side] = Dimension(offset + MARKER_PADDING + 1 - 1 - width, "px")
+    style["margin_bottom"] = Dimension(ascent - 3 * (ascent - offset) // 2 - width, "px")
+    inner = width
+    if kind == "circle":
+        # Chromium strokes the ellipse 1 px wide
+        inner = max(width - 2, 0)
+        for side in SIDES:
+            style[f"border_{side}_width"] = 1
+            style[f"border_{side}_style"] = "solid"
+            style[f"border_{side}_color"] = style["color"]
+    else:
+        style["background_color"] = style["color"]
+    if kind != "square":
+        for corner in CORNERS:
+            style[f"border_{corner}_radius"] = (Dimension(50, "%"), Dimension(50, "%"))
+    style["width"] = style["height"] = Dimension(inner, "px")
+    marker.children = [shape]
+
+
+def _marker_to_box(element: Any, state: Any, parent_style: Any, style_for: Any, *args: Any) -> Any:
+    for marker in _ORIGINAL_MARKER_TO_BOX(element, state, parent_style, style_for, *args):
+        # The marker style decides the type, as WeasyPrint reads it when it makes the glyph
+        own = style_for(element, "marker")
+        kind = (own if own is not None else parent_style)["list_style_type"]
+        glyph = len(marker.children) == 1 and isinstance(marker.children[0], wp_boxes.TextBox)
+        if IN_FOREIGN_OBJECT.get() and marker.is_outside_marker and kind in SYMBOL_MARKERS and glyph and (own is None or own["content"] in ("normal", "inhibit")):
+            _symbol_marker(marker, kind)
+        yield marker
+
+
 def install() -> None:
     global _UA_EXTRA_SHEET
     if _UA_EXTRA_SHEET is None:
@@ -298,4 +375,5 @@ def install() -> None:
     # A <switch> may now pick its foreignObject over the fallback
     conditional.SUPPORTED_EXTENSIONS.add(conditional.XHTML_NS)
     wp_block.table_layout = _table_layout
+    wp_build.marker_to_box = _marker_to_box
     wp_svg.TAGS["foreignObject"] = foreign_object
