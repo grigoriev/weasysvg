@@ -228,8 +228,14 @@ function withFonts(source) {
     const used = data.fonts.filter((font) => text.includes(font.family));
     if (!used.length) return source;
     const faces = await Promise.all(used.map(async (font) => "@font-face{font-family:\"" + font.family + "\";font-weight:" + font.weight + ";font-style:" + font.style + ";src:url(" + await dataUrl(font.file) + ")}"));
-    const copy = text.replace(/<svg\b[^>]*>/, (root) => root + "<style>" + faces.join("") + "</style>");
-    return URL.createObjectURL(new Blob([copy], { type: "image/svg+xml" }));
+    // The rules go first into the root element, as parsed: a regular expression could hit a comment
+    const parsed = new DOMParser().parseFromString(text, "image/svg+xml");
+    if (parsed.getElementsByTagName("parsererror").length) return source;
+    const root = parsed.documentElement;
+    const style = parsed.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.textContent = faces.join("");
+    root.insertBefore(style, root.firstChild);
+    return URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(parsed)], { type: "image/svg+xml" }));
   });
 }
 function live(item, scale, fluid) {
@@ -240,7 +246,13 @@ function live(item, scale, fluid) {
     image.addEventListener("load", () => {
       withFonts(item.panels.browser).then((source) => {
         fonted.set(item.panels.browser, source);
-        if (source !== item.panels.browser) image.src = source;
+        if (source === item.panels.browser) return;
+        // A copy that does not load gives the panel back its SVG, and is not used again
+        image.addEventListener("error", () => {
+          fonted.set(item.panels.browser, item.panels.browser);
+          image.src = item.panels.browser;
+        }, { once: true });
+        image.src = source;
       }).catch(() => {});
     }, { once: true });
   }
