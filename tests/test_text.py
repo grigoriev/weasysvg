@@ -347,6 +347,53 @@ def test_vertical_text_anchor(anchor: str, first: float) -> None:
     assert first < matrices[0][5] < first + 20
 
 
+@pytest.mark.parametrize(("anchor", "first"), [("start", 140), ("middle", 110), ("end", 80)])
+def test_vertical_text_anchor_spans_the_glyphs_after_dy(anchor: str, first: float) -> None:
+    # The second character moves up past the first: the run spans from its top to the end of the first
+    body = f'<text x="50" y="100" dy="0 -60" writing-mode="vertical-rl" text-anchor="{anchor}" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=200)))
+    assert first < matrices[0][5] < first + 20
+
+
+@pytest.mark.parametrize(("dy", "anchor", "first"), [("-10", "start", 90), ("50", "end", 110), ("50", "middle", 130)])
+def test_vertical_text_anchor_starts_at_the_first_character(dy: str, anchor: str, first: float) -> None:
+    # The anchor point is where the first character lands, after its dy
+    body = f'<text x="50" y="100" dy="{dy}" writing-mode="vertical-rl" text-anchor="{anchor}" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert first < matrices[0][5] < first + 20
+
+
+def test_each_vertical_text_chunk_is_anchored_alone() -> None:
+    # y="100 200" starts two chunks: each ends at its own y
+    body = '<text x="50" y="100 200" writing-mode="vertical-rl" text-anchor="end" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert 80 < matrices[0][5] < 100
+    assert 180 < matrices[1][5] < 200
+
+
+def test_a_backward_advance_counts_in_the_extent() -> None:
+    # letter-spacing -30 makes each advance -10: the run spans 80 to 100, its end is the start of the first
+    body = '<text x="50" y="100" writing-mode="vertical-rl" text-anchor="end" font-size="20" letter-spacing="-30">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert 100 < matrices[0][5] < 120
+
+
+@pytest.mark.parametrize("hidden", ['display="none"', 'visibility="hidden"'])
+def test_a_hidden_vertical_tspan_keeps_the_shifts_of_the_rest(hidden: str) -> None:
+    # The chunk of 本 ends at 200 whether or not the <tspan> before it draws
+    body = f'<text x="50" y="100" writing-mode="vertical-rl" text-anchor="end" font-size="20" letter-spacing="0">日<tspan {hidden}>月</tspan><tspan y="200">本</tspan></text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert 180 < matrices[-1][5] < 200
+
+
+def test_vertical_text_anchor_counts_absolute_y() -> None:
+    # The second character starts anew at 200 and moves up 60: the run spans 100 to 160
+    body = '<text x="50" y="100 200" dy="0 -60" writing-mode="vertical-rl" text-anchor="start" font-size="20" letter-spacing="0">日本</text>'
+    matrices = glyph_matrices(render(svg(body, height=300)))
+    assert 100 < matrices[0][5] < 120
+    assert 140 < matrices[1][5] < 160
+
+
 def test_vertical_text_positions_and_rotation() -> None:
     body = '<text x="50 80" y="30" dx="1" dy="2" rotate="30" writing-mode="tb" font-size="20">A B</text>'
     matrices = glyph_matrices(render(svg(body, height=120)))

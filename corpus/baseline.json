@@ -231,7 +231,7 @@
   "resvg__text-textPath--with-underline": 7.6,
   "resvg__text-tspan--mixed": 10.8,
   "resvg__text-tspan--only-with-y": 6.3,
-  "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor": 65.6,
+  "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor": 8.2,
   "resvg__text-writing-mode--tb-with-rotate": 53.9
  }
 }
