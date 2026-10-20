@@ -246,31 +246,32 @@ def carried_shifts(stream: Any) -> Iterator[None]:
 # ---------------- text-decoration ----------------
 
 
-def chromium_lines(lines: list[str], font_size: float, ascent: float, underline_position: float, underline_thickness: float) -> list[tuple[float, float]]:
+def chromium_lines(lines: list[str], font_size: float, ascent: float) -> list[tuple[float, float]]:
     """Top, below the baseline, and thickness of each decoration line, as Chromium places them.
 
-    Measured in Chromium: every line is font-size / 10 thick, one px at least. The underline starts below
-    the baseline by the center of the underline of the font, truncated. The overline ends above the rounded
-    ascent by the truncated thickness. The line-through is centered a third of the rounded ascent up.
+    Read from the PDF Chromium prints, for five fonts at sizes from 8 to 60 px: every line is font-size / 10
+    thick, one px at least. The places follow font-size / 10 itself, below the minimum too. The underline
+    starts below the baseline by half of it, rounded up, whatever underline the font declares. The
+    overline ends above the rounded ascent by it, truncated. The line-through is centered a third of the
+    rounded ascent up.
     """
-    thickness = max(1.0, font_size / 10)
+    tenth = font_size / 10
+    thickness = max(1.0, tenth)
     rounded = math.floor(ascent + 0.5)
     out = []
     if "underline" in lines:
-        # Pango gives the top of the font underline, above the baseline: its center lies half a thickness lower
-        gap = math.trunc(underline_thickness / 2 - underline_position) if underline_position else max(1, math.ceil(thickness / 2))
-        out.append((float(gap), thickness))
+        out.append((float(math.ceil(tenth / 2)), thickness))
     if "overline" in lines:
-        out.append((-float(rounded + math.trunc(thickness)), thickness))
+        out.append((-float(rounded + math.trunc(tenth)), thickness))
     if "line-through" in lines:
-        out.append((-rounded / 3 - thickness / 2, thickness))
+        out.append((-rounded / 3 - tenth / 2, thickness))
     return out
 
 
 def _lines_of(svg: Any, lines: list[str], font_size: float, layout: Any) -> list[tuple[float, float]]:
     """chromium_lines in user units: Chromium applies its minimum and its rounding to the scaled font."""
     scale = _core.text_scale(svg)
-    found = chromium_lines(lines, font_size * scale, layout.ascent * scale, layout.underline_position * scale, layout.underline_thickness * scale)
+    found = chromium_lines(lines, font_size * scale, layout.ascent * scale)
     return [(top / scale, thickness / scale) for top, thickness in found]
 
 

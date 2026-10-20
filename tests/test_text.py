@@ -128,18 +128,35 @@ def test_decoration_lines(value: str, lines: int) -> None:
 
 
 @pytest.mark.parametrize(
-    ("font_size", "ascent", "underline_position", "underline_thickness", "expected"),
+    ("font_size", "ascent", "expected"),
     [
-        # Measured in Chromium: Liberation Serif at 24 px, Liberation Sans at 37 px
-        (24, 21.39, -1.441, 1.172, [(2.0, 2.4), (-23.0, 2.4), (-8.2, 2.4)]),
-        (37, 33.495, -1.210, 2.710, [(2.0, 3.7), (-36.0, 3.7), (-12.85, 3.7)]),
-        # A font without an underline position: a gap of half the thickness, one at least
-        (8, 7.0, 0.0, 0.5, [(1.0, 1.0), (-8.0, 1.0), (-2.833, 1.0)]),
+        # Measured in Chromium: Liberation Serif at 24 px, Liberation Sans at 37 px, and a small font
+        (24, 21.39, [(2.0, 2.4), (-23.0, 2.4), (-8.2, 2.4)]),
+        (37, 33.495, [(2.0, 3.7), (-36.0, 3.7), (-12.85, 3.7)]),
+        # At 8 px the line is drawn 1 px thick, but placed by its 0.8
+        (8, 7.0, [(1.0, 1.0), (-7.0, 1.0), (-2.733, 1.0)]),
     ],
 )
-def test_decoration_lines_sit_where_chromium_puts_them(font_size: float, ascent: float, underline_position: float, underline_thickness: float, expected: list[tuple[float, float]]) -> None:
-    lines = text.chromium_lines(["underline", "overline", "line-through"], font_size, ascent, underline_position, underline_thickness)
+def test_decoration_lines_sit_where_chromium_puts_them(font_size: float, ascent: float, expected: list[tuple[float, float]]) -> None:
+    lines = text.chromium_lines(["underline", "overline", "line-through"], font_size, ascent)
     assert lines == [pytest.approx(line, abs=1e-3) for line in expected]
+
+
+@pytest.mark.parametrize(
+    ("font_size", "gap"),
+    [
+        # Read from the PDF Chromium prints, for Liberation Sans, Liberation Sans Bold, Liberation Serif,
+        # Noto Sans and DejaVu Sans alike: the gap follows the thickness of the line, not the font
+        (8, 1.0),
+        (12, 1.0),
+        (18, 1.0),
+        (24, 2.0),
+        (37, 2.0),
+        (60, 3.0),
+    ],
+)
+def test_the_underline_gap_follows_the_line_not_the_font(font_size: float, gap: float) -> None:
+    assert text.chromium_lines(["underline"], font_size, font_size * 0.9)[0][0] == gap
 
 
 def test_decoration_lines_are_a_tenth_of_the_font_size() -> None:
