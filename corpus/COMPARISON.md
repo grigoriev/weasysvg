@@ -6,8 +6,8 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 108 |
-| minor difference | 10 | 7 |
+| same as Chromium | 40 | 109 |
+| minor difference | 10 | 6 |
 | other font only | 11 | 0 |
 | broken | 54 | 0 |
 
@@ -645,7 +645,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__paint-servers-radialGradient--fr=0.2
 
-[`resvg/paint-servers-radialGradient--fr=0.2.svg`](svg/resvg/paint-servers-radialGradient--fr=0.2.svg). WeasyPrint: broken, weasysvg: **minor**. Gradient matches reference except one white pixel at the exact center (possibly a PDFium artifact of the fr focal circle).
+[`resvg/paint-servers-radialGradient--fr=0.2.svg`](svg/resvg/paint-servers-radialGradient--fr=0.2.svg). WeasyPrint: broken, weasysvg: **same**.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
