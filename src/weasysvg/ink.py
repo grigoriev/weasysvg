@@ -12,6 +12,7 @@ from __future__ import annotations
 import functools
 import hashlib
 import io
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +23,7 @@ from weasyprint.text.fonts import get_hb_object_data, get_pango_font_hb_face, ge
 
 MAX_DILATION = 13.0  # CSS px
 CURVE_STEPS = 8  # straight pieces per curve segment
+MAX_FONTS = 32  # font files kept at once: a long-running service sees fonts come and go
 
 
 @dataclass(frozen=True)
@@ -29,13 +31,40 @@ class Glyph:
     """One glyph of a run: its outline, the left end of its baseline, and user units per font unit."""
 
     font: str  # key into _FONTS
-    glyph: int
+    index: int  # the glyph id in the font
     x: float
     y: float  # down from the baseline of the run
     scale: float
 
 
-_FONTS: dict[str, tuple[bytes, int]] = {}
+# The font file of each key, and the key of each Pango font: reading and hashing a file costs its size
+_FONTS: OrderedDict[str, tuple[bytes, int, int]] = OrderedDict()
+_FACES: OrderedDict[tuple[int, int], str] = OrderedDict()
+
+
+def _remember(cache: OrderedDict[Any, Any], key: Any, value: Any) -> None:
+    """Keep value under key, the oldest entry dropped past MAX_FONTS."""
+    cache[key] = value
+    cache.move_to_end(key)
+    while len(cache) > MAX_FONTS:
+        cache.popitem(last=False)
+
+
+def _font_key(pango_font: Any, description: int) -> str:
+    """The key of the font file of a Pango font, its file read and hashed once.
+
+    A Pango font is known by its address and the hash of its description: the address alone can come
+    back for another font once the first is freed.
+    """
+    identity = (int(ffi.cast("uintptr_t", pango_font)), description)
+    key = _FACES.get(identity)
+    if key is None or key not in _FONTS:
+        face = get_pango_font_hb_face(pango_font)
+        data = get_hb_object_data(face)
+        key = hashlib.sha1(data, usedforsecurity=False).hexdigest()
+        _remember(_FONTS, key, (data, harfbuzz.hb_face_get_index(face), harfbuzz.hb_face_get_upem(face)))
+        _remember(_FACES, identity, key)
+    return key
 
 
 def run_glyphs(line: Any, x: float) -> list[Glyph]:
@@ -46,12 +75,9 @@ def run_glyphs(line: Any, x: float) -> list[Glyph]:
         glyph_item = run.data
         run = run.next
         pango_font = glyph_item.item.analysis.font
-        _, _, font_size = get_pango_font_key(pango_font)
-        face = get_pango_font_hb_face(pango_font)
-        data, index = get_hb_object_data(face), harfbuzz.hb_face_get_index(face)
-        key = hashlib.sha1(data, usedforsecurity=False).hexdigest()
-        _FONTS.setdefault(key, (data, index))
-        scale = font_size / harfbuzz.hb_face_get_upem(face)
+        description, _, font_size = get_pango_font_key(pango_font)
+        key = _font_key(pango_font, description)
+        scale = font_size / _FONTS[key][2]
         glyph_string = glyph_item.glyphs
         for info in glyph_string.glyphs[0 : glyph_string.num_glyphs]:
             geometry = info.geometry
@@ -63,7 +89,7 @@ def run_glyphs(line: Any, x: float) -> list[Glyph]:
 
 @functools.lru_cache(maxsize=16)
 def _font(key: str) -> Any:
-    data, index = _FONTS[key]
+    data, index, _ = _FONTS[key]
     return TTFont(io.BytesIO(data), fontNumber=index, lazy=True)
 
 
@@ -121,6 +147,8 @@ class _BandPen(BasePen):  # type: ignore[misc]  # fontTools ships no type inform
 @functools.lru_cache(maxsize=4096)
 def _extent(key: str, glyph: int, low: float, high: float) -> tuple[float, float] | None:
     """Where the outline of glyph lies within the band from low to high, in font units, y up."""
+    if key not in _FONTS:
+        return None  # dropped from the cache since the run was laid out
     font = _font(key)
     glyph_set = font.getGlyphSet()
     name = font.getGlyphOrder()[glyph] if glyph < len(font.getGlyphOrder()) else None
@@ -137,7 +165,7 @@ def intercepts(glyphs: list[Glyph], top: float, bottom: float) -> list[tuple[flo
     for glyph in glyphs:
         # The band in the font units of the glyph, y up from its own baseline
         low, high = (glyph.y - bottom) / glyph.scale, (glyph.y - top) / glyph.scale
-        extent = _extent(glyph.font, glyph.glyph, round(low, 3), round(high, 3))
+        extent = _extent(glyph.font, glyph.index, round(low, 3), round(high, 3))
         if extent is not None:
             out.append((glyph.x + extent[0] * glyph.scale, glyph.x + extent[1] * glyph.scale))
     return out

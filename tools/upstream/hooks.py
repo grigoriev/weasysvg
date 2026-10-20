@@ -64,6 +64,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.draw.text:draw_first_line": "glyphs.show, text._draw_run; text.carried_shifts moves the shifts of its TJ arrays; ink.run_glyphs places glyphs as it does",
     "weasyprint.text.fonts:get_pango_font_key": "ink.run_glyphs reads the size of each run",
     "weasyprint.text.fonts:get_hb_object_data": "ink.run_glyphs reads the font file of each run",
+    "weasyprint.text.fonts:get_pango_font_hb_face": "ink.run_glyphs reads the HarfBuzz face of each run",
     "weasyprint.draw.text:draw_emojis": "text._draw_run",
     "weasyprint.text.line_break:split_first_line": "glyphs, text, textpath, vertical",
     "weasyprint.text.line_break:Layout.setup": "text._track sets attributes after it",

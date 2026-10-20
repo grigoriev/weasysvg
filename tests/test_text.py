@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 import pytest
 from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
+from weasyprint.text.fonts import get_hb_object_data
 
 from weasysvg import ink, text
 from weasysvg.text import baseline_shift, drop_nested_text
@@ -230,7 +231,7 @@ def test_the_band_of_a_cubic_curve() -> None:
 
 def test_a_glyph_outside_its_font_has_no_ink() -> None:
     path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
-    ink._FONTS["test"] = (path.read_bytes(), 0)
+    ink._FONTS["test"] = (path.read_bytes(), 0, 1000)
     assert ink._extent("test", 10**6, 0, 1) is None
 
 
@@ -613,3 +614,44 @@ def test_arabic_letter_spacing_needs_no_leading_shift() -> None:
     arrays = re.findall(r"\[([^\]]*)\] TJ", content(render(svg(body, height=200))))
     assert len(arrays) > 1
     assert not any(re.match(r"(<>)?-?[\d.]", array) for array in arrays[1:])
+
+
+def test_text_without_underline_or_overline_reads_no_glyphs(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Only a line that skips ink needs the glyphs: other text pays nothing for it
+    calls: list[Any] = []
+
+    def recording(*args: Any) -> list[ink.Glyph]:
+        calls.append(args)
+        return []
+
+    monkeypatch.setattr(ink, "run_glyphs", recording)
+    pdf = render(svg('<text x="10" y="50">plain</text><text x="10" y="80" text-decoration="line-through">struck</text>'))
+    assert "plain" in text_of(pdf)
+    assert calls == []
+
+
+def test_a_font_file_is_read_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Each run of each text reads the same font: its file is copied and hashed once
+    reads: list[Any] = []
+
+    def recording(face: Any) -> Any:
+        reads.append(face)
+        return get_hb_object_data(face)
+
+    monkeypatch.setattr(ink, "get_hb_object_data", recording)
+    ink._FACES.clear()
+    lines = "".join(f'<text x="10" y="{20 + 15 * index}" font-size="12" text-decoration="underline">line {index}</text>' for index in range(5))
+    render(svg(lines, height=100))
+    assert len(reads) == 1
+
+
+def test_a_glyph_of_a_dropped_font_has_no_ink() -> None:
+    # The run was laid out, then its font left the bounded cache: the line keeps its piece
+    assert ink._extent("dropped", 0, 0, 1) is None
+
+
+def test_the_font_caches_are_bounded() -> None:
+    for index in range(ink.MAX_FONTS + 10):
+        ink._remember(ink._FACES, (index, 0), str(index))
+    assert len(ink._FACES) == ink.MAX_FONTS
+    assert (0, 0) not in ink._FACES

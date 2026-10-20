@@ -416,8 +416,9 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
         text_box.baseline = baseline
         with carried_shifts(svg.stream):
             emojis = draw_first_line(svg.stream, text_box, "none", "none", Matrix(d=-1, e=x_position, f=y_position))
-        # Where each glyph lies, for the decoration lines to skip its ink
-        node.__dict__[GLYPHS] = ink.run_glyphs(layout.get_first_line()[0], x_position)
+        # Where each glyph lies, for a decoration line that skips its ink: only such a line reads them
+        if FEATURES["decoration"] and SKIP_INK.intersection((node.get("text-decoration") or "").split()):
+            node.__dict__[GLYPHS] = ink.run_glyphs(layout.get_first_line()[0], x_position)
         svg.stream.end_text()
     finally:
         svg.stream.pop_state()

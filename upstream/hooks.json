@@ -149,6 +149,10 @@
    "fingerprint": "725bdd8ec3aa3ab1",
    "used_by": "ink.run_glyphs reads the font file of each run"
   },
+  "weasyprint.text.fonts:get_pango_font_hb_face": {
+   "fingerprint": "51707a40f6ac91d4",
+   "used_by": "ink.run_glyphs reads the HarfBuzz face of each run"
+  },
   "weasyprint.draw.text:draw_emojis": {
    "fingerprint": "3282757b03b6037d",
    "used_by": "text._draw_run"
