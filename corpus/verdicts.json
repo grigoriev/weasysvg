@@ -540,9 +540,9 @@
  },
  {
   "name": "resvg__paint-servers-radialGradient--fr=0.2",
-  "verdict": "minor",
+  "verdict": "same",
   "native_verdict": "broken",
-  "what": "Gradient matches reference except one white pixel at the exact center (possibly a PDFium artifact of the fr focal circle).",
+  "what": "",
   "reference_agrees_with": "chromium"
  },
  {

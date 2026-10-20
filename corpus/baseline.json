@@ -195,7 +195,7 @@
   "resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1": 1.3,
   "resvg__paint-servers-pattern--nested-objectBoundingBox": 2.5,
   "resvg__paint-servers-pattern--text-child": 11.9,
-  "resvg__paint-servers-radialGradient--fr=0.2": 1.5,
+  "resvg__paint-servers-radialGradient--fr=0.2": 1.6,
   "resvg__paint-servers-radialGradient--gradientTransform-via-href": 1.1,
   "resvg__painting-marker--on-ArcTo": 2.9,
   "resvg__painting-marker--orient=auto-on-M-C-C-4": 8.2,

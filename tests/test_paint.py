@@ -5,11 +5,11 @@ from __future__ import annotations
 import re
 import threading
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from xml.etree import ElementTree as ET
 
 import pytest
-from helpers import SVG_NS, RecordingStream, content, pixel, render, streams, svg
+from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, streams, svg
 
 from weasysvg import paint
 from weasysvg.paint import GRADIENT_CELL, drop_empty_presentation
@@ -508,3 +508,34 @@ def test_blend_mode_with_a_complex_clip_blends_with_the_backdrop() -> None:
     clip = '<clipPath id="c"><path d="M0 0H200V100H0Z" clip-rule="evenodd"/></clipPath>'
     body = f'<defs>{clip}</defs><rect width="200" height="100" fill="red"/><rect width="200" height="100" fill="blue" style="mix-blend-mode:multiply" clip-path="url(#c)"/>'
     assert near(pixel(render(svg(body)), 30, 30), (0, 0, 0), 20)
+
+
+@pytest.mark.parametrize("fr", ["0.2", "20%"])
+def test_a_concentric_focal_radius_leaves_no_hole(fr: str) -> None:
+    # PDFium paints the center of a shading whose inner circle has a radius white
+    gradient = f'<radialGradient id="g" fr="{fr}"><stop offset="0" stop-color="black"/><stop offset="1" stop-color="white"/></radialGradient>'
+    pdf = render(svg(f'<defs>{gradient}</defs><rect x="20" y="20" width="160" height="160" fill="url(#g)"/>', height=200))
+    coords = [[float(value) for value in found.split()] for found in re.findall(r"/Coords \[([^\]]*)\]", pdf.decode("latin-1"))]
+    assert coords
+    assert all(values[2] == 0 for values in coords)
+    gray = rasterize(pdf, 96 / 72).convert("L")
+    assert gray.getpixel((100, 100)) == 0
+    # Black up to the focal radius, then the ramp to white at r
+    assert cast(int, gray.getpixel((100 + 25, 100))) < 8
+    assert 60 < cast(int, gray.getpixel((100 + 56, 100))) < 200
+
+
+@pytest.mark.parametrize("attributes", ['fx="0.3"', 'fr="0.6"'])
+def test_other_focal_circles_keep_their_radius(attributes: str) -> None:
+    # An off-center focus, a repeated spread, or fr past r: the shading keeps its own circles
+    extra = "" if "fr=" in attributes else ' fr="0.2"'
+    gradient = f'<radialGradient id="g"{extra} {attributes}><stop offset="0" stop-color="black"/><stop offset="1" stop-color="white"/></radialGradient>'
+    pdf = render(svg(f'<defs>{gradient}</defs><rect x="20" y="20" width="160" height="160" fill="url(#g)"/>', height=200))
+    coords = [[float(value) for value in found.split()] for found in re.findall(r"/Coords \[([^\]]*)\]", pdf.decode("latin-1"))]
+    assert any(values[2] != 0 for values in coords)
+
+
+def test_a_repeated_radial_spread_keeps_its_focal_circle() -> None:
+    attributes = {"spreadMethod": "reflect", "fr": "0.2"}
+    gradient = SimpleNamespace(tag="radialGradient", get=lambda key, default=None: attributes.get(key, default))
+    assert paint._focal_ring(gradient, 16, 1) is None
