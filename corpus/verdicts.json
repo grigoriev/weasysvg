@@ -465,7 +465,7 @@
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
-  "native_what": "The filter is dropped: the rainbow gradient shows in colour."
+  "native_what": "The filter is dropped: the rainbow gradient shows in color."
  },
  {
   "name": "resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values",
@@ -474,7 +474,7 @@
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
-  "native_what": "The filter is dropped: the rainbow gradient shows in colour."
+  "native_what": "The filter is dropped: the rainbow gradient shows in color."
  },
  {
   "name": "resvg__filters-feComposite--operator=arithmetic-with-large-k1-4",
@@ -627,7 +627,7 @@
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
-  "native_what": "Only the small centre piece shows."
+  "native_what": "Only the small center piece shows."
  },
  {
   "name": "resvg__masking-clipPath--on-a-horizontal-line",
@@ -735,7 +735,7 @@
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "differs",
-  "native_what": "The blend mode is ignored: the colours are plain over."
+  "native_what": "The blend mode is ignored: the colors are plain over."
  },
  {
   "name": "resvg__painting-mix-blend-mode--xor",

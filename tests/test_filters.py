@@ -960,7 +960,7 @@ def test_a_rect_narrower_than_its_blur_keeps_both_edges_in_one_shading() -> None
 
 
 def test_a_wide_horizontal_blur_keeps_its_tail() -> None:
-    # stdDeviation 10 0: at 1.5 deviations beyond the right edge 7 percent of the colour is left
+    # stdDeviation 10 0: at 1.5 deviations beyond the right edge 7 percent of the color is left
     filters_ = '<filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10 0"/></filter>'
     pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="100" height="100" fill="black" filter="url(#f)"/>', height=200))
     assert gray_at(pdf, 165, 100) == pytest.approx(0.067, abs=0.04)

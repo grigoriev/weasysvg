@@ -646,7 +646,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 - Reference: Chromium and resvg.
 - weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in colour.
+- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in color.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -658,7 +658,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 - Reference: Chromium and resvg.
 - weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in colour.
+- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in color.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -862,7 +862,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 - Reference: Chromium and resvg.
 - weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Only the small centre piece shows.
+- WeasyPrint: **differs from the reference**. Only the small center piece shows.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1006,7 +1006,7 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 - Reference: Chromium and resvg.
 - weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The blend mode is ignored: the colours are plain over.
+- WeasyPrint: **differs from the reference**. The blend mode is ignored: the colors are plain over.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
