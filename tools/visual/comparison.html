@@ -25,7 +25,8 @@ h1 { font-size: 18px; margin: 0 0 4px; }
 .controls label { color: var(--muted); }
 select, input { font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
 input[type=search] { min-width: 200px; }
-.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin: 0; padding: 0; min-width: 0; }
+.segmented legend, .hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .segmented button { font: inherit; color: var(--fg); background: var(--card); border: 0; padding: 4px 10px; cursor: pointer; }
 .segmented button + button { border-left: 1px solid var(--line); }
 .segmented button[aria-pressed=true] { background: var(--accent); color: #fff; }
@@ -50,13 +51,14 @@ figure img { display: block; max-width: 100%; height: auto; background: #fff; bo
 .missing { color: var(--muted); font-style: italic; padding: 12px; border: 1px dashed var(--line); border-radius: 4px; }
 .flip figcaption strong { color: var(--accent); }
 .hint { color: var(--muted); font-size: 12px; }
-#lightbox { position: fixed; inset: 0; z-index: 5; background: #0d1117; display: none; flex-direction: column; }
-#lightbox.open { display: flex; }
+#lightbox { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #0d1117; flex-direction: column; }
+#lightbox[open] { display: flex; }
+#lightbox::backdrop { background: #0d1117; }
 #lightbox .bar { background: #0d1117; border-bottom: 1px solid #3d444d; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; color: #e6edf3; padding: 10px 16px; }
 #lightbox .bar .name { font-weight: 600; word-break: break-all; }
 #lightbox .stage { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 8px 16px 16px; }
 #lightbox .stage img { background: #fff; max-width: none; }
-#lightbox .stage.fit img { width: auto !important; max-width: 100%; max-height: 100%; }
+#lightbox .stage.fit img { max-width: 100%; max-height: 100%; }
 #lightbox button.close { margin-left: auto; }
 @media (max-width: 700px) {
   header { position: static; }
@@ -69,15 +71,17 @@ figure img { display: block; max-width: 100%; height: auto; background: #fff; bo
   <h1>weasysvg corpus</h1>
   <p class="intro" id="intro"></p>
   <div class="controls">
-    <span class="segmented" id="mode" role="group" aria-label="Layout">
+    <fieldset class="segmented" id="mode">
+      <legend>Layout</legend>
       <button type="button" data-mode="two">Side by side</button>
       <button type="button" data-mode="flip">Flip</button>
       <button type="button" data-mode="four">All four</button>
-    </span>
-    <span class="segmented" id="zoom" role="group" aria-label="Panel size">
+    </fieldset>
+    <fieldset class="segmented" id="zoom">
+      <legend>Panel size</legend>
       <button type="button" data-zoom="1">1×</button>
       <button type="button" data-zoom="2">2×</button>
-    </span>
+    </fieldset>
     <label>Left <select id="left"></select></label>
     <label>Right <select id="right"></select></label>
     <label>Group <select id="group"><option value="">all</option></select></label>
@@ -87,21 +91,22 @@ figure img { display: block; max-width: 100%; height: auto; background: #fff; bo
   </div>
 </header>
 <main id="list"></main>
-<div id="lightbox" role="dialog" aria-modal="true" aria-label="Full size">
+<dialog id="lightbox" aria-label="Full size">
   <div class="bar">
     <span class="name" id="lb-name"></span>
-    <span class="segmented" id="lb-renderers"></span>
-    <span class="segmented" id="lb-zoom" role="group" aria-label="Zoom">
+    <fieldset class="segmented" id="lb-renderers"><legend>Renderer</legend></fieldset>
+    <fieldset class="segmented" id="lb-zoom">
+      <legend>Zoom</legend>
       <button type="button" data-zoom="1">1×</button>
       <button type="button" data-zoom="2">2×</button>
       <button type="button" data-zoom="4">4×</button>
       <button type="button" data-zoom="fit">Fit</button>
-    </span>
+    </fieldset>
     <span class="hint">1-4 renderer, Space flips left and right, + - zoom, ← → previous and next, Esc closes</span>
     <span class="segmented close"><button type="button" id="lb-close">Close</button></span>
   </div>
   <div class="stage" id="lb-stage"><img id="lb-image" alt=""></div>
-</div>
+</dialog>
 <script id="data" type="application/json">/*DATA*/</script>
 <script>
 "use strict";
@@ -148,29 +153,31 @@ function panel(item, key, caption, onOpen) {
   return element("figure", { class: key }, children);
 }
 function flipPanel(item) {
+  // Both renderers need a panel: otherwise the caption would name an image that is not there
+  if (!item.panels[state.left] || !item.panels[state.right]) return null;
   const caption = element("figcaption", {}, []);
   let showing = state.left;
-  let touched = false;
-  // A click opens the renderer on show; a tap only flips, and its click must not open the full view
-  const figure = panel(item, state.left, [caption], () => {
-    if (touched) { touched = false; return; }
-    openLightbox(item, showing);
-  });
-  figure.classList.add("flip");
+  let touch = false;
   const show = (key) => {
     showing = key;
     caption.replaceChildren(element("strong", { text: renderers[key] }), " - hover or tap to see " + renderers[key === state.left ? state.right : state.left]);
     const image = figure.querySelector("img");
-    if (image && item.panels[key]) {
-      image.src = item.panels[key];
-      image.parentElement.href = item.panels[key];
-    }
+    image.src = item.panels[key];
+    image.parentElement.href = item.panels[key];
   };
+  // A tap flips, a click or Enter opens the renderer on show. A scroll makes no click, so it flips nothing.
+  const figure = panel(item, state.left, [caption], () => {
+    const tapped = touch;
+    touch = false;
+    if (tapped) show(showing === state.left ? state.right : state.left);
+    else openLightbox(item, showing);
+  });
+  figure.classList.add("flip");
   show(state.left);
+  figure.addEventListener("pointerdown", (event) => { touch = event.pointerType !== "mouse"; });
   // Hover for a mouse only: a touch fires mouse events of its own, which would flip back
   figure.addEventListener("pointerenter", (event) => { if (event.pointerType === "mouse") show(state.right); });
   figure.addEventListener("pointerleave", (event) => { if (event.pointerType === "mouse") show(state.left); });
-  figure.addEventListener("touchstart", () => { touched = true; show(showing === state.left ? state.right : state.left); }, { passive: true });
   return figure;
 }
 function card(item) {
@@ -180,7 +187,8 @@ function card(item) {
   if (item.what) children.push(element("p", { class: "meta", text: item.what }));
   const wide = item.width >= 2 * item.height;
   let panels;
-  if (state.mode === "flip") panels = element("div", { class: "panels one" }, [flipPanel(item)]);
+  const flip = state.mode === "flip" ? flipPanel(item) : null;
+  if (flip) panels = element("div", { class: "panels one" }, [flip]);
   else if (state.mode === "four") panels = element("div", { class: "panels four" + (wide ? " wide" : "") }, ["chromium", "weasysvg", "resvg", "weasyprint"].map((key) => panel(item, key)));
   else panels = element("div", { class: "panels two" + (wide ? " wide" : "") }, [panel(item, state.left), panel(item, state.right)]);
   children.push(panels);
@@ -208,7 +216,8 @@ let opener = null;
 function openLightbox(item, key) {
   current = item;
   currentKey = key;
-  document.getElementById("lightbox").classList.add("open");
+  const dialog = document.getElementById("lightbox");
+  if (!dialog.open) dialog.showModal();
   showLightbox();
   document.getElementById("lb-close").focus();
 }
@@ -226,7 +235,10 @@ function showLightbox() {
   }
 }
 function closeLightbox() {
-  document.getElementById("lightbox").classList.remove("open");
+  const dialog = document.getElementById("lightbox");
+  if (dialog.open) dialog.close();
+}
+function closed() {
   current = null;
   if (opener && opener.isConnected) opener.focus();
 }
@@ -271,12 +283,13 @@ function setup() {
     button.addEventListener("click", () => { lightboxZoom = button.dataset.zoom; showLightbox(); });
   }
   document.getElementById("lb-close").addEventListener("click", closeLightbox);
+  // Esc closes a modal dialog by itself: the close event clears the state either way
+  document.getElementById("lightbox").addEventListener("close", closed);
   document.getElementById("lightbox").addEventListener("click", (event) => { if (event.target.id === "lb-stage") closeLightbox(); });
   document.addEventListener("keydown", (event) => {
     if (!current) return;
     const keys = Object.keys(renderers);
-    if (event.key === "Escape") closeLightbox();
-    else if (event.key === "ArrowRight") step(1);
+    if (event.key === "ArrowRight") step(1);
     else if (event.key === "ArrowLeft") step(-1);
     else if (event.key === "+" || event.key === "-") {
       const steps = ["fit", "1", "2", "4"];

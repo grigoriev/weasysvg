@@ -27,6 +27,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS = ROOT / "corpus"
+INDEX = CORPUS / "index.json"
 PAGE = CORPUS / "COMPARISON.md"
 # The interactive page, for GitHub Pages: the template next to this script, with the data put in
 HTML_PAGE = CORPUS / "comparison.html"
@@ -58,9 +59,17 @@ def in_px(svg: str) -> str:
     return svg
 
 
+def inside(path: Path) -> Path:
+    """The path, resolved, if it lies inside the corpus: the names in index.json never lead out of it."""
+    resolved = path.resolve()
+    if not resolved.is_relative_to(CORPUS.resolve()):
+        raise SystemExit(f"{path} lies outside {CORPUS}")
+    return resolved
+
+
 def render_resvg(item: dict[str, Any]) -> Image.Image | str:
     """The page of the SVG through resvg, on white, at the width of the page; or why there is none."""
-    svg = CORPUS / "svg" / item["source"]
+    svg = inside(CORPUS / "svg" / item["source"])
     try:
         # The families Chromium resolves the generic names to, in the visual image
         png = bytes(
@@ -88,6 +97,7 @@ def render_resvg(item: dict[str, Any]) -> Image.Image | str:
 def panels(item: dict[str, Any]) -> str | None:
     """Write the four panels of item, each cropped to the ink of the Chromium reference. Returns a resvg failure."""
     name, box = item["name"], item.get("reference_box")
+    inside(CORPUS / "render" / f"{name}.png")  # a name with a path in it would write elsewhere
     for _, folder in COLUMNS:
         (CORPUS / folder / f"{name}.png").unlink(missing_ok=True)
     if not box:
@@ -140,7 +150,7 @@ def summary(verdicts: list[dict[str, Any]], version: str) -> str:
 
 
 def page(resvg_errors: dict[str, str]) -> str:
-    index = json.loads((CORPUS / "index.json").read_text())
+    index = json.loads((INDEX).read_text())
     verdicts = {v["name"]: v for v in json.loads((CORPUS / "verdicts.json").read_text())}
     version = json.loads((CORPUS / "baseline.json").read_text()).get("weasyprint", "")
     resvg_version = importlib.metadata.version("resvg-py")
@@ -171,7 +181,7 @@ def html_page(resvg_errors: dict[str, str]) -> str:
     version = json.loads((CORPUS / "baseline.json").read_text()).get("weasyprint", "")
     counts = Counter(v.get("verdict") for v in verdicts.values())
     items = []
-    for item in json.loads((CORPUS / "index.json").read_text()):
+    for item in json.loads((INDEX).read_text()):
         name, verdict = item["name"], verdicts.get(item["name"], {})
         found = {label.lower(): f"{folder}/{name}.png" for label, folder in COLUMNS if (CORPUS / folder / f"{name}.png").exists()}
         size = Image.open(CORPUS / found["chromium"]).size if "chromium" in found else (0, 0)
@@ -209,7 +219,7 @@ def main() -> None:
     for _, folder in COLUMNS:
         (CORPUS / folder).mkdir(parents=True, exist_ok=True)
     errors = {}
-    for item in json.loads((CORPUS / "index.json").read_text()):
+    for item in json.loads((INDEX).read_text()):
         error = panels(item)
         if error:
             errors[item["name"]] = error
