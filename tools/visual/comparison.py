@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import resvg_py
+from fontTools.ttLib import TTFont
 from imaging import ink_box
 from PIL import Image
 
@@ -205,6 +206,22 @@ def page(resvg_errors: dict[str, str]) -> str:
     return intro + summary(list(verdicts.values()), version) + "\n\n" + contents + "\n\n" + "\n".join(sections)
 
 
+def corpus_fonts() -> list[dict[str, Any]]:
+    """The fonts of corpus/fonts for the live panel: the page puts each into the SVGs that name its family.
+
+    An SVG in an <img> sees no font of the page, only the fonts in it, so the page adds @font-face rules
+    with the font as a data URL to a copy of the SVG.
+    """
+    out = []
+    for path in sorted((CORPUS / "fonts").glob("*.ttf")):
+        font = TTFont(path, lazy=True)
+        names = font["name"]
+        family = names.getDebugName(16) or names.getDebugName(1)
+        italic = bool(font["OS/2"].fsSelection & 1)
+        out.append({"family": family, "weight": font["OS/2"].usWeightClass, "style": "italic" if italic else "normal", "file": f"fonts/{path.name}"})
+    return out
+
+
 def browser_crop(item: dict[str, Any]) -> dict[str, Any] | None:
     """Where the Chromium panel sits on the page of the references, and the size of the <img> there.
 
@@ -263,6 +280,7 @@ def html_page(resvg_errors: dict[str, str]) -> str:
         "renderers": {"chromium": "Chromium", "browser": "This browser"} | {label.lower(): label for label, _ in COLUMNS[1:]},
         "groups": GROUPS,
         "labels": LABELS,
+        "fonts": corpus_fonts(),
         "references": REFERENCES,
         # Every verdict, those no SVG has included: the filter lists them all
         "counts": {key: counts[key] for key in VERDICTS},
