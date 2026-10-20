@@ -646,11 +646,22 @@ def test_zero_length_dashes_keep_a_negative_offset() -> None:
     [
         ((0, 40), (0.001, 39.999)),
         # An odd array repeats: its 0 is a dash once and a gap once
-        ((0, 10, 5), (0.001, 9.999, 5, 0, 10, 5)),
-        # A gap of 0 and a dash before a gap too short to give from stay
+        ((0, 10, 5), (0.00075, 9.99925, 5, 0, 10, 5)),
+        # A gap of 0 stays, and so does a dash of 0 before it: there is no length to take
         ((40, 0), (40, 0)),
-        ((0, 0.0005), (0, 0.0005)),
+        ((0, 0, 0, 40), (0, 0, 0.001, 39.999)),
     ],
 )
 def test_no_zero_dashes(dashes: tuple[float, ...], expected: tuple[float, ...]) -> None:
     assert paint.no_zero_dashes(dashes) == pytest.approx(expected)
+
+
+def test_zero_length_dashes_with_butt_caps_stay() -> None:
+    # A dash of length 0 with butt caps paints nothing: no sliver may take its place
+    style = 'fill="none" stroke="green" stroke-width="20" stroke-dasharray="0 40"'
+    assert re.search(r"\[0 40\] 0 d", content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
+
+
+def test_a_zero_length_dash_grows_with_its_period() -> None:
+    # In a viewBox of one unit drawn large, 0.001 units would show: the length follows the period
+    assert paint.no_zero_dashes((0, 0.04)) == pytest.approx((0.000001, 0.039999))
