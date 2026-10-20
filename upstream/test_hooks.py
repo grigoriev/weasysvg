@@ -20,7 +20,7 @@ def test_every_hook_is_found() -> None:
 
 def test_hooks_match_the_snapshot() -> None:
     found = hooks.changes(json.loads(hooks.SNAPSHOT.read_text()))
-    assert found == [], "WeasyPrint changed code weasysvg hooks:\\n" + "\\n".join(found)
+    assert found == [], "WeasyPrint changed code weasysvg hooks:\n" + "\n".join(found)
 
 
 def test_font_family_has_no_computer() -> None:
