@@ -213,11 +213,12 @@ def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True,
         clip = _clip_of(self, node)
         if clip is not None and any(clip is item for item in active):
             saved_clip = node.attrib.pop("clip-path")
+        # Before the restylers: they may cascade the children, which reads what these hooks note
+        for function in _BEFORE_DRAW:
+            function(self, node)
         # A blur mask being built draws its shapes grown, a clip mask draws them filled
         if fill_stroke:
             restyle(self, node, font_size, restyled)
-        for function in _BEFORE_DRAW:
-            function(self, node)
         _draw_with_effects(self, node, font_size, fill_stroke, context)
         for function in _AFTER_DRAW:
             function(self, node)

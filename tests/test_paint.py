@@ -489,7 +489,7 @@ def test_a_failing_restyler_puts_back_what_others_changed(monkeypatch: pytest.Mo
 
     monkeypatch.setattr(_core, "_RESTYLERS", [first, second])
     node = SimpleNamespace(attrib={"fill": "red"}, get=lambda *_args: None, tag="rect")
-    fake = SimpleNamespace(paths={})
+    fake = SimpleNamespace(paths={}, font_config=None)
     with pytest.raises(RuntimeError):
         _core._draw_node(fake, node, 12)
     assert node.attrib == {"fill": "red"}
