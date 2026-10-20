@@ -155,19 +155,26 @@ def _clip_of(svg: Any, node: Any) -> Any:
     return svg.paths.get(parse_url(value).fragment)
 
 
+def _is_clip_path(svg: Any, node: Any) -> bool:
+    """Whether node is the content of a clip path being drawn: WeasyPrint and paint.py tag it <g> then."""
+    identifier = node.get("id")
+    return bool(identifier) and svg.paths.get(identifier) is node
+
+
 def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True, context: Any = None) -> None:
+    # A clip path counts as active while its own content draws: a reference back to it from there
+    # closes a cycle. A child that reuses the clip of its parent closes none.
+    active = (*_ACTIVE_CLIPS.get(), node) if _is_clip_path(self, node) else _ACTIVE_CLIPS.get()
+    token = _ACTIVE_CLIPS.set(active)
     clip = _clip_of(self, node)
-    cycle = clip is not None and any(clip is active for active in _ACTIVE_CLIPS.get())
-    saved_clip = node.attrib.pop("clip-path") if cycle else None
-    token = _ACTIVE_CLIPS.set((*_ACTIVE_CLIPS.get(), clip)) if clip is not None and not cycle else None
+    saved_clip = node.attrib.pop("clip-path") if clip is not None and any(clip is item for item in active) else None
     # A blur mask being built draws its shapes grown, a clip mask draws them filled
     restyled = restyle(self, node, font_size) if fill_stroke else []
     try:
         _draw_with_effects(self, node, font_size, fill_stroke, context)
     finally:
         unrestyle(node, restyled)
-        if token is not None:
-            _ACTIVE_CLIPS.reset(token)
+        _ACTIVE_CLIPS.reset(token)
         if saved_clip is not None:
             node.attrib["clip-path"] = saved_clip
 

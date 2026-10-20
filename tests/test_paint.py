@@ -254,6 +254,16 @@ def test_clip_cycles_are_ignored(complex_clip: str) -> None:
     assert near(pixel(pdf, 60, 30), WHITE)
 
 
+@pytest.mark.parametrize("complex_clip", ["", "<text>x</text>"])
+def test_a_clip_reused_by_children_is_no_cycle(complex_clip: str) -> None:
+    # The left half of each box: the group keeps 0..100, the children 0..50 and 100..150, so 50..200 is empty
+    clip = f'<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/>{complex_clip}</clipPath>'
+    body = f'<defs>{clip}</defs><g clip-path="url(#c)"><rect width="100" height="100" fill="red" clip-path="url(#c)"/><rect x="100" width="100" height="100" fill="red" clip-path="url(#c)"/></g>'
+    pdf = render(svg(body))
+    assert near(pixel(pdf, 15, 30), RED)
+    assert near(pixel(pdf, 56, 30), WHITE)
+
+
 def test_missing_and_foreign_clip_references() -> None:
     references = ("url(#m)", "url(#nowhere)", "inset(1px)")
     body = "<defs><mask id='m'/></defs>" + "".join(f'<rect x="{20 * i}" width="10" height="10" fill="red" clip-path="{value}"/>' for i, value in enumerate(references))
