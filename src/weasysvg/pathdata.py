@@ -7,15 +7,14 @@ Coordinates are user units, as in the d attribute.
 from __future__ import annotations
 
 import math
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
 Point = tuple[float, float]
-PointAt = Callable[[int], Point]
 
-_TOKEN = re.compile(r"\s*,?\s*([MmLlHhVvCcSsQqTtAaZz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)")
-_FLAG = re.compile(r"\s*,?\s*([01])")
+COMMANDS = frozenset("MmLlHhVvCcSsQqTtAaZz")
+_SPACES = " \t\n\r\f"
+_DIGITS = "0123456789"
 _ARGUMENTS = {"M": 2, "L": 2, "H": 1, "V": 1, "C": 6, "S": 4, "Q": 4, "T": 2, "A": 7, "Z": 0}
 FLATTEN_STEPS = 32  # chords per curve or arc for lengths and points along the path
 
@@ -120,32 +119,68 @@ def _arc(start: Point, end: Point, rx: float, ry: float, angle: float, large: bo
 
 
 class _Scanner:
+    """Commands, numbers and flags of path data, read left to right without backtracking."""
+
     def __init__(self, data: str) -> None:
         self.data, self.position = data, 0
 
-    def token(self) -> str | None:
-        match = _TOKEN.match(self.data, self.position)
-        if not match:
-            return None
-        self.position = match.end()
-        return match.group(1)
+    def _peek(self) -> str:
+        return self.data[self.position] if self.position < len(self.data) else ""
 
-    def peek_number(self) -> bool:
-        match = _TOKEN.match(self.data, self.position)
-        return bool(match and not match.group(1).isalpha())
+    def _skip(self) -> None:
+        """Spaces, at most one comma, spaces."""
+        while self._peek() and self._peek() in _SPACES:
+            self.position += 1
+        if self._peek() == ",":
+            self.position += 1
+            while self._peek() and self._peek() in _SPACES:
+                self.position += 1
+
+    def _digits(self) -> int:
+        start = self.position
+        while self._peek() and self._peek() in _DIGITS:
+            self.position += 1
+        return self.position - start
+
+    def command(self) -> str | None:
+        self._skip()
+        character = self._peek()
+        if character not in COMMANDS:
+            return None
+        self.position += 1
+        return character
+
+    def at_number(self) -> bool:
+        self._skip()
+        return bool(self._peek()) and self._peek() in "+-." + _DIGITS
 
     def number(self) -> float:
-        token = self.token()
-        if token is None or token.isalpha():
+        self._skip()
+        start = self.position
+        if self._peek() in ("+", "-"):
+            self.position += 1
+        digits = self._digits()
+        if self._peek() == ".":
+            self.position += 1
+            digits += self._digits()
+        if not digits:
             raise ValueError("number expected")
-        return float(token)
+        exponent = self.position
+        if self._peek() in ("e", "E"):
+            self.position += 1
+            if self._peek() in ("+", "-"):
+                self.position += 1
+            if not self._digits():
+                self.position = exponent  # an e without digits ends the number
+        return float(self.data[start : self.position])
 
     def flag(self) -> bool:
-        match = _FLAG.match(self.data, self.position)
-        if not match:
+        self._skip()
+        character = self._peek()
+        if character not in ("0", "1"):
             raise ValueError("flag expected")
-        self.position = match.end()
-        return match.group(1) == "1"
+        self.position += 1
+        return character == "1"
 
 
 def _arguments(scanner: _Scanner, command: str) -> list[float]:
@@ -154,6 +189,17 @@ def _arguments(scanner: _Scanner, command: str) -> list[float]:
     rx, ry, angle = scanner.number(), scanner.number(), scanner.number()
     large, sweep = scanner.flag(), scanner.flag()
     return [rx, ry, angle, float(large), float(sweep), scanner.number(), scanner.number()]
+
+
+@dataclass(frozen=True)
+class _Arguments:
+    """The numbers of one command, and the origin its coordinates count from."""
+
+    values: list[float]
+    origin: Point
+
+    def point(self, index: int) -> Point:
+        return self.values[index] + self.origin[0], self.values[index + 1] + self.origin[1]
 
 
 class _Builder:
@@ -167,71 +213,88 @@ class _Builder:
         self.previous = ""
 
     def add(self, command: str, values: list[float]) -> None:
-        relative = command.islower()
         upper = command.upper()
-        cx, cy = self.current if relative else (0.0, 0.0)
-
-        def point(i: int) -> Point:
-            return values[i] + cx, values[i + 1] + cy
-
-        handler = getattr(self, f"_{upper}")
-        handler(values, point, relative)
+        _HANDLERS[upper](self, _Arguments(values, self.current if command.islower() else (0.0, 0.0)))
         self.previous = upper
 
-    def _segment(self, segment: Segment, control: Point | None = None) -> None:
+    def segment(self, segment: Segment, control: Point | None = None) -> None:
         self.segments.append(segment)
         self.current, self.control = segment.end, control
 
-    def _M(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        end = point(0)
-        self._segment(Segment("move", (self.current, end)))
-        self.start = end
-
-    def _L(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        self._segment(Segment("line", (self.current, point(0))))
-
-    def _H(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        x = values[0] + (self.current[0] if relative else 0)
-        self._segment(Segment("line", (self.current, (x, self.current[1]))))
-
-    def _V(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        y = values[0] + (self.current[1] if relative else 0)
-        self._segment(Segment("line", (self.current, (self.current[0], y))))
-
-    def _C(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        c1, c2, end = point(0), point(2), point(4)
-        self._segment(Segment("cubic", (self.current, c1, c2, end)), c2)
-
-    def _S(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        c1 = self._reflected("CS")
-        c2, end = point(0), point(2)
-        self._segment(Segment("cubic", (self.current, c1, c2, end)), c2)
-
-    def _Q(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        self._quad(point(0), point(2))
-
-    def _T(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        self._quad(self._reflected("QT"), point(0))
-
-    def _A(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        end = point(5)
-        if end == self.current:
-            return  # an arc to its own start is omitted
-        self._segment(_arc(self.current, end, values[0], values[1], values[2], bool(values[3]), bool(values[4])))
-
-    def _Z(self, values: list[float], point: PointAt, relative: bool) -> None:  # noqa: N802
-        self._segment(Segment("close", (self.current, self.start)))
-
-    def _reflected(self, kinds: str) -> Point:
+    def reflected(self, kinds: str) -> Point:
         if self.previous in kinds and self.control is not None:
             return 2 * self.current[0] - self.control[0], 2 * self.current[1] - self.control[1]
         return self.current
 
-    def _quad(self, control: Point, end: Point) -> None:
+    def quad(self, control: Point, end: Point) -> None:
         (x0, y0), (qx, qy) = self.current, control
         c1 = x0 + 2 / 3 * (qx - x0), y0 + 2 / 3 * (qy - y0)
         c2 = end[0] + 2 / 3 * (qx - end[0]), end[1] + 2 / 3 * (qy - end[1])
-        self._segment(Segment("cubic", (self.current, c1, c2, end)), control)
+        self.segment(Segment("cubic", (self.current, c1, c2, end)), control)
+
+
+def _move(builder: _Builder, arguments: _Arguments) -> None:
+    end = arguments.point(0)
+    builder.segment(Segment("move", (builder.current, end)))
+    builder.start = end
+
+
+def _line(builder: _Builder, arguments: _Arguments) -> None:
+    builder.segment(Segment("line", (builder.current, arguments.point(0))))
+
+
+def _horizontal(builder: _Builder, arguments: _Arguments) -> None:
+    end = (arguments.values[0] + arguments.origin[0], builder.current[1])
+    builder.segment(Segment("line", (builder.current, end)))
+
+
+def _vertical(builder: _Builder, arguments: _Arguments) -> None:
+    end = (builder.current[0], arguments.values[0] + arguments.origin[1])
+    builder.segment(Segment("line", (builder.current, end)))
+
+
+def _cubic(builder: _Builder, arguments: _Arguments) -> None:
+    c1, c2, end = arguments.point(0), arguments.point(2), arguments.point(4)
+    builder.segment(Segment("cubic", (builder.current, c1, c2, end)), c2)
+
+
+def _smooth_cubic(builder: _Builder, arguments: _Arguments) -> None:
+    c1, c2, end = builder.reflected("CS"), arguments.point(0), arguments.point(2)
+    builder.segment(Segment("cubic", (builder.current, c1, c2, end)), c2)
+
+
+def _quadratic(builder: _Builder, arguments: _Arguments) -> None:
+    builder.quad(arguments.point(0), arguments.point(2))
+
+
+def _smooth_quadratic(builder: _Builder, arguments: _Arguments) -> None:
+    builder.quad(builder.reflected("QT"), arguments.point(0))
+
+
+def _elliptical_arc(builder: _Builder, arguments: _Arguments) -> None:
+    end = arguments.point(5)
+    if end == builder.current:
+        return  # an arc to its own start is omitted
+    rx, ry, angle, large, sweep = arguments.values[:5]
+    builder.segment(_arc(builder.current, end, rx, ry, angle, bool(large), bool(sweep)))
+
+
+def _close(builder: _Builder, _arguments: _Arguments) -> None:
+    builder.segment(Segment("close", (builder.current, builder.start)))
+
+
+_HANDLERS: dict[str, Callable[[_Builder, _Arguments], None]] = {
+    "M": _move,
+    "L": _line,
+    "H": _horizontal,
+    "V": _vertical,
+    "C": _cubic,
+    "S": _smooth_cubic,
+    "Q": _quadratic,
+    "T": _smooth_quadratic,
+    "A": _elliptical_arc,
+    "Z": _close,
+}
 
 
 def parse(data: str | None) -> list[Segment]:
@@ -240,9 +303,9 @@ def parse(data: str | None) -> list[Segment]:
     command = None
     try:
         while True:
-            if command is None or command in "Zz" or not scanner.peek_number():
-                token = scanner.token()
-                if token is None or not token.isalpha() or (command is None and token not in "Mm"):
+            if command is None or command in "Zz" or not scanner.at_number():
+                token = scanner.command()
+                if token is None or (command is None and token not in "Mm"):
                     break
                 command = token
                 if command in "Zz":
@@ -263,18 +326,18 @@ class Polyline:
         self.points: list[Point] = []
         self.lengths: list[float] = []
         for segment in segments:
-            if segment.kind == "move":
-                continue
-            for point in segment.polyline():
-                point = transform(*point) if transform else point
-                if self.points:
-                    (x0, y0), (x1, y1) = self.points[-1], point
-                    if (x0, y0) == (x1, y1):
-                        continue
-                    self.lengths.append(self.lengths[-1] + math.hypot(x1 - x0, y1 - y0))
-                else:
-                    self.lengths.append(0.0)
-                self.points.append(point)
+            if segment.kind != "move":
+                for point in segment.polyline():
+                    self._add(transform(*point) if transform else point)
+
+    def _add(self, point: Point) -> None:
+        if not self.points:
+            self.points.append(point)
+            self.lengths.append(0.0)
+        elif point != self.points[-1]:
+            (x0, y0), (x1, y1) = self.points[-1], point
+            self.lengths.append(self.lengths[-1] + math.hypot(x1 - x0, y1 - y0))
+            self.points.append(point)
 
     @property
     def length(self) -> float:

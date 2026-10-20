@@ -270,30 +270,43 @@ def _identity(value: float) -> float:
     return value
 
 
+def _table(table: list[float]) -> Callable[[float], float]:
+    n = len(table) - 1
+
+    def interpolate(c: float) -> float:
+        if n == 0 or c >= 1:
+            return table[n]
+        k = int(c * n)
+        return table[k] + (c * n - k) * (table[k + 1] - table[k])
+
+    return interpolate
+
+
+def _gamma(amplitude: float, exponent: float, offset: float) -> Callable[[float], float]:
+    def gamma(c: float) -> float:
+        try:
+            value: float = amplitude * c**exponent + offset
+            return value
+        except (ZeroDivisionError, OverflowError):
+            # 0 to a negative power, or a power too large: the clamp that follows takes the infinity
+            return math.copysign(math.inf, amplitude) if amplitude else offset
+
+    return gamma
+
+
 def _transfer(function: Any) -> Callable[[float], float]:
     """One feFunc: identity, table, discrete, linear or gamma."""
     kind = function.get("type", "identity")
     table = [_num(value) for value in (function.get("tableValues") or "").replace(",", " ").split()]
     if kind == "table" and table:
-        n = len(table) - 1
-        return lambda c: table[n] if n == 0 or c >= 1 else table[int(c * n)] + (c * n - int(c * n)) * (table[int(c * n) + 1] - table[int(c * n)])
+        return _table(table)
     if kind == "discrete" and table:
         return lambda c: table[min(int(c * len(table)), len(table) - 1)]
     if kind == "linear":
         slope, intercept = _num(function.get("slope"), 1), _num(function.get("intercept"))
         return lambda c: slope * c + intercept
     if kind == "gamma":
-        amplitude, exponent, offset = _num(function.get("amplitude"), 1), _num(function.get("exponent"), 1), _num(function.get("offset"))
-
-        def gamma(c: float) -> float:
-            try:
-                value: float = amplitude * c**exponent + offset
-                return value
-            except (ZeroDivisionError, OverflowError):
-                # 0 to a negative power, or a power too large: the clamp that follows takes the infinity
-                return math.copysign(math.inf, amplitude) if amplitude else offset
-
-        return gamma
+        return _gamma(_num(function.get("amplitude"), 1), _num(function.get("exponent"), 1), _num(function.get("offset")))
     return _identity
 
 

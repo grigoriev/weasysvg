@@ -16,9 +16,9 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 
-from weasyprint.matrix import Matrix
 from weasyprint.svg import utils as wp_utils
 
+from . import glyphs
 from .textpath import ANCHOR
 
 MODES = frozenset(("tb", "tb-rl", "vertical-rl", "vertical-lr"))
@@ -83,49 +83,40 @@ def _numbers(node: Any, name: str, font_size: float, reference: float) -> list[f
     return [wp_utils.size(value, font_size, reference) for value in wp_utils.normalize(node.get(name, "")).split()]
 
 
+def _place(character: str, width: float, x: float, y: float, angle: float) -> glyphs.Place:
+    """Upright: the top of the em box at y, centered on x. Sideways: turned clockwise, the middle of
+    the em box on x, the start of the glyph at y."""
+
+    def place(height: float, baseline: float) -> tuple[tuple[float, float], float]:
+        if upright(character):
+            return (x - width / 2, y + baseline), angle
+        descent = height - baseline
+        return (x - (baseline - descent) / 2, y), angle + math.pi / 2
+
+    return place
+
+
 def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances: list[tuple[str, float]]) -> None:
     """Draw each character of node down the y axis."""
-    from weasyprint.draw.text import draw_first_line
-    from weasyprint.svg.text import TextBox
-    from weasyprint.text.line_break import split_first_line
-
     xs, ys = _numbers(node, "x", font_size, svg.inner_width), _numbers(node, "y", font_size, svg.inner_height)
     dxs, dys = _numbers(node, "dx", font_size, svg.inner_width), _numbers(node, "dy", font_size, svg.inner_height)
     rotations = [math.radians(float(value)) for value in wp_utils.normalize(node.get("rotate", "")).split()]
     spacing = svg.length(node.get("letter-spacing"), font_size)
     x, y = svg.cursor_position
-    placed = []
+    items = []
     for index, (character, width) in enumerate(advances):
-        x = xs[index] if index < len(xs) else x
-        y = ys[index] if index < len(ys) else y
-        x += dxs[index] if index < len(dxs) else 0
-        y += dys[index] if index < len(dys) else 0
-        angle = rotations[min(index, len(rotations) - 1)] if rotations else 0.0
+        x = (xs[index] if index < len(xs) else x) + (dxs[index] if index < len(dxs) else 0)
+        y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
         if character.strip():
-            placed.append((character, width, x, y + run.shift, angle))
+            angle = rotations[min(index, len(rotations) - 1)] if rotations else 0.0
+            items.append((character, _place(character, width, x, y + run.shift, angle)))
         y += advance(character, width, font_size) + spacing
     svg.cursor_position = x, y
-    if not placed:
+    if not items:
         return
     svg.stream.push_state()
     try:
         fill, stroke = svg.set_graphical_state(node, font_size)
-        svg.stream.begin_text()
-        for character, width, gx, gy, angle in placed:
-            layout, _, _, _, height, baseline = split_first_line(character, style, svg.context, math.inf, 0)
-            layout.reactivate(style)
-            svg.fill_stroke(fill, stroke, text=True)
-            box = TextBox(layout, style)
-            box.baseline = baseline
-            descent = height - baseline
-            if upright(character):
-                # The top of the em box at y, centered on x
-                origin, turn = (gx - width / 2, gy + baseline), angle
-            else:
-                # Turned clockwise: the middle of the em box on x, the start of the glyph at y
-                origin, turn = (gx - (baseline - descent) / 2, gy), angle + math.pi / 2
-            cos, sin = math.cos(turn), math.sin(turn)
-            draw_first_line(svg.stream, box, "none", "none", Matrix(cos, -sin, sin, cos) @ Matrix(d=-1, e=origin[0], f=origin[1]))
-        svg.stream.end_text()
+        glyphs.show(svg, style, fill, stroke, items)
     finally:
         svg.stream.pop_state()

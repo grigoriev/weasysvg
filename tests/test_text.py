@@ -233,7 +233,8 @@ def test_text_follows_its_path() -> None:
     assert len(matrices) == 4
     # The path climbs at the start: the first character is turned, counterclockwise on screen
     a, b = matrices[0][:2]
-    assert a < 0.95 and b < -0.2
+    assert a < 0.95
+    assert b < -0.2
     assert "Wave" in text_of(pdf).replace("\r\n", "").replace(" ", "")
 
 
@@ -297,7 +298,8 @@ def test_vertical_text_runs_down() -> None:
     assert len(matrices) == 3
     (a1, b1, *_rest1, ya), (_a2, _b2, *_rest2, yb), (a3, b3, *_rest3, yc) = matrices
     # Latin lies sideways, turned clockwise; the CJK character stands upright below it
-    assert round(a1, 3) == 0 and round(b1, 3) == 1
+    assert round(a1, 3) == 0
+    assert round(b1, 3) == 1
     assert (round(a3, 3), round(b3, 3)) == (1, 0)
     assert ya < yb < yc
 

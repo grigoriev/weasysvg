@@ -19,10 +19,9 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 
-from weasyprint.matrix import Matrix
 from weasyprint.svg import utils as wp_utils
 
-from . import pathdata
+from . import glyphs, pathdata
 from .pathdata import Polyline
 
 XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
@@ -105,12 +104,11 @@ def _turned_rectangle(stream: Any, origin: tuple[float, float], cos: float, sin:
     stream.close()
 
 
-def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advances: list[tuple[str, float]], decorations: list[tuple[float, float]]) -> None:
-    """Draw each character of node on the path, with its decoration lines."""
-    from weasyprint.draw.text import draw_first_line
-    from weasyprint.svg.text import TextBox
-    from weasyprint.text.line_break import split_first_line
+Placed = tuple[str, float, tuple[float, float], float, float]  # character, width, origin, cos, sin
 
+
+def _place(svg: Any, node: Any, font_size: float, state: _State, advances: list[tuple[str, float]]) -> list[Placed]:
+    """Each character whose middle lies on the path: the left end of its baseline, moved across by dy."""
     dx = _numbers(node, "dx", font_size, svg.inner_width)
     dy = _numbers(node, "dy", font_size, svg.inner_height)
     letter_spacing = svg.length(node.get("letter-spacing"), font_size)
@@ -122,32 +120,36 @@ def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advan
         if position is not None:
             (x, y), angle = position
             cos, sin = math.cos(angle), math.sin(angle)
-            # The left end of the baseline, moved across the path by dy
-            origin = x - cos * width / 2 - sin * state.shift, y - sin * width / 2 + cos * state.shift
-            placed.append((character, width, origin, cos, sin))
+            placed.append((character, width, (x - cos * width / 2 - sin * state.shift, y - sin * width / 2 + cos * state.shift), cos, sin))
         state.distance += width + letter_spacing
+    return placed
+
+
+def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[tuple[float, float]]) -> None:
+    for index, (_, width, origin, cos, sin) in enumerate(placed):
+        # The line runs on under the letter-spacing, up to the next character
+        length = width + (letter_spacing if index + 1 < len(placed) else 0)
+        for top, thickness in decorations:
+            _turned_rectangle(svg.stream, origin, cos, sin, (0, top, length, thickness))
+
+
+def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advances: list[tuple[str, float]], decorations: list[tuple[float, float]]) -> None:
+    """Draw each character of node on the path, with its decoration lines."""
+    placed = _place(svg, node, font_size, state, advances)
     if not placed:
         return
+    # A space shows no glyph, yet it carries the decoration lines
+    items = [(character, _fixed(origin, math.atan2(sin, cos))) for character, _, origin, cos, sin in placed if character.strip()]
     svg.stream.push_state()
     try:
         fill, stroke = svg.set_graphical_state(node, font_size)
-        svg.stream.begin_text()
-        for character, _, (x, y), cos, sin in placed:
-            if not character.strip():
-                continue  # a space shows no glyph, yet it carries the decoration lines
-            layout, _, _, _, _, baseline = split_first_line(character, style, svg.context, math.inf, 0)
-            layout.reactivate(style)
-            svg.fill_stroke(fill, stroke, text=True)
-            box = TextBox(layout, style)
-            box.baseline = baseline
-            draw_first_line(svg.stream, box, "none", "none", Matrix(cos, -sin, sin, cos) @ Matrix(d=-1, e=x, f=y))
-        svg.stream.end_text()
+        glyphs.show(svg, style, fill, stroke, items)
         if decorations:
-            for index, (_, width, origin, cos, sin) in enumerate(placed):
-                # The line runs on under the letter-spacing, up to the next character
-                length = width + (letter_spacing if index + 1 < len(placed) else 0)
-                for top, thickness in decorations:
-                    _turned_rectangle(svg.stream, origin, cos, sin, (0, top, length, thickness))
+            _decorate(svg, placed, svg.length(node.get("letter-spacing"), font_size), decorations)
             svg.fill_stroke(fill, stroke)
     finally:
         svg.stream.pop_state()
+
+
+def _fixed(origin: tuple[float, float], angle: float) -> glyphs.Place:
+    return lambda _height, _baseline: (origin, angle)

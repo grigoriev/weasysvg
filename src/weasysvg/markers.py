@@ -40,6 +40,15 @@ def _bisect(incoming: Point, outgoing: Point) -> float:
     return (in_angle + out_angle) / 2
 
 
+def _vertex_angle(element: Segment, following: Segment | None, subpath_out: Point) -> float:
+    """The angle at the end of element: a closing segment bisects with its subpath, the last ends."""
+    if element.kind == "close" and (following is None or following.kind == "move"):
+        return _bisect(element.in_slope(), subpath_out)
+    if following is None:
+        return _angle(element.in_slope())
+    return _bisect(element.in_slope(), following.out_slope())
+
+
 def positions(segments: list[Segment]) -> list[tuple[Point, float]]:
     """Each marker vertex of the path with its angle in degrees: start, mids, end."""
     if len(segments) < 2 or segments[0].kind != "move":
@@ -50,18 +59,11 @@ def positions(segments: list[Segment]) -> list[tuple[Point, float]]:
     for index, element in enumerate(elements):
         following = elements[index + 1] if index + 1 < len(elements) else None
         if element.kind == "close":
-            angle = _bisect(element.in_slope(), subpath_out)
-            out[subpath_vertex] = (out[subpath_vertex][0], angle)
-            if following is not None and following.kind != "move":
-                angle = _bisect(element.in_slope(), following.out_slope())
-        elif following is None:
-            angle = _angle(element.in_slope())
-        else:
-            angle = _bisect(element.in_slope(), following.out_slope())
-        out.append((element.end, angle))
-        if element.kind == "move" or (element.kind == "close" and following is not None and following.kind != "move"):
-            subpath_vertex = len(out) - 1
-            subpath_out = following.out_slope() if following is not None else (0.0, 0.0)
+            # The first vertex of a closed subpath bisects the closing and the first segment
+            out[subpath_vertex] = (out[subpath_vertex][0], _bisect(element.in_slope(), subpath_out))
+        out.append((element.end, _vertex_angle(element, following, subpath_out)))
+        if element.kind in ("move", "close") and following is not None and following.kind != "move":
+            subpath_vertex, subpath_out = len(out) - 1, following.out_slope()
     return out
 
 

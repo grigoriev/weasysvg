@@ -378,7 +378,8 @@ def test_a_blurred_image_group() -> None:
 def test_saturate_zero_is_gray() -> None:
     pdf = render(filtered('<feColorMatrix type="saturate" values="0"/>'))
     red, green, blue = pixel(pdf, 30, 30)
-    assert abs(red - green) < 4 and abs(green - blue) < 4
+    assert abs(red - green) < 4
+    assert abs(green - blue) < 4
     assert 100 < red < 160
 
 
@@ -391,7 +392,9 @@ def test_luminance_to_alpha() -> None:
 def test_hue_rotate_and_srgb() -> None:
     pdf = render(filtered('<feColorMatrix type="hueRotate" values="180"/>', ' color-interpolation-filters="sRGB"'))
     red, green, blue = pixel(pdf, 30, 30)
-    assert red < 60 and green > 80 and blue > 80
+    assert red < 60
+    assert green > 80
+    assert blue > 80
 
 
 def test_component_transfer_recolors() -> None:
@@ -412,7 +415,8 @@ def test_recolored_gradient_is_sampled() -> None:
     body = '<defs><linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient></defs><rect x="20" y="20" width="160" height="40" fill="url(#g)" filter="url(#f)"/>'
     pdf = render(filtered('<feColorMatrix type="saturate" values="0"/>', target=body))
     red, green, blue = pixel(pdf, 75, 30)
-    assert abs(red - green) < 4 and abs(green - blue) < 4
+    assert abs(red - green) < 4
+    assert abs(green - blue) < 4
 
 
 def test_sampled_stops() -> None:
@@ -420,7 +424,8 @@ def test_sampled_stops() -> None:
     samples = filters.sampled_stops(stops, 12)
     assert len(samples) == filters.GRADIENT_SAMPLES + 1
     offsets = [float(sample.get("offset")) for sample in samples]
-    assert offsets == sorted(offsets) and offsets[-1] == 1
+    assert offsets == sorted(offsets)
+    assert offsets[-1] == 1
     assert samples[-1].get("stop-opacity") == "0.5"
 
 
@@ -510,8 +515,9 @@ def test_a_failing_layer_restores_the_stream(layer: Layer, opacity: float) -> No
     fake = FakeSvg()
     stream = fake.stream
     plan = filters.Plan([layer], None)
+    node = SimpleNamespace(tag="g")
     with pytest.raises(RuntimeError):
-        filters.draw(fake, failing_original, SimpleNamespace(tag="g"), 12, None, plan, opacity)
+        filters.draw(fake, failing_original, node, 12, None, plan, opacity)
     # Else the caller pops the state of a mask or group stream, and q and Q of the page drift apart
     assert fake.stream is stream
     assert stream.depth == 0

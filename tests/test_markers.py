@@ -41,6 +41,8 @@ def kinds(data: str) -> list[str]:
         ("M0 0 L10", ["move"]),
         ("M0 0 A5 5 0 2 1 10 10", ["move"]),
         ("M0 0 L 1e1 0 .5.5", ["move", "line", "line"]),
+        ("M0 0 L 1e-1, 2E+1 , 3 4", ["move", "line", "line"]),
+        ("M0 0 L 1e 2", ["move"]),
         (None, []),
     ],
 )
@@ -85,10 +87,12 @@ def test_arc_geometry() -> None:
     # Counterclockwise on screen: the arc passes below, through (10, 10)
     below = pathdata.parse("M0 0 A10 10 0 0 0 20 0")[1]
     assert near(below.at(0.5), (10, 10))
-    assert below.arc is not None and below.arc[6] < 0
+    assert below.arc is not None
+    assert below.arc[6] < 0
     # The large arc against the sweep: atan2 gives +90 degrees, the arc runs -270 through (-7.07, -7.07)
     large = pathdata.parse("M10 0 A10 10 0 1 0 0 10")[1]
-    assert large.arc is not None and large.arc[6] == pytest.approx(-1.5 * math.pi)
+    assert large.arc is not None
+    assert large.arc[6] == pytest.approx(-1.5 * math.pi)
     assert near(large.at(0.5), (-10 / math.sqrt(2), -10 / math.sqrt(2)))
 
 
@@ -122,7 +126,9 @@ def test_no_positions_without_segments() -> None:
 def test_vertices_give_draw_markers_each_angle() -> None:
     marks = [((0.0, 0.0), 10.0), ((5.0, 0.0), 20.0), ((9.0, 0.0), 30.0)]
     out = list(markers.vertices(marks))
-    assert out[0] == (0, 0) and out[2] == (5, 0) and out[4] == (9, 0)
+    assert out[0] == (0, 0)
+    assert out[2] == (5, 0)
+    assert out[4] == (9, 0)
     (a1, a2), (b1, b2) = out[1], out[3]
     # draw_markers: start pi - a1, mid the mean of a2 and pi - b1, end b2
     assert math.degrees(math.pi - a1) == pytest.approx(10)

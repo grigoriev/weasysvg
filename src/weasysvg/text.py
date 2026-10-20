@@ -111,8 +111,8 @@ def _metrics(svg: Any, node: Any, font_size: float) -> tuple[float, float, float
     layout = Layout(_style(svg, node, font_size))
     layout.set_text("x")
     line, _ = layout.get_first_line()
-    ink = ffi.new("PangoRectangle *")
-    logical = ffi.new("PangoRectangle *")
+    ink = ffi.new(PANGO_RECTANGLE)
+    logical = ffi.new(PANGO_RECTANGLE)
     pango.pango_layout_line_get_extents(line, ink, logical)
     ascent: float = -logical.y * FROM_UNITS
     descent: float = (logical.height + logical.y) * FROM_UNITS
@@ -181,6 +181,7 @@ def _draw_lines(svg: Any, node: Any, font_size: float, x: float, width: float, r
 
 
 POSITIONS = ("x", "y", "dx", "dy")
+PANGO_RECTANGLE = "PangoRectangle *"
 # Cursive scripts take no letter-spacing (css-text-3): Arabic, Syriac, N'Ko, Mandaic, Mongolian,
 # Hanifi Rohingya, Adlam and the Arabic presentation forms
 CURSIVE = ((0x0600, 0x08FF), (0x1800, 0x18AF), (0x10D00, 0x10D3F), (0x1E900, 0x1E95F), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
@@ -209,7 +210,7 @@ def _track(layout: Any, spacing: float) -> float:
     pango.pango_layout_set_attributes(layout.layout, attributes)
     pango.pango_attr_list_unref(attributes)
     line, _ = layout.get_first_line()
-    logical = ffi.new("PangoRectangle *")
+    logical = ffi.new(PANGO_RECTANGLE)
     pango.pango_layout_line_get_extents(line, ffi.NULL, logical)
     width: float = logical.width * FROM_UNITS
     return width
