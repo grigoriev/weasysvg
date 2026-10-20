@@ -40,12 +40,13 @@ RUN apt-get update \
 # Debian contrib downloads the core fonts of Microsoft at build time. Only Trebuchet MS stays: Arial and
 # Times New Roman would take over Helvetica and Times from the Liberation fonts of the service image.
 RUN sed -i 's/^Components: main$/Components: main contrib/' /etc/apt/sources.list.d/debian.sources \
-    && echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections \
+    && echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" > /tmp/eula \
+    && debconf-set-selections /tmp/eula && rm /tmp/eula \
     && apt-get update \
     && apt-get install --yes --no-install-recommends ttf-mscorefonts-installer \
     && find /usr/share/fonts/truetype/msttcorefonts -type f ! -iname 'trebuc*' -delete \
     && fc-cache --force \
-    && fc-list | grep -qi "trebuchet ms" \
+    && test -n "$(fc-list "Trebuchet MS")" \
     && test "$(fc-match Helvetica family)" = "Liberation Sans" \
     && rm -rf /var/lib/apt/lists/*
 # The fonts the corpus asks for by name (Noto Sans, Amiri, Mplus 1p...), the very files of the resvg suite,
