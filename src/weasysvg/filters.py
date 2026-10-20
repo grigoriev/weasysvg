@@ -209,7 +209,8 @@ def _to_srgb(value: float) -> float:
 
 
 def _clamp(value: float) -> float:
-    return min(max(value, 0.0), 1.0)
+    # nan compares false both ways and would pass through min and max
+    return 0.0 if math.isnan(value) else min(max(value, 0.0), 1.0)
 
 
 def _in_space(function: Recolor, chain: _Chain, child: Any) -> Recolor:

@@ -608,3 +608,9 @@ def test_nested_filter_fan_out_is_bounded(monkeypatch: pytest.MonkeyPatch, caplo
     assert len(calls) == 8 + 64 + 64
     assert near(pixel(pdf, 30, 30), RED)
     assert "too many nested layers" in caplog.text
+
+
+def test_nan_in_a_recolor_stays_a_color() -> None:
+    pdf = render(filtered('<feComponentTransfer><feFuncR type="linear" slope="nan"/></feComponentTransfer>'))
+    assert near(pixel(pdf, 30, 30), (0, 0, 0), 10)
+    assert b"nan" not in pdf.lower()
