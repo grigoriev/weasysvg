@@ -992,14 +992,91 @@ def _draw_image(stream: Any, layer: Layer, sigma: float) -> None:
     RasterImage(picture, f"weasysvg{digest}", None).draw(stream, width, height, {"image_rendering": "auto"})
 
 
+# ---------------- rectangles blurred exactly ----------------
+
+# Samples of the blurred profile across each edge of a rectangle, 4 deviations to each side
+EDGE_SAMPLES = 32
+EDGE_REACH = 4
+
+
+def _plain_rect(svg: Any, node: Any, font_size: float) -> Region | None:
+    """x, y, width and height of the shape a rect paints, when its blur can draw it exactly.
+
+    That is a rect without rounded corners, with no stroke or a stroke in the paint of its fill: with
+    mitered corners such a stroke only widens the rect by half its width on each side.
+    """
+    if node.tag != "rect" or any(node.get(name) not in (None, "", "0", "auto") for name in ("rx", "ry")):
+        return None
+    x, y = svg.point(node.get("x"), node.get("y"), font_size)
+    width, height = svg.point(node.get("width"), node.get("height"), font_size)
+    stroke = node.get("stroke")
+    if stroke not in (None, "", "none"):
+        same_paint = stroke == node.get("fill") and node.get("stroke-opacity", "1") == node.get("fill-opacity", "1")
+        if not same_paint or node.get("stroke-linejoin", "miter") != "miter" or node.get("stroke-dasharray") not in (None, "none"):
+            return None
+        half = svg.length(node.get("stroke-width", "1"), font_size) / 2
+        x, y, width, height = x - half, y - half, width + 2 * half, height + 2 * half
+    return (x, y, width, height) if width > 0 and height > 0 else None
+
+
+def _profile(start: float, end: float, sigma: float) -> list[tuple[float, float]]:
+    """The blurred coverage of [start, end] along one axis, sampled: Phi((t - start) / s) - Phi((t - end) / s)."""
+    if not sigma:
+        # A sharp edge: 0 a hair outside, so that the extended shading stays 0 beyond it
+        hair = (end - start) * 1e-6
+        return [(start - hair, 0.0), (start, 1.0), (end, 1.0), (end + hair, 0.0)]
+    reach = EDGE_REACH * sigma
+    edges = [[edge - reach + 2 * reach * k / (EDGE_SAMPLES - 1) for k in range(EDGE_SAMPLES)] for edge in (start, end)]
+    points = sorted({*edges[0], *edges[1]})
+    return [(t, _GAUSS.cdf((t - start) / sigma) - _GAUSS.cdf((t - end) / sigma)) for t in points]
+
+
+def _profile_shading(stream: Any, samples: list[tuple[float, float]], vertical: bool) -> Any:
+    """An axial shading in gray along x or y through the samples, extended: 0 beyond the profile."""
+    (low, _), (high, _) = samples[0], samples[-1]
+    pieces = [stream.create_interpolation_function((0, 1), [a], [b], 1) for (_, a), (_, b) in zip(samples, samples[1:], strict=False)]
+    function = stream.create_stitching_function((low, high), [0, 1] * len(pieces), [t for t, _ in samples[1:-1]], pieces)
+    coords = (0, low, 0, high) if vertical else (low, 0, high, 0)
+    # Every profile ends at 0: extended, it covers the whole mask, so the product reaches everywhere
+    return stream.add_shading(2, (low, high), coords, True, function, "DeviceGray")
+
+
+def _rect_blur_mask(svg: Any, rect: Region, blur: tuple[float, float], box: Region) -> None:
+    """Set the blurred rect as the soft mask of svg.stream, exactly: the product of two profiles.
+
+    The blur of a rectangle is separable: its coverage is the profile along x times the profile along y.
+    Each is an axial shading; the second multiplies the first in a luminosity group. Corners come out round
+    and a deviation along one axis only leaves the other edges sharp, as in Chromium.
+    """
+    x, y, width, height = rect
+    mask = svg.stream.set_alpha_state(*box, mode="luminosity")
+    mask.rectangle(*box)
+    mask.clip()
+    mask.end()
+    across = _profile_shading(mask, _profile(x, x + width, blur[0]), False)
+    mask.paint_shading(across.id)
+    mask.set_blend_mode("Multiply")
+    down = _profile_shading(mask, _profile(y, y + height, blur[1]), True)
+    mask.paint_shading(down.id)
+
+
+def _blurred_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, sigma: float, box: Region) -> None:
+    """The blur mask of node: exact for a plain rect, the levels of _blur_mask for anything else."""
+    rect = _plain_rect(svg, node, font_size)
+    if rect is not None:
+        _rect_blur_mask(svg, rect, layer.blur, box)
+    else:
+        _blur_mask(svg, original, node, font_size, context, sigma, box)
+
+
 def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
     """The element in one color, blurred when sigma is set."""
     if sigma:
         # The silhouette of the grown element, in one color, under the blurred edge
-        _blur_mask(svg, original, node, font_size, context, sigma, big)
+        _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
         group = stream.add_group(*big)
         mask = group.set_alpha_state(*big, mode="alpha")
-        _draw_into(svg, original, node, font_size, context, mask, _widest(sigma))
+        _draw_into(svg, original, node, font_size, context, mask, _widest(max(sigma, *layer.blur)))
         group.set_color(_with_alpha(layer.rgba, layer.opacity))
         group.rectangle(*big)
         group.fill()
@@ -1017,8 +1094,9 @@ def _draw_source(svg: Any, original: Callable[..., None], node: Any, font_size: 
     # A blurred source keeps its colors and spreads them to the widest level of the mask
     grow = None
     if sigma:
-        _blur_mask(svg, original, node, font_size, context, sigma, big)
-        grow = _widest(sigma)
+        _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
+        # The paint reaches as far as the wider deviation: the mask cuts it to the blur
+        grow = _widest(max(sigma, *layer.blur))
     # A group under the blur mask: a mask or gradient opacity of the element sets a soft mask of its
     # own, which would replace the blur mask in the graphics state
     target = stream.add_group(*big) if layer.opacity < 1 or sigma else stream
