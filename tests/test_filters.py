@@ -829,3 +829,32 @@ def test_unsupported_arithmetic_draws_the_element(primitives: str, caplog: pytes
         pdf = render(filtered(primitives))
     assert near(pixel(pdf, 30, 30), RED, 60)
     assert "drawn unfiltered" in caplog.text
+
+
+def test_a_negative_seed_follows_the_c_remainder() -> None:
+    # C truncates the remainder toward zero: seed -5 is seed 6, seed 0 is seed 1
+    assert turbulence._setup_seed(-5) == 6
+    assert turbulence._setup_seed(0) == 1
+    assert turbulence.lattice(-5) == turbulence.lattice(6)
+
+
+def test_a_thin_turbulence_region_stays_within_the_pixel_cap() -> None:
+    picture = turbulence.image(turbulence.Turbulence(0.05, 0.05, 1, 0, False, False), (0, 0, 1e7, 1e-4), 1, True)
+    assert picture.width * picture.height <= turbulence.MAX_PIXELS
+
+
+@pytest.mark.parametrize(
+    "primitives",
+    [
+        '<feTurbulence baseFrequency="0.05" numOctaves="1e999"/>',
+        '<feTurbulence baseFrequency="0.05" seed="1e999"/>',
+        '<feTurbulence baseFrequency="1e999"/>',
+        '<feTurbulence baseFrequency="0.05" width="1e999"/>',
+        '<feTurbulence baseFrequency="0.05" x="1e300" width="1e300"/>',
+    ],
+)
+def test_out_of_range_turbulence_keeps_the_svg(primitives: str) -> None:
+    target = '<rect x="100" y="20" width="60" height="40" fill="blue" filter="url(#f)"/><rect x="20" y="20" width="60" height="40" fill="red"/>'
+    pdf = render(filtered(primitives, target=target))
+    # The rest of the SVG still draws after it
+    assert near(pixel(pdf, 30, 30), RED, 4)

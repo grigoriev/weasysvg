@@ -29,7 +29,8 @@ MAX_OCTAVES = 10
 
 def _setup_seed(seed: int) -> int:
     if seed <= 0:
-        seed = -(seed % (RAND_M - 1)) + 1
+        # The remainder of C truncates toward zero: for a negative seed it is -(|seed| % m)
+        seed = (-seed) % (RAND_M - 1) + 1
     return min(seed, RAND_M - 1)
 
 
@@ -162,7 +163,9 @@ def image(spec: Turbulence, region: tuple[float, float, float, float], scale: fl
     """The noise over region, at scale pixels per user unit, sampled at pixel centers, as straight RGBA."""
     x, y, width, height = region
     scale = min(scale, math.sqrt(MAX_PIXELS / max(width * height, 1e-9)))
-    columns, rows = max(1, round(width * scale)), max(1, round(height * scale))
+    # A thin region gets one pixel across: the cap must hold for the other side alone
+    columns = max(1, min(round(width * scale), MAX_PIXELS))
+    rows = max(1, min(round(height * scale), MAX_PIXELS // columns))
     step_x, step_y = width / columns, height / rows
     pixels = []
     for row in range(rows):

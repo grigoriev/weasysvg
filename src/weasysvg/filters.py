@@ -451,18 +451,19 @@ def _image_silhouette(picture: Image.Image, rgba: Any) -> Image.Image:
 
 def _fe_turbulence(chain: _Chain, child: Any) -> list[Layer]:
     numbers = [_num(value, -1) for value in (child.get("baseFrequency") or "0").replace(",", " ").split()]
-    if not numbers or len(numbers) > 2 or any(number < 0 for number in numbers):
-        numbers = [0.0]  # an invalid or negative frequency is 0
-    octaves = max(0, min(int(_num(child.get("numOctaves"), 1)), turbulence.MAX_OCTAVES))
+    if not numbers or len(numbers) > 2 or not all(0 <= number < math.inf for number in numbers):
+        numbers = [0.0]  # an invalid, negative or infinite frequency is 0
+    region = _subregion(chain, child)
+    _checked([Layer("image", region=region)])  # before any pixel is computed
+    seed = _num(child.get("seed"))
     spec = turbulence.Turbulence(
         numbers[0] / chain.unit[2],
         numbers[-1] / chain.unit[3],
-        octaves,
-        round(_num(child.get("seed"))),
+        int(max(0, min(_num(child.get("numOctaves"), 1), turbulence.MAX_OCTAVES))),
+        round(seed) if math.isfinite(seed) else 0,
         child.get("type") == "fractalNoise",  # any other type, an invalid one too, is turbulence
         child.get("stitchTiles") == "stitch",
     )
-    region = _subregion(chain, child)
     if region[2] <= 0 or region[3] <= 0:
         return []
     return [Layer("image", region=region, image=turbulence.image(spec, region, _px_per_unit(chain.svg), _linear_space(chain, child)))]
@@ -617,8 +618,9 @@ def _reference_plan(svg: Any, node: Any, font_size: float, fragment: str) -> Pla
     try:
         region = _region(svg, node, filter_node, font_size)
         return Plan(_checked(_evaluate(svg, filter_node, region, font_size, _unit(svg, node, filter_node, font_size))), region)
-    except (Unsupported, ValueError) as error:
-        # ValueError: a value WeasyPrint cannot parse, such as flood-opacity="abc"
+    except (Unsupported, ValueError, ArithmeticError) as error:
+        # ValueError: a value WeasyPrint cannot parse, such as flood-opacity="abc". ArithmeticError: a
+        # number too large for the arithmetic of a primitive
         LOGGER.warning("SVG filter %r is drawn unfiltered: %s is not supported", fragment, error)
         return UNFILTERED
 
