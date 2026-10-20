@@ -249,6 +249,17 @@ def test_blur_on_the_root_is_vector() -> None:
     assert faint(pixel(pdf, 14, 30))
 
 
+@pytest.mark.parametrize("units", ["", ' clipPathUnits="objectBoundingBox"'])
+def test_clip_path_cuts_the_filter_result(units: str) -> None:
+    # CSS clips after it filters: the blur stops at the clip, as the handle of the OpenStreetMap logo
+    shape = '<rect width="1" height="1"/>' if units else '<rect x="20" y="20" width="60" height="40"/>'
+    target = f'<clipPath id="c"{units}>{shape}</clipPath><rect x="20" y="20" width="60" height="40" fill="red" clip-path="url(#c)" filter="url(#f)"/>'
+    pdf = render(filtered('<feGaussianBlur stdDeviation="4"/>', target=target))
+    assert near(pixel(pdf, 13, 30), WHITE, 3)
+    # Inside, near the edge, the blur still fades the color
+    assert not near(pixel(pdf, 16, 30), RED, 30)
+
+
 def test_blur_of_a_group_with_text() -> None:
     target = '<g filter="url(#f)"><text x="20" y="60" font-size="40" fill="red">Hi</text><circle cx="150" cy="50" r="20" fill="red" stroke="blue"/></g>'
     pdf = render(filtered('<feGaussianBlur stdDeviation="2"/>', target=target))

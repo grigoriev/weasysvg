@@ -468,8 +468,9 @@ def plan(svg: Any, node: Any, font_size: float) -> Plan | None:
 
 # ---------------- vector blur ----------------
 
-# Profile steps on each side of the edge: about two per CSS px of the standard deviation
-MIN_STEPS, MAX_STEPS = 4, 16
+# Profile steps on each side of the edge: about six per CSS px of the standard deviation, so no
+# step shows at print resolution
+MIN_STEPS, MAX_STEPS, STEPS_PER_PX = 4, 16, 6
 _GAUSS = NormalDist()
 RESTYLED = frozenset(("circle", "ellipse", "line", "path", "polyline", "polygon", "rect", "text", "tspan", "textPath"))
 
@@ -650,7 +651,7 @@ def _blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: fl
     Every level lightens the mask, so each point keeps the highest level it reaches: the grown shapes and
     the lines outside, white minus the bands inside the filled shapes.
     """
-    steps = max(MIN_STEPS, min(MAX_STEPS, math.ceil(2 * sigma * _px_per_unit(svg))))
+    steps = max(MIN_STEPS, min(MAX_STEPS, math.ceil(STEPS_PER_PX * sigma * _px_per_unit(svg))))
     mask = svg.stream.set_alpha_state(*box, mode="luminosity")
     mask.set_blend_mode("Lighten")
     for k, level in enumerate(levels(sigma, steps), 1):
