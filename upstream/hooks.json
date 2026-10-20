@@ -47,7 +47,7 @@
   },
   "weasyprint.svg:TAGS": {
    "fingerprint": "7a908f74c587f641",
-   "used_by": "markers, text, foreign_object register drawing functions"
+   "used_by": "markers, text, foreign_object and paint register drawing functions"
   },
   "weasyprint.svg:NOT_INHERITED_ATTRIBUTES": {
    "fingerprint": "b1f1b6182b76681a",
@@ -87,7 +87,7 @@
   },
   "weasyprint.svg.text:text": {
    "fingerprint": "388f5046ffe009d3",
-   "used_by": "text._draw_run, textpath, vertical repeat its positioning"
+   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge"
   },
   "weasyprint.svg.text:TextBox": {
    "fingerprint": "af3cf2f8fbba9a1c",
@@ -96,6 +96,14 @@
   "weasyprint.svg.path:path": {
    "fingerprint": "aae4c7fd39caf0e7",
    "used_by": "markers rebuild the vertices it leaves"
+  },
+  "weasyprint.svg.shapes:circle": {
+   "fingerprint": "d10e9ded49e1b840",
+   "used_by": "paint.ellipse replaces it"
+  },
+  "weasyprint.svg.shapes:ellipse": {
+   "fingerprint": "c1ae831e072caecb",
+   "used_by": "paint.ellipse replaces it"
   },
   "weasyprint.svg.shapes:line": {
    "fingerprint": "80283ea514b5459e",
@@ -123,7 +131,7 @@
   },
   "weasyprint.draw.text:draw_first_line": {
    "fingerprint": "7669a3733dcd8597",
-   "used_by": "glyphs.show, text._draw_run"
+   "used_by": "glyphs.show, text._draw_run; text.carried_shifts moves the shifts of its TJ arrays"
   },
   "weasyprint.draw.text:draw_emojis": {
    "fingerprint": "3282757b03b6037d",

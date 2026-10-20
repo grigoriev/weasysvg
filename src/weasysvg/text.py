@@ -19,14 +19,17 @@ scripts joined (css-text-3, cursive tracking). Other runs keep the layout of Wea
 from __future__ import annotations
 
 import math
+import re
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 from xml.etree import ElementTree as ET
 
 from weasyprint import svg as wp_svg
 from weasyprint.css.properties import INITIAL_VALUES
 from weasyprint.matrix import Matrix
-from weasyprint.svg.bounding_box import extend_bounding_box, is_valid_bounding_box
+from weasyprint.svg.bounding_box import EMPTY_BOUNDING_BOX, extend_bounding_box, is_valid_bounding_box
 from weasyprint.svg.utils import normalize, size
 from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.line_break import Layout
@@ -148,6 +151,84 @@ def baseline_shift(value: str, ascent: float, descent: float, x_height: float) -
         "ideographic": -descent,
         "mathematical": ascent / 2,
     }.get(value, 0)
+
+
+# ---------------- text chunks ----------------
+
+CHUNK_BOX = "_weasysvg_chunk_box"
+TEXT_TAGS_WITH_CHUNKS = frozenset(("text", "tspan", "a"))
+
+
+def chunk_boxes(_svg: Any, node: Any) -> None:
+    """Keep the box of a text chunk out of the anchor of its parent, and give it back afterwards.
+
+    A tspan with its own x or y starts a text chunk, which text-anchor places on its own. WeasyPrint draws it
+    so, but then adds its box to the box of the parent, which anchors its own chunk by the width of both.
+    The box of a chunk is hidden and passed up until the <text> or an enclosing chunk is drawn, then added
+    back to it: a gradient or a filter of the text still spans every chunk. A tspan that starts no chunk
+    passes the boxes on, since WeasyPrint merges its own box into the anchor of the chunk around it.
+    """
+    if node.tag not in TEXT_TAGS_WITH_CHUNKS:
+        return
+    hidden = [entry for child in node for entry in child.__dict__.pop(CHUNK_BOX, ())]
+    starts = node.tag != "text" and ("x" in node.attrib or "y" in node.attrib) and is_valid_bounding_box(getattr(node, "text_bounding_box", None))
+    if node.tag == "text" or starts:
+        for owner, box in hidden:
+            owner.text_bounding_box = box
+            x, y, width, height = box
+            node.text_bounding_box = extend_bounding_box(node.text_bounding_box, ((x, y), (x + width, y + height)))
+        hidden = []
+    if starts:
+        hidden = [(node, node.text_bounding_box)]
+        node.text_bounding_box = EMPTY_BOUNDING_BOX
+    if hidden:
+        node.__dict__[CHUNK_BOX] = hidden
+
+
+# ---------------- leading shifts ----------------
+
+# A TJ array that starts with a shift: an empty string first, or none
+_LEADING_SHIFT = re.compile(r"^(?:<>)?(-?\d+(?:\.\d+)?(?:e-?\d+)?)(?=<)")
+
+
+@contextmanager
+def carried_shifts(stream: Any) -> Iterator[None]:
+    """Move a shift at the start of a TJ array to the end of the array before it, while text is drawn.
+
+    PDFium drops a shift at the start of an array, so a letter-spacing Pango puts before a glyph got
+    lost. At the end of the array before, in the same text object, the shift is the same. Only a font
+    change may lie between: its size scales the shift.
+    """
+    state: dict[str, Any] = {"size": None, "last": None}
+    show_text, set_font_size = stream.show_text, stream.set_font_size
+
+    def sized(font: Any, size: float) -> None:
+        state["size"] = size
+        set_font_size(font, size)
+
+    def show(text: str) -> None:
+        match = _LEADING_SHIFT.match(text)
+        last = state["last"]
+        if match and last is not None and all(entry.endswith(b" Tf") for entry in stream.stream[last[0] + 1 :]):
+            index, size = last
+            value = match[1] if size == state["size"] else str(float(match[1]) * state["size"] / size)
+            stream.stream[index] = stream.stream[index][: -len(b"] TJ")] + f" {value}] TJ".encode()
+            text = text[match.end() :]
+        show_text(text)
+        state["last"] = (len(stream.stream) - 1, state["size"])
+
+    # An override of the stream that another patch set stays: it comes back afterwards
+    missing = object()
+    previous = {name: stream.__dict__.get(name, missing) for name in ("show_text", "set_font_size")}
+    stream.show_text, stream.set_font_size = show, sized
+    try:
+        yield
+    finally:
+        for name, value in previous.items():
+            if value is missing:
+                del stream.__dict__[name]
+            else:
+                setattr(stream, name, value)
 
 
 # ---------------- text-decoration ----------------
@@ -310,7 +391,8 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
         svg.fill_stroke(fill, stroke, text=True)
         text_box = sys.modules["weasyprint.svg.text"].TextBox(layout, style)
         text_box.baseline = baseline
-        emojis = draw_first_line(svg.stream, text_box, "none", "none", Matrix(d=-1, e=x_position, f=y_position))
+        with carried_shifts(svg.stream):
+            emojis = draw_first_line(svg.stream, text_box, "none", "none", Matrix(d=-1, e=x_position, f=y_position))
         svg.stream.end_text()
     finally:
         svg.stream.pop_state()
@@ -446,6 +528,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
     _core.add_restyler(anchor_restyle)
+    _core.add_after_draw(chunk_boxes)
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:
             wp_svg.TAGS[tag] = draw_text

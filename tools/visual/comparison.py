@@ -40,8 +40,11 @@ GROUPS = {
     "real": "Wikimedia Commons",
     "resvg": "resvg feature tests",
 }
-VERDICTS = ("same", "minor", "font", "broken")
-LABELS = {"same": "same as Chromium", "minor": "minor difference", "font": "other font only", "broken": "broken"}
+# Each verdict compares a rendering with the reference of its SVG
+VERDICTS = ("same", "close", "differs")
+LABELS = {"same": "matches the reference", "close": "close to the reference", "differs": "differs from the reference"}
+# The reference of an SVG: the renderer, or both, judged right for it; "browser" is an English desktop browser
+REFERENCES = {"chromium": "Chromium", "resvg": "resvg", "both": "Chromium and resvg", "browser": "an English browser"}
 COLUMNS = (("Chromium", "render/chromium"), ("resvg", "render/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
 # The panels of the bench, over the box of the Chromium reference, as make comparison writes them
 BENCH_PANELS = ROOT / "tools" / "visual" / "out" / "panels"
@@ -69,6 +72,17 @@ def inside(path: Path) -> Path:
 
 def render_resvg(item: dict[str, Any]) -> Image.Image | str:
     """The page of the SVG through resvg, on white, at the width of the page; or why there is none."""
+    image = resvg_image(item)
+    if isinstance(image, str):
+        return image
+    # The <img> of the references sits at the top left of a white page
+    page = Image.new("RGB", tuple(item.get("page_size") or image.size), "white")
+    page.paste(image, (0, 0), mask=image.getchannel("A"))
+    return page
+
+
+def resvg_image(item: dict[str, Any]) -> Image.Image | str:
+    """The SVG through resvg at the width of the page, transparent; or why there is none."""
     svg = inside(CORPUS / "svg" / item["source"])
     try:
         # The families Chromium resolves the generic names to, in the visual image
@@ -76,6 +90,8 @@ def render_resvg(item: dict[str, Any]) -> Image.Image | str:
             resvg_py.svg_to_bytes(
                 svg_string=in_px(svg.read_text()),
                 resources_dir=str(svg.parent),
+                # resvg reads no fontconfig: it gets the fonts of the corpus by their directory
+                font_dirs=[str(CORPUS / "fonts")],
                 width=int(item["width"]) if item.get("width") else None,
                 font_family="Liberation Serif",
                 serif_family="Liberation Serif",
@@ -87,11 +103,7 @@ def render_resvg(item: dict[str, Any]) -> Image.Image | str:
         if isinstance(error, (KeyboardInterrupt, SystemExit)):
             raise
         return f"resvg error: {error}"[:200]
-    image = Image.open(io.BytesIO(png)).convert("RGBA")
-    # The <img> of the references sits at the top left of a white page
-    page = Image.new("RGB", tuple(item.get("page_size") or image.size), "white")
-    page.paste(image, (0, 0), mask=image.getchannel("A"))
-    return page
+    return Image.open(io.BytesIO(png)).convert("RGBA")
 
 
 def panels(item: dict[str, Any]) -> str | None:
@@ -132,20 +144,29 @@ def cell(name: str, label: str, folder: str, missing: str) -> str:
     return f'<a href="{path}"><img src="{path}" width="{WIDTH}" alt="{name} in {label}"></a>'
 
 
+def judged(label: str, verdict: str | None, what: str | None) -> str:
+    """One line of the verdicts of an SVG: the renderer, its verdict and what differs."""
+    note = f" {html.escape(what)}" if what else ""
+    return f"{label}: **{LABELS.get(verdict or '', 'n/a')}**.{note}"
+
+
 def entry(item: dict[str, Any], verdict: dict[str, Any], resvg_error: str | None) -> str:
     name = item["name"]
-    what = verdict.get("what") or ""
-    note = f" {html.escape(what)}" if what else ""
+    why = verdict.get("reference_why") or ""
+    reference = f"Reference: {REFERENCES.get(verdict.get('reference') or '', 'n/a')}." + (f" {html.escape(why)}" if why else "")
+    lines = [reference, judged("weasysvg", verdict.get("verdict"), verdict.get("what")), judged("WeasyPrint", verdict.get("native_verdict"), verdict.get("native_what"))]
     header = "| " + " | ".join(label for label, _ in COLUMNS) + " |"
     row = "| " + " | ".join(cell(name, label, folder, (resvg_error if label == "resvg" else None) or "n/a") for label, folder in COLUMNS) + " |"
     source = f"[`{item['source']}`](svg/{item['source']})"
-    return f"### {name}\n\n{source}. WeasyPrint: {verdict.get('native_verdict', 'n/a')}, weasysvg: **{verdict.get('verdict', 'n/a')}**.{note}\n\n{header}\n|---|---|---|---|\n{row}\n"
+    return f"### {name}\n\n{source}\n\n" + "\n".join(f"- {line}" for line in lines) + f"\n\n{header}\n|---|---|---|---|\n{row}\n"
 
 
 def summary(verdicts: list[dict[str, Any]], version: str) -> str:
     native, ours = Counter(v.get("native_verdict") for v in verdicts), Counter(v.get("verdict") for v in verdicts)
     lines = [f"| Verdict | WeasyPrint {version} | WeasyPrint {version} with weasysvg |", "|---|---|---|"]
     lines += [f"| {LABELS[key]} | {native[key]} | {ours[key]} |" for key in VERDICTS]
+    references = Counter(v.get("reference") for v in verdicts)
+    lines += ["", "References: " + ", ".join(f"{label} {references[key]}" for key, label in REFERENCES.items()) + "."]
     return "\n".join(lines)
 
 
@@ -165,14 +186,33 @@ def page(resvg_errors: dict[str, str]) -> str:
     intro = (
         "# Corpus comparison\n\n"
         "<!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->\n\n"
-        f"Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg-py {resvg_version}); "
+        f"Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py {resvg_version}); "
         f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. The WeasyPrint panels are PDFium "
         "rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the "
-        "ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see "
+        "ink of the Chromium panel, so the four line up pixel for pixel. Each SVG has a reference: Chromium, resvg, both, or an "
+        "English browser where headless Chromium matches no language. The verdicts compare weasysvg and WeasyPrint with that "
+        "reference; they come from a visual review at full size, see "
         "[`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large "
-        "panels and a flip between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.\n\n"
+        "panels, your own browser and a swipe between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.\n\n"
     )
     return intro + summary(list(verdicts.values()), version) + "\n\n" + contents + "\n\n" + "\n".join(sections)
+
+
+def browser_crop(item: dict[str, Any]) -> dict[str, Any] | None:
+    """Where the Chromium panel sits on the page of the references, and the size of the <img> there.
+
+    The browser panel draws the SVG itself and crops it there. resvg gives the height of the <img> at the
+    width of the page, as a browser sizes the SVG.
+    """
+    reference = CORPUS / "reference" / "chromium" / f"{item['name']}.png"
+    box = item.get("reference_box")
+    if not box or not reference.exists():
+        return None
+    ink = ink_box([Image.open(reference).convert("RGB")])
+    drawn = resvg_image(item)
+    if ink is None or not isinstance(drawn, Image.Image):
+        return None
+    return {"x": box[0] + ink[0], "y": box[1] + ink[1], "page": item["width"], "pageHeight": drawn.height}
 
 
 def html_page(resvg_errors: dict[str, str]) -> str:
@@ -185,28 +225,38 @@ def html_page(resvg_errors: dict[str, str]) -> str:
         name, verdict = item["name"], verdicts.get(item["name"], {})
         found = {label.lower(): f"{folder}/{name}.png" for label, folder in COLUMNS if (CORPUS / folder / f"{name}.png").exists()}
         size = Image.open(CORPUS / found["chromium"]).size if "chromium" in found else (0, 0)
+        crop = browser_crop(item)
         items.append(
             {
                 "name": name,
                 "group": item["group"],
                 "source": item["source"],
+                "reference": verdict.get("reference"),
+                "referenceWhy": verdict.get("reference_why") or "",
                 "verdict": verdict.get("verdict"),
-                "native": verdict.get("native_verdict"),
                 "what": verdict.get("what") or "",
+                "native": verdict.get("native_verdict"),
+                "nativeWhat": verdict.get("native_what") or "",
                 "width": size[0],
                 "height": size[1],
-                "panels": {label.lower(): found.get(label.lower()) for label, _ in COLUMNS},
+                "panels": {label.lower(): found.get(label.lower()) for label, _ in COLUMNS} | {"browser": f"svg/{item['source']}" if crop else None},
+                "crop": crop,
                 "errors": {"resvg": resvg_errors[name]} if name in resvg_errors else {},
             }
         )
     data = {
         "intro": (
-            f"Each SVG of the corpus in Chromium, the reference; resvg (resvg-py {importlib.metadata.version('resvg-py')}); "
-            f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. Every panel is cropped to the ink of the "
-            "Chromium reference, so the four line up pixel for pixel. Click a panel for its full size."
+            f"Each SVG of the corpus in Chromium; resvg (resvg-py {importlib.metadata.version('resvg-py')}); "
+            f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. The browser panel is the SVG itself, drawn by "
+            "the browser you read this page in. Every panel is cropped to the ink of the Chromium reference, so they line up "
+            "pixel for pixel. The verdicts compare weasysvg and WeasyPrint with the reference of each SVG, marked on its panel. "
+            "Click a panel to swipe between two renderers at full size."
         ),
-        "renderers": {label.lower(): label for label, _ in COLUMNS},
+        # The browser panel comes second, next to the other browser
+        "renderers": {"chromium": "Chromium", "browser": "This browser"} | {label.lower(): label for label, _ in COLUMNS[1:]},
         "groups": GROUPS,
+        "labels": LABELS,
+        "references": REFERENCES,
         # Every verdict, those no SVG has included: the filter lists them all
         "counts": {key: counts[key] for key in VERDICTS},
         "items": items,

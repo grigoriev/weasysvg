@@ -7,7 +7,8 @@ markers the wrong way.
 
 Chromium (SVGMarkerData): a start marker follows the first segment out, an end marker the last one in,
 a mid marker bisects both, with 360 degrees added to the incoming angle when the two lie more than 180
-apart. A moveto counts as a line from the current point. A closed subpath turns its first and closing
+apart. Angles run from 0 to 360 degrees, as in resvg: at a cusp, up in and down out, the marker points
+left, as Chromium 156 and the resvg suite draw it. A moveto counts as a line from the current point. A closed subpath turns its first and closing
 vertex to bisect the closing segment and the first segment.
 """
 
@@ -30,14 +31,15 @@ _NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 
 
 def _angle(slope: Point) -> float:
-    return math.degrees(math.atan2(slope[1], slope[0]))
+    """The direction of slope, 0 to 360 degrees: opposite directions at a cusp then bisect to 180."""
+    return math.degrees(math.atan2(slope[1], slope[0])) % 360
 
 
 def _bisect(incoming: Point, outgoing: Point) -> float:
     in_angle, out_angle = _angle(incoming), _angle(outgoing)
     if abs(in_angle - out_angle) > 180:
         in_angle += 360
-    return (in_angle + out_angle) / 2
+    return (in_angle + out_angle) / 2 % 360
 
 
 def _vertex_angle(element: Segment, following: Segment | None, subpath_out: Point) -> float:

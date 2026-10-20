@@ -410,3 +410,108 @@ def test_a_broken_rotate_is_ignored(mode: str, value: str) -> None:
     matrices = glyph_matrices(render(svg(f'<text x="50 60" y="30"{mode} rotate="{value}">AB</text><g rotate="x"/>')))
     assert len(matrices) == 2
     assert [round(matrix[1], 3) for matrix in matrices] == ([1, 1] if mode else [0, 0])
+
+
+# ---------------- text chunks ----------------
+
+
+@pytest.mark.parametrize("anchor", ["middle", "end"])
+@pytest.mark.parametrize(
+    "inner",
+    [
+        '<tspan>1</tspan><tspan x="50" dy="25">H</tspan>',
+        # The chunk one level down, in a tspan that starts none: its box still stays out of the anchor of "1"
+        '<tspan>1<tspan x="50" dy="25">H</tspan></tspan>',
+    ],
+)
+def test_each_text_chunk_is_anchored_by_its_own_width(anchor: str, inner: str) -> None:
+    # A tspan with its own x starts a chunk: "1" is anchored by its width alone, "H" by its own
+    body = f'<text x="50" y="40" font-size="20" text-anchor="{anchor}">{inner}</text>'
+    single = f'<text x="50" y="40" font-size="20" text-anchor="{anchor}">1</text><text x="50" y="65" font-size="20" text-anchor="{anchor}">H</text>'
+    shifts = re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, height=120))))
+    expected = re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(single, height=120))))
+    assert sorted(shifts) == sorted(expected)
+
+
+class TextNode(list[Any]):
+    """A text node as chunk_boxes sees it: tag, attributes, children and the box WeasyPrint drew."""
+
+    def __init__(self, tag: str, box: tuple[float, float, float, float], children: tuple[Any, ...] = (), **attrib: str) -> None:
+        super().__init__(children)
+        self.tag, self.attrib, self.text_bounding_box = tag, attrib, box
+
+
+def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
+    # Drawn inside out: the chunk "H" one level down, the tspan around it, then the text
+    chunk = TextNode("tspan", (90, 45, 20, 25), x="90")
+    middle = TextNode("tspan", (10, 20, 10, 25), (chunk,))
+    root = TextNode("text", (10, 20, 10, 25), (middle,))
+    for node in (chunk, middle, root):
+        text.chunk_boxes(None, node)
+    # The text spans both chunks again, the chunk has its own box back, the tspan between never had it
+    assert root.text_bounding_box == (10, 20, 100, 50)
+    assert chunk.text_bounding_box == (90, 45, 20, 25)
+    assert middle.text_bounding_box == (10, 20, 10, 25)
+    assert all(text.CHUNK_BOX not in vars(node) for node in (chunk, middle, root))
+
+
+# ---------------- leading shifts ----------------
+
+
+class TextStream:
+    """The part of the PDF stream draw_first_line writes text with."""
+
+    def __init__(self) -> None:
+        self.stream: list[bytes] = []
+
+    def show_text(self, text: str) -> None:
+        self.stream.append(b"[" + text.encode() + b"] TJ")
+
+    def set_font_size(self, font: str, size: float) -> None:
+        self.stream.append(f"/{font} {size} Tf".encode())
+
+    def set_text_rise(self, rise: float) -> None:
+        self.stream.append(f"{rise} Ts".encode())
+
+
+def test_a_leading_shift_moves_to_the_end_of_the_array_before() -> None:
+    stream = TextStream()
+    with text.carried_shifts(stream):
+        stream.set_font_size("f1", 18)
+        stream.show_text("<0001>")
+        stream.show_text("<>-284.5<0003>-271")
+        # Another font of another size: the shift is scaled to the size of the array before
+        stream.set_font_size("f2", 9)
+        stream.show_text("-100<0004>")
+        stream.set_text_rise(2)
+        # Not right after an array: the shift stays
+        stream.show_text("<>-50<0005>")
+    assert stream.stream == [b"/f1 18 Tf", b"[<0001> -284.5] TJ", b"[<0003>-271 -50.0] TJ", b"/f2 9 Tf", b"[<0004>] TJ", b"2 Ts", b"[<>-50<0005>] TJ"]
+
+
+def test_a_first_leading_shift_stays() -> None:
+    stream = TextStream()
+    with text.carried_shifts(stream):
+        stream.show_text("<>-10<0001>")
+    assert stream.stream == [b"[<>-10<0001>] TJ"]
+    # The methods of the stream are its own again
+    assert "show_text" not in vars(stream)
+
+
+def test_carried_shifts_restores_an_override_of_the_stream() -> None:
+    # Another patch replaced show_text on this stream first: it is back afterwards, not deleted
+    stream = TextStream()
+    shown: list[str] = []
+    vars(stream)["show_text"] = shown.append
+    with text.carried_shifts(stream):
+        stream.show_text("<0001>")
+    stream.show_text("<0002>")
+    assert shown == ["<0001>", "<0002>"]
+    assert "set_font_size" not in vars(stream)
+
+
+def test_arabic_letter_spacing_needs_no_leading_shift() -> None:
+    body = '<text x="38" y="100" font-size="18" letter-spacing="10">بعض النص الطويل</text>'
+    arrays = re.findall(r"\[([^\]]*)\] TJ", content(render(svg(body, height=200))))
+    assert len(arrays) > 1
+    assert not any(re.match(r"(<>)?-?[\d.]", array) for array in arrays[1:])

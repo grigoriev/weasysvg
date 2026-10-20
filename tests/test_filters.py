@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from helpers import RecordingStream, content, pixel, rasterize, render, svg
+from helpers import RecordingStream, content, pixel, rasterize, render, streams, svg
 from PIL import ImageStat
 
 from weasysvg import filters, turbulence
@@ -914,3 +914,67 @@ def test_a_recolored_silhouette_is_computed_once(monkeypatch: pytest.MonkeyPatch
     with caplog.at_level(logging.WARNING, logger="weasysvg"):
         render(svg(body, height=120))
     assert "too much pixel work" not in caplog.text
+
+
+# ---------------- rectangles blurred exactly ----------------
+
+
+def gray_at(pdf: bytes, x: float, y: float) -> float:
+    """The darkness at a point in user units, 0 white to 1 black, on a page of 1 px per unit."""
+    image = rasterize(pdf, 96 / 72).convert("L")
+    return 1 - cast(int, image.getpixel((round(x), round(y)))) / 255
+
+
+@pytest.mark.parametrize(
+    ("deviation", "points"),
+    [
+        # Blurred along y only: the left edge stays sharp, the top edge is half dark
+        ("0 5", [((52, 100), 1.0), ((48, 100), 0.0), ((148, 100), 1.0), ((152, 100), 0.0), ((100, 50), 0.5)]),
+        # Blurred along x only: the bottom edge stays sharp as well
+        ("5 0", [((100, 148), 1.0), ((100, 152), 0.0), ((150, 100), 0.5)]),
+        # Both: the corner is a quarter dark, the product of two half profiles, not half as a distance gives
+        ("5", [((50, 50), 0.25), ((100, 50), 0.5), ((100, 100), 1.0)]),
+    ],
+)
+def test_a_blurred_rectangle_is_the_product_of_two_profiles(deviation: str, points: list[tuple[tuple[int, int], float]]) -> None:
+    filters_ = f'<filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="{deviation}"/></filter>'
+    pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="100" height="100" fill="black" filter="url(#f)"/>', height=200))
+    for (x, y), expected in points:
+        assert gray_at(pdf, x, y) == pytest.approx(expected, abs=0.06)
+
+
+def test_a_wide_rect_keeps_its_blurred_edges_in_place() -> None:
+    # Each edge has a shading of its own: one shading over the whole rect moves the edges by units in PDFium
+    filters_ = '<filter id="f" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>'
+    pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="500" height="100" fill="black" filter="url(#f)"/>', width=600, height=200))
+    # PDFium samples a shading at the corner of a pixel: pixels 50 and 550 sit on the edges, half covered
+    assert gray_at(pdf, 550, 100) == pytest.approx(0.5, abs=0.04)
+    assert gray_at(pdf, 50, 100) == pytest.approx(0.5, abs=0.04)
+
+
+def test_a_rect_narrower_than_its_blur_keeps_both_edges_in_one_shading() -> None:
+    # 10 units wide, deviation 10 along x: the middle keeps Phi(0.5) - Phi(-0.5) of the color
+    filters_ = '<filter id="f" x="-500%" y="-50%" width="1100%" height="200%"><feGaussianBlur stdDeviation="10 0"/></filter>'
+    pdf = render(svg(f'<defs>{filters_}</defs><rect x="95" y="20" width="10" height="60" fill="black" filter="url(#f)"/>'))
+    assert gray_at(pdf, 100, 50) == pytest.approx(0.383, abs=0.04)
+
+
+def test_a_wide_horizontal_blur_keeps_its_tail() -> None:
+    # stdDeviation 10 0: at 1.5 deviations beyond the right edge 7 percent of the color is left
+    filters_ = '<filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10 0"/></filter>'
+    pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="100" height="100" fill="black" filter="url(#f)"/>', height=200))
+    assert gray_at(pdf, 165, 100) == pytest.approx(0.067, abs=0.04)
+    assert gray_at(pdf, 100, 48) == pytest.approx(0, abs=0.04)
+
+
+@pytest.mark.parametrize(
+    ("stroke", "exact"),
+    [('stroke="black" stroke-width="10"', True), ('stroke="red"', False), ('stroke="black" stroke-linejoin="round"', False), ('rx="5"', False)],
+)
+def test_a_rect_in_one_paint_is_blurred_exactly(stroke: str, exact: bool) -> None:
+    # A stroke in the paint of the fill widens the rect by half its width: still one rectangle
+    filters_ = '<filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>'
+    pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="100" height="100" fill="black" {stroke} filter="url(#f)"/>', height=200))
+    assert (" sh" in "".join(streams(pdf))) == exact
+    if exact:
+        assert gray_at(pdf, 45, 45) == pytest.approx(0.25, abs=0.06)

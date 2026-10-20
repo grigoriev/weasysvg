@@ -86,46 +86,46 @@ change between releases.
 |---|---|
 | `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. |
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
-| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask that steps through the Gaussian profile of the edge. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
+| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, and in steps through the profile for other shapes. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
-| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright, other scripts sideways. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, font-size keywords, nested `<text>` ignored. |
+| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright, other scripts sideways. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, font-size keywords, nested `<text>` ignored, `text-anchor` per text chunk. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
 
 ## How it compares to Chromium
 
-The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs and compares each result with
-Chromium. The corpus holds draw.io, Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world
-files from Wikimedia Commons, and tests of the resvg suite. Each pair carries a verdict from a visual
-review:
+The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
+Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
+the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (86 SVGs), or an
+English browser where headless Chromium matches no `systemLanguage`. A visual review at full size
+compares each rendering with that reference:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 109 |
-| minor difference | 10 | 6 |
-| other font only | 11 | 0 |
-| broken | 54 | 0 |
+| matches the reference | 47 | 109 |
+| close to the reference | 15 | 5 |
+| differs from the reference | 53 | 1 |
 
-All 35 diagrams from draw.io, kroki and mermaid.ink render the same as in Chromium. The remaining
-differences are in the resvg feature tests, one Wikimedia file, and the MDN `<foreignObject>` example,
-which has no scrollbar for `overflow: auto` (print has no use for one). The verdicts are in
-[`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
-shows every SVG in Chromium, resvg, WeasyPrint alone and WeasyPrint with weasysvg, with large panels, a flip
-between two renderers and a zoom; [`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
+All 35 diagrams from draw.io, kroki and mermaid.ink match the reference. Each verdict says what
+differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
+shows every SVG in Chromium, your own browser, resvg, WeasyPrint alone and WeasyPrint with weasysvg, in a row,
+with the reference marked and a swipe between any two of them, as GitHub compares images;
+[`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
 
 ## Known gaps
 
 - On a `textPath` each character is laid out alone, so Arabic does not join there. Underlines skip no ink.
-- A blur treats every point by its distance to the nearest edge: sharp corners and thin filled shapes
-  come out a little darker than in Chromium.
+- A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
+  edge: corners come out mitered, and a wide shadow shows faint steps.
+- `rotate` on vertical text lays out each character alone, so Arabic does not join there.
 - Lighting, morphology, convolution and displacement have no vector form: the element draws
   unfiltered, with a warning.
 - `feComposite` arithmetic needs one input to be a flood of the whole filter region, or both inputs to
   be the same. A translucent result composites over the value of the formula on nothing.
-- A blur with two different deviations uses their mean.
+- Except on a plain rect, a blur with two different deviations uses their mean.
 - `overflow: auto` inside a `<foreignObject>` shows no scrollbar, so text reflows into the full width.
 
 ## Development

@@ -104,13 +104,18 @@ def angles(data: str) -> list[float]:
 
 
 def test_angles_bisect_with_wrapping() -> None:
-    # Up into the vertex, down out of it: Chromium adds 360 to the incoming angle and points right
-    assert angles("M 40 155 C 95 140 100 105 100 40 C 100 105 105 140 160 160")[1] == 0
+    # Up into the vertex, down out of it: 270 and 90 degrees, so the marker points left, as in Chromium
+    # 156 and the resvg suite
+    assert angles("M 40 155 C 95 140 100 105 100 40 C 100 105 105 140 160 160")[1] == 180
+    # Down into the vertex, up out of it: the same bisector
+    assert angles("M 0 0 L 0 10 L 0 0")[1] == 180
+    # Across 0 degrees: 350 and 10 bisect at 0
+    assert angles("M0 0 L10 -1.763270 L20 0")[1] == pytest.approx(0, abs=1e-4)
     assert angles("M0 0 L10 0 L10 10") == [0, 45, 90]
 
 
 def test_closed_subpaths_bisect_their_first_vertex() -> None:
-    assert angles("M0 0 L10 0 L10 10 Z") == [-67.5, 45, 157.5, -67.5]
+    assert angles("M0 0 L10 0 L10 10 Z") == [292.5, 45, 157.5, 292.5]
     # A second subpath after the close starts from the same point
     marks = angles("M0 0 L10 0 Z L0 10")
     assert marks[0] == 90
@@ -148,12 +153,12 @@ def test_segments_of_shapes() -> None:
 # ---------------- drawing ----------------
 
 
-def test_mid_marker_points_right_at_a_cusp() -> None:
+def test_mid_marker_points_left_at_a_cusp() -> None:
     body = f'<defs>{MARKER}</defs><path d="M 20 90 C 60 80 70 60 70 20 C 70 60 80 80 120 90" fill="none" stroke="black" marker-mid="url(#m)"/>'
     pdf = render(svg(body, height=120))
-    # The arrow tip lies right of the vertex at (70, 20): 70 to 80 units
-    assert pixel(pdf, 57, 15) == BLUE
-    assert pixel(pdf, 48, 15) != BLUE
+    # The arrow tip lies left of the vertex at (70, 20): 60 to 70 units
+    assert pixel(pdf, 48, 15) == BLUE
+    assert pixel(pdf, 57, 15) != BLUE
 
 
 def test_marker_on_a_polyline_and_without_markers() -> None:

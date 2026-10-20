@@ -3,7 +3,7 @@ IMAGE ?= weasysvg-test
 BASE ?= python:3.14-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
 RUN = docker run --rm --volume "$(CURDIR):/src"
 
-.PHONY: lint test test-image upstream hooks visual visual-image visual-baseline visual-check comparison
+.PHONY: lint test test-image upstream hooks visual visual-image visual-baseline visual-check comparison references
 
 lint:
 	uv run ruff check .
@@ -49,3 +49,8 @@ comparison: visual-image
 	$(BENCH) --native --out tools/visual/out/native --panels tools/visual/out/panels/weasyprint
 	$(BENCH) --out tools/visual/out/weasysvg --panels tools/visual/out/panels/weasysvg
 	$(RUN) $(IMAGE):visual uv run --frozen --all-extras python tools/visual/comparison.py
+
+# Print the corpus with the Chromium of the visual image into corpus/reference/chromium; then run
+# visual-baseline and comparison
+references: visual-image
+	$(RUN) $(IMAGE):visual uv run --frozen --all-extras python tools/visual/make_references.py $(ARGS)

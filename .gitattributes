@@ -1,0 +1,2 @@
+# The fonts of the corpus and their licenses stay byte for byte as the resvg suite publishes them
+corpus/fonts/** -text

@@ -2,14 +2,15 @@
 
 <!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->
 
-Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg-py 0.5.0); WeasyPrint 70.0 alone; and WeasyPrint 70.0 with weasysvg. The WeasyPrint panels are PDFium rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the ink of the Chromium reference, so the four line up pixel for pixel. The verdicts come from a visual review, see [`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large panels and a flip between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.
+Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); WeasyPrint 70.0 alone; and WeasyPrint 70.0 with weasysvg. The WeasyPrint panels are PDFium rasterizations at 96 dpi; resvg renders the SVG at the width of the page. Every panel is cropped to the ink of the Chromium panel, so the four line up pixel for pixel. Each SVG has a reference: Chromium, resvg, both, or an English browser where headless Chromium matches no language. The verdicts compare weasysvg and WeasyPrint with that reference; they come from a visual review at full size, see [`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large panels, your own browser and a swipe between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.
 
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
-| same as Chromium | 40 | 109 |
-| minor difference | 10 | 6 |
-| other font only | 11 | 0 |
-| broken | 54 | 0 |
+| matches the reference | 47 | 109 |
+| close to the reference | 15 | 5 |
+| differs from the reference | 53 | 1 |
+
+References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
@@ -21,7 +22,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-blockdiag
 
-[`diagrams/kroki-blockdiag.svg`](svg/diagrams/kroki-blockdiag.svg). WeasyPrint: minor, weasysvg: **same**. Checked at full size in PDFium, cairo and Quartz: the shadows are blurred, as in Chromium. The thumbnail is too small to show it.
+[`diagrams/kroki-blockdiag.svg`](svg/diagrams/kroki-blockdiag.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: boxes, arrows and the blurred shadows.
+- WeasyPrint: **close to the reference**. Shadows are hard offset copies instead of blurred ones.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -29,7 +34,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-bpmn
 
-[`diagrams/kroki-bpmn.svg`](svg/diagrams/kroki-bpmn.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/kroki-bpmn.svg`](svg/diagrams/kroki-bpmn.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -37,7 +46,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-c4plantuml
 
-[`diagrams/kroki-c4plantuml.svg`](svg/diagrams/kroki-c4plantuml.svg). WeasyPrint: font, weasysvg: **same**.
+[`diagrams/kroki-c4plantuml.svg`](svg/diagrams/kroki-c4plantuml.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, fonts included.
+- WeasyPrint: **close to the reference**. Same drawing in another font.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -45,7 +58,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-d2-arch
 
-[`diagrams/kroki-d2-arch.svg`](svg/diagrams/kroki-d2-arch.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/kroki-d2-arch.svg`](svg/diagrams/kroki-d2-arch.svg)
+
+- Reference: Chromium. resvg ignores the @font-face fonts the SVG embeds and falls back to a serif.
+- weasysvg: **matches the reference**. Matches, with the embedded fonts.
+- WeasyPrint: **differs from the reference**. Nothing but a black rectangle: the SVG is lost.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -53,7 +70,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-d2
 
-[`diagrams/kroki-d2.svg`](svg/diagrams/kroki-d2.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/kroki-d2.svg`](svg/diagrams/kroki-d2.svg)
+
+- Reference: Chromium. resvg ignores the embedded @font-face fonts.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Two black bars instead of the diagram.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -61,7 +82,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-erd
 
-[`diagrams/kroki-erd.svg`](svg/diagrams/kroki-erd.svg). WeasyPrint: minor, weasysvg: **same**.
+[`diagrams/kroki-erd.svg`](svg/diagrams/kroki-erd.svg)
+
+- Reference: Chromium. resvg draws the sans-serif labels in a serif.
+- weasysvg: **matches the reference**. Matches, underlined keys included.
+- WeasyPrint: **close to the reference**. The key fields name and id lose their underline; the font differs.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -69,7 +94,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-excalidraw
 
-[`diagrams/kroki-excalidraw.svg`](svg/diagrams/kroki-excalidraw.svg). WeasyPrint: font, weasysvg: **same**.
+[`diagrams/kroki-excalidraw.svg`](svg/diagrams/kroki-excalidraw.svg)
+
+- Reference: Chromium. resvg ignores the embedded hand-drawn font.
+- weasysvg: **matches the reference**. Matches, hand-drawn font included.
+- WeasyPrint: **close to the reference**. Wider gap between the words.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -77,7 +106,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-graphviz
 
-[`diagrams/kroki-graphviz.svg`](svg/diagrams/kroki-graphviz.svg). WeasyPrint: font, weasysvg: **same**.
+[`diagrams/kroki-graphviz.svg`](svg/diagrams/kroki-graphviz.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **close to the reference**. Same drawing in another font.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -85,7 +118,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-mermaid-er
 
-[`diagrams/kroki-mermaid-er.svg`](svg/diagrams/kroki-mermaid-er.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/kroki-mermaid-er.svg`](svg/diagrams/kroki-mermaid-er.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches, labels included.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -93,7 +130,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-mermaid-mindmap
 
-[`diagrams/kroki-mermaid-mindmap.svg`](svg/diagrams/kroki-mermaid-mindmap.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/kroki-mermaid-mindmap.svg`](svg/diagrams/kroki-mermaid-mindmap.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -101,7 +142,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-mermaid-state
 
-[`diagrams/kroki-mermaid-state.svg`](svg/diagrams/kroki-mermaid-state.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/kroki-mermaid-state.svg`](svg/diagrams/kroki-mermaid-state.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -109,7 +154,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-nomnoml
 
-[`diagrams/kroki-nomnoml.svg`](svg/diagrams/kroki-nomnoml.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/kroki-nomnoml.svg`](svg/diagrams/kroki-nomnoml.svg)
+
+- Reference: Chromium. resvg draws no text at all here.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -117,7 +166,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-pikchr
 
-[`diagrams/kroki-pikchr.svg`](svg/diagrams/kroki-pikchr.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/kroki-pikchr.svg`](svg/diagrams/kroki-pikchr.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All text is missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -125,7 +178,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-plantuml-activity
 
-[`diagrams/kroki-plantuml-activity.svg`](svg/diagrams/kroki-plantuml-activity.svg). WeasyPrint: minor, weasysvg: **same**.
+[`diagrams/kroki-plantuml-activity.svg`](svg/diagrams/kroki-plantuml-activity.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, the underlined word included.
+- WeasyPrint: **close to the reference**. The underline under &#x27;waiting&#x27; is missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -133,7 +190,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-plantuml-sequence
 
-[`diagrams/kroki-plantuml-sequence.svg`](svg/diagrams/kroki-plantuml-sequence.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/kroki-plantuml-sequence.svg`](svg/diagrams/kroki-plantuml-sequence.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -141,7 +202,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-structurizr
 
-[`diagrams/kroki-structurizr.svg`](svg/diagrams/kroki-structurizr.svg). WeasyPrint: font, weasysvg: **same**.
+[`diagrams/kroki-structurizr.svg`](svg/diagrams/kroki-structurizr.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -149,7 +214,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-svgbob
 
-[`diagrams/kroki-svgbob.svg`](svg/diagrams/kroki-svgbob.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/kroki-svgbob.svg`](svg/diagrams/kroki-svgbob.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -157,7 +226,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-vegalite
 
-[`diagrams/kroki-vegalite.svg`](svg/diagrams/kroki-vegalite.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/kroki-vegalite.svg`](svg/diagrams/kroki-vegalite.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -165,7 +238,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__kroki-wavedrom
 
-[`diagrams/kroki-wavedrom.svg`](svg/diagrams/kroki-wavedrom.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/kroki-wavedrom.svg`](svg/diagrams/kroki-wavedrom.svg)
+
+- Reference: Chromium. resvg drops the lane labels and the fills of the data cells.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -173,7 +250,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-class
 
-[`diagrams/mermaid-ink-class.svg`](svg/diagrams/mermaid-ink-class.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/mermaid-ink-class.svg`](svg/diagrams/mermaid-ink-class.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -181,7 +262,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-er
 
-[`diagrams/mermaid-ink-er.svg`](svg/diagrams/mermaid-ink-er.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/mermaid-ink-er.svg`](svg/diagrams/mermaid-ink-er.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -189,7 +274,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-flowchart
 
-[`diagrams/mermaid-ink-flowchart.svg`](svg/diagrams/mermaid-ink-flowchart.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/mermaid-ink-flowchart.svg`](svg/diagrams/mermaid-ink-flowchart.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -197,7 +286,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-gantt
 
-[`diagrams/mermaid-ink-gantt.svg`](svg/diagrams/mermaid-ink-gantt.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/mermaid-ink-gantt.svg`](svg/diagrams/mermaid-ink-gantt.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **close to the reference**. The axis dates lose their year: 01-05 instead of 2014-01-05.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -205,7 +298,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-gitgraph
 
-[`diagrams/mermaid-ink-gitgraph.svg`](svg/diagrams/mermaid-ink-gitgraph.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/mermaid-ink-gitgraph.svg`](svg/diagrams/mermaid-ink-gitgraph.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -213,7 +310,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-journey
 
-[`diagrams/mermaid-ink-journey.svg`](svg/diagrams/mermaid-ink-journey.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/mermaid-ink-journey.svg`](svg/diagrams/mermaid-ink-journey.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -221,7 +322,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-mindmap
 
-[`diagrams/mermaid-ink-mindmap.svg`](svg/diagrams/mermaid-ink-mindmap.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/mermaid-ink-mindmap.svg`](svg/diagrams/mermaid-ink-mindmap.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -229,7 +334,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-pie
 
-[`diagrams/mermaid-ink-pie.svg`](svg/diagrams/mermaid-ink-pie.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/mermaid-ink-pie.svg`](svg/diagrams/mermaid-ink-pie.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -237,7 +346,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-sequence
 
-[`diagrams/mermaid-ink-sequence.svg`](svg/diagrams/mermaid-ink-sequence.svg). WeasyPrint: same, weasysvg: **same**.
+[`diagrams/mermaid-ink-sequence.svg`](svg/diagrams/mermaid-ink-sequence.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -245,7 +358,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### diagrams__mermaid-ink-state
 
-[`diagrams/mermaid-ink-state.svg`](svg/diagrams/mermaid-ink-state.svg). WeasyPrint: broken, weasysvg: **same**.
+[`diagrams/mermaid-ink-state.svg`](svg/diagrams/mermaid-ink-state.svg)
+
+- Reference: Chromium. resvg has no foreignObject: every label is missing.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All labels are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -255,7 +372,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### drawio__connect-shapes
 
-[`drawio/connect-shapes.svg`](svg/drawio/connect-shapes.svg). WeasyPrint: minor, weasysvg: **same**. Remote GIFs are blocked in all three renderings (policy).
+[`drawio/connect-shapes.svg`](svg/drawio/connect-shapes.svg)
+
+- Reference: Chromium. resvg draws the labels in a serif.
+- weasysvg: **matches the reference**. Matches. The remote GIFs are blocked in every rendering, by policy.
+- WeasyPrint: **close to the reference**. The links lose their underline.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -263,7 +384,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### drawio__flowchart.drawio
 
-[`drawio/flowchart.drawio.svg`](svg/drawio/flowchart.drawio.svg). WeasyPrint: broken, weasysvg: **same**.
+[`drawio/flowchart.drawio.svg`](svg/drawio/flowchart.drawio.svg)
+
+- Reference: Chromium. resvg ignores the switch with requiredFeatures and shows the fallback text &#x27;Text is not SVG&#x27;.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Labels are cut to &#x27;Lamp...&#x27; and the fallback text &#x27;Text is not SVG&#x27; shows.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -271,7 +396,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### drawio__infographic
 
-[`drawio/infographic.svg`](svg/drawio/infographic.svg). WeasyPrint: broken, weasysvg: **same**.
+[`drawio/infographic.svg`](svg/drawio/infographic.svg)
+
+- Reference: Chromium. resvg shows raw HTML source in place of the foreignObject text.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Most text is missing, raw HTML shows.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -279,7 +408,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### drawio__infographic2
 
-[`drawio/infographic2.svg`](svg/drawio/infographic2.svg). WeasyPrint: broken, weasysvg: **same**.
+[`drawio/infographic2.svg`](svg/drawio/infographic2.svg)
+
+- Reference: Chromium. resvg shows &#x27;Not supported by viewer&#x27; fallbacks.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. &#x27;Not supported by viewer&#x27; fallbacks show in large orange type.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -287,7 +420,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### drawio__notion-template.drawio
 
-[`drawio/notion-template.drawio.svg`](svg/drawio/notion-template.drawio.svg). WeasyPrint: broken, weasysvg: **same**.
+[`drawio/notion-template.drawio.svg`](svg/drawio/notion-template.drawio.svg)
+
+- Reference: Chromium. resvg shows the fallback &#x27;Click Here to...&#x27;.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Shows the fallback &#x27;Click Here to...&#x27;.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -295,7 +432,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### drawio__svgfile
 
-[`drawio/svgfile.svg`](svg/drawio/svgfile.svg). WeasyPrint: broken, weasysvg: **same**.
+[`drawio/svgfile.svg`](svg/drawio/svgfile.svg)
+
+- Reference: Chromium. resvg shows &#x27;Not supported by viewer&#x27; fallbacks.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Fallback texts in place of the labels.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -305,7 +446,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### fo__mdn-foreignobject
 
-[`fo/mdn-foreignobject.svg`](svg/fo/mdn-foreignobject.svg). WeasyPrint: broken, weasysvg: **minor**. No scrollbar on the overflow:auto box, so text reflows into that width; harmless in print.
+[`fo/mdn-foreignobject.svg`](svg/fo/mdn-foreignobject.svg)
+
+- Reference: Chromium. resvg has no foreignObject: the box stays empty.
+- weasysvg: **close to the reference**. Text as in Chromium, but no scrollbar for overflow: auto, so the text reflows into the full width of the box. A print has no use for a scrollbar.
+- WeasyPrint: **differs from the reference**. The box is empty.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -313,7 +458,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### fo__rich-html
 
-[`fo/rich-html.svg`](svg/fo/rich-html.svg). WeasyPrint: broken, weasysvg: **same**.
+[`fo/rich-html.svg`](svg/fo/rich-html.svg)
+
+- Reference: Chromium. resvg has no foreignObject.
+- weasysvg: **matches the reference**. Matches: heading, list, table and the rotated paragraph.
+- WeasyPrint: **differs from the reference**. All HTML content is missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -323,7 +472,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Bitmap_VS_SVG
 
-[`real/wm-Bitmap_VS_SVG.svg`](svg/real/wm-Bitmap_VS_SVG.svg). WeasyPrint: broken, weasysvg: **same**. Shows &#x27;Raster&#x27;/&#x27;Vector&#x27; via switch, spec-correct for English; Chromium shows no heading.
+[`real/wm-Bitmap_VS_SVG.svg`](svg/real/wm-Bitmap_VS_SVG.svg)
+
+- Reference: an English browser. Chromium of the references ran with no English language: the switch has no fallback child, so it drew no title. An English browser shows Raster and Vector, as weasysvg does (see the browser panel).
+- weasysvg: **matches the reference**. Matches an English browser: Raster and Vector titles.
+- WeasyPrint: **differs from the reference**. All translations of the titles are drawn on top of each other.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -331,7 +484,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Flag_of_Brazil
 
-[`real/wm-Flag_of_Brazil.svg`](svg/real/wm-Flag_of_Brazil.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-Flag_of_Brazil.svg`](svg/real/wm-Flag_of_Brazil.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -339,7 +496,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Flag_of_Switzerland
 
-[`real/wm-Flag_of_Switzerland.svg`](svg/real/wm-Flag_of_Switzerland.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-Flag_of_Switzerland.svg`](svg/real/wm-Flag_of_Switzerland.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -347,7 +508,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Flag_of_the_United_Kingdom
 
-[`real/wm-Flag_of_the_United_Kingdom.svg`](svg/real/wm-Flag_of_the_United_Kingdom.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-Flag_of_the_United_Kingdom.svg`](svg/real/wm-Flag_of_the_United_Kingdom.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -355,7 +520,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Git-logo
 
-[`real/wm-Git-logo.svg`](svg/real/wm-Git-logo.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-Git-logo.svg`](svg/real/wm-Git-logo.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -363,7 +532,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Inkscape_Logo
 
-[`real/wm-Inkscape_Logo.svg`](svg/real/wm-Inkscape_Logo.svg). WeasyPrint: minor, weasysvg: **same**.
+[`real/wm-Inkscape_Logo.svg`](svg/real/wm-Inkscape_Logo.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -371,7 +544,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Kubernetes_logo_without_workmark
 
-[`real/wm-Kubernetes_logo_without_workmark.svg`](svg/real/wm-Kubernetes_logo_without_workmark.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-Kubernetes_logo_without_workmark.svg`](svg/real/wm-Kubernetes_logo_without_workmark.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -379,7 +556,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-OSI_Model_v1
 
-[`real/wm-OSI_Model_v1.svg`](svg/real/wm-OSI_Model_v1.svg). WeasyPrint: broken, weasysvg: **same**.
+[`real/wm-OSI_Model_v1.svg`](svg/real/wm-OSI_Model_v1.svg)
+
+- Reference: Chromium. resvg drops the second line of every label.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. All translations of every label are drawn on top of each other.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -387,7 +568,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Openstreetmap_logo
 
-[`real/wm-Openstreetmap_logo.svg`](svg/real/wm-Openstreetmap_logo.svg). WeasyPrint: broken, weasysvg: **minor**. Handle and ferrules drawn: the rotated gradient cells cover the shapes. The blurred shadow of the lens ring is a little darker than in Chromium.
+[`real/wm-Openstreetmap_logo.svg`](svg/real/wm-Openstreetmap_logo.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **close to the reference**. The shadow under the lens ring shows faint steps: a blur of anything but a plain rect is drawn in levels.
+- WeasyPrint: **differs from the reference**. No shadows, and the handle is a flat dark shape.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -395,7 +580,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Python-logo-notext
 
-[`real/wm-Python-logo-notext.svg`](svg/real/wm-Python-logo-notext.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-Python-logo-notext.svg`](svg/real/wm-Python-logo-notext.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -403,7 +592,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-SVG_Logo
 
-[`real/wm-SVG_Logo.svg`](svg/real/wm-SVG_Logo.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-SVG_Logo.svg`](svg/real/wm-SVG_Logo.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -411,7 +604,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Simple_Periodic_Table_Chart-blocks
 
-[`real/wm-Simple_Periodic_Table_Chart-blocks.svg`](svg/real/wm-Simple_Periodic_Table_Chart-blocks.svg). WeasyPrint: broken, weasysvg: **same**.
+[`real/wm-Simple_Periodic_Table_Chart-blocks.svg`](svg/real/wm-Simple_Periodic_Table_Chart-blocks.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: each number and symbol is centered in its cell.
+- WeasyPrint: **differs from the reference**. All translations of every label are drawn on top of each other.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -419,7 +616,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Tux
 
-[`real/wm-Tux.svg`](svg/real/wm-Tux.svg). WeasyPrint: minor, weasysvg: **same**.
+[`real/wm-Tux.svg`](svg/real/wm-Tux.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, the blurred shading of the feet included.
+- WeasyPrint: **close to the reference**. The soft shading under the feet is missing: hard edges instead.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -427,7 +628,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### real__wm-Wikimedia-logo
 
-[`real/wm-Wikimedia-logo.svg`](svg/real/wm-Wikimedia-logo.svg). WeasyPrint: same, weasysvg: **same**.
+[`real/wm-Wikimedia-logo.svg`](svg/real/wm-Wikimedia-logo.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -437,7 +642,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feColorMatrix--type=luminanceToAlpha
 
-[`resvg/filters-feColorMatrix--type=luminanceToAlpha.svg`](svg/resvg/filters-feColorMatrix--type=luminanceToAlpha.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feColorMatrix--type=luminanceToAlpha.svg`](svg/resvg/filters-feColorMatrix--type=luminanceToAlpha.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in color.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -445,7 +654,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values
 
-[`resvg/filters-feColorMatrix--type=matrix-with-non-normalized-values.svg`](svg/resvg/filters-feColorMatrix--type=matrix-with-non-normalized-values.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feColorMatrix--type=matrix-with-non-normalized-values.svg`](svg/resvg/filters-feColorMatrix--type=matrix-with-non-normalized-values.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in color.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -453,7 +666,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feComposite--operator=arithmetic-with-large-k1-4
 
-[`resvg/filters-feComposite--operator=arithmetic-with-large-k1-4.svg`](svg/resvg/filters-feComposite--operator=arithmetic-with-large-k1-4.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feComposite--operator=arithmetic-with-large-k1-4.svg`](svg/resvg/filters-feComposite--operator=arithmetic-with-large-k1-4.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The filter is dropped: a plain green square.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -461,7 +678,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feComposite--operator=over
 
-[`resvg/filters-feComposite--operator=over.svg`](svg/resvg/filters-feComposite--operator=over.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feComposite--operator=over.svg`](svg/resvg/filters-feComposite--operator=over.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The filter is dropped: a plain green square.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -469,7 +690,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feDropShadow--hsla-color
 
-[`resvg/filters-feDropShadow--hsla-color.svg`](svg/resvg/filters-feDropShadow--hsla-color.svg). WeasyPrint: minor, weasysvg: **same**.
+[`resvg/filters-feDropShadow--hsla-color.svg`](svg/resvg/filters-feDropShadow--hsla-color.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: the blue glow.
+- WeasyPrint: **differs from the reference**. No shadow.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -477,7 +702,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feDropShadow--with-percent-offset
 
-[`resvg/filters-feDropShadow--with-percent-offset.svg`](svg/resvg/filters-feDropShadow--with-percent-offset.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feDropShadow--with-percent-offset.svg`](svg/resvg/filters-feDropShadow--with-percent-offset.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. No shadow.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -485,7 +714,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feFlood--seagreen
 
-[`resvg/filters-feFlood--seagreen.svg`](svg/resvg/filters-feFlood--seagreen.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feFlood--seagreen.svg`](svg/resvg/filters-feFlood--seagreen.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. A black square instead of the seagreen flood.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -493,7 +726,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feFlood--with-opacity-on-target-element
 
-[`resvg/filters-feFlood--with-opacity-on-target-element.svg`](svg/resvg/filters-feFlood--with-opacity-on-target-element.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feFlood--with-opacity-on-target-element.svg`](svg/resvg/filters-feFlood--with-opacity-on-target-element.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Grey and dark green instead of the pale flood.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -501,7 +738,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feGaussianBlur--small-stdDeviation
 
-[`resvg/filters-feGaussianBlur--small-stdDeviation.svg`](svg/resvg/filters-feGaussianBlur--small-stdDeviation.svg). WeasyPrint: minor, weasysvg: **same**.
+[`resvg/filters-feGaussianBlur--small-stdDeviation.svg`](svg/resvg/filters-feGaussianBlur--small-stdDeviation.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **close to the reference**. Not blurred; the blur is small.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -509,7 +750,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feGaussianBlur--stdDeviation=0-5
 
-[`resvg/filters-feGaussianBlur--stdDeviation=0-5.svg`](svg/resvg/filters-feGaussianBlur--stdDeviation=0-5.svg). WeasyPrint: broken, weasysvg: **minor**. Blurred along x as well: the vector blur uses the mean of the two deviations.
+[`resvg/filters-feGaussianBlur--stdDeviation=0-5.svg`](svg/resvg/filters-feGaussianBlur--stdDeviation=0-5.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: blurred along y only, the left and right edges stay sharp.
+- WeasyPrint: **differs from the reference**. Not blurred at all.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -517,7 +762,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feOffset--complex-transform
 
-[`resvg/filters-feOffset--complex-transform.svg`](svg/resvg/filters-feOffset--complex-transform.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-feOffset--complex-transform.svg`](svg/resvg/filters-feOffset--complex-transform.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The offset is taken in the wrong space: the shape lands lower and larger.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -525,7 +774,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feOffset--fractional-offset
 
-[`resvg/filters-feOffset--fractional-offset.svg`](svg/resvg/filters-feOffset--fractional-offset.svg). WeasyPrint: minor, weasysvg: **same**.
+[`resvg/filters-feOffset--fractional-offset.svg`](svg/resvg/filters-feOffset--fractional-offset.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -533,7 +786,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feTurbulence--baseFrequency=0.01
 
-[`resvg/filters-feTurbulence--baseFrequency=0.01.svg`](svg/resvg/filters-feTurbulence--baseFrequency=0.01.svg). WeasyPrint: broken, weasysvg: **same**. Noise is drawn as an image over the filter region: it has no vector form.
+[`resvg/filters-feTurbulence--baseFrequency=0.01.svg`](svg/resvg/filters-feTurbulence--baseFrequency=0.01.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. A black square instead of the noise.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -541,7 +798,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-feTurbulence--type=invalid
 
-[`resvg/filters-feTurbulence--type=invalid.svg`](svg/resvg/filters-feTurbulence--type=invalid.svg). WeasyPrint: broken, weasysvg: **same**. Noise is drawn as an image over the filter region: it has no vector form.
+[`resvg/filters-feTurbulence--type=invalid.svg`](svg/resvg/filters-feTurbulence--type=invalid.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. A black square instead of the noise.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -549,7 +810,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-filter--in=SourceAlpha
 
-[`resvg/filters-filter--in=SourceAlpha.svg`](svg/resvg/filters-filter--in=SourceAlpha.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-filter--in=SourceAlpha.svg`](svg/resvg/filters-filter--in=SourceAlpha.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: the blurred black silhouette.
+- WeasyPrint: **differs from the reference**. The filter is dropped: the green square.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -557,7 +822,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-filter--on-the-root-svg
 
-[`resvg/filters-filter--on-the-root-svg.svg`](svg/resvg/filters-filter--on-the-root-svg.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/filters-filter--on-the-root-svg.svg`](svg/resvg/filters-filter--on-the-root-svg.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **close to the reference**. The blurred square has mitered corners, not round ones: a blur of anything but a plain rect is drawn in levels.
+- WeasyPrint: **differs from the reference**. Not blurred.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -565,7 +834,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-filter-functions--blur-function-two-values
 
-[`resvg/filters-filter-functions--blur-function-two-values.svg`](svg/resvg/filters-filter-functions--blur-function-two-values.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/filters-filter-functions--blur-function-two-values.svg`](svg/resvg/filters-filter-functions--blur-function-two-values.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: an invalid blur() leaves the element unfiltered.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -573,7 +846,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__filters-filter-functions--drop-shadow-function-comma-separated
 
-[`resvg/filters-filter-functions--drop-shadow-function-comma-separated.svg`](svg/resvg/filters-filter-functions--drop-shadow-function-comma-separated.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/filters-filter-functions--drop-shadow-function-comma-separated.svg`](svg/resvg/filters-filter-functions--drop-shadow-function-comma-separated.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: the invalid function is ignored.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -581,7 +858,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__masking-clipPath--clip-path-on-children
 
-[`resvg/masking-clipPath--clip-path-on-children.svg`](svg/resvg/masking-clipPath--clip-path-on-children.svg). WeasyPrint: broken, weasysvg: **same**. The clip path becomes a soft mask: each child keeps its own clip-path and clip-rule.
+[`resvg/masking-clipPath--clip-path-on-children.svg`](svg/resvg/masking-clipPath--clip-path-on-children.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Only the small center piece shows.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -589,7 +870,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__masking-clipPath--on-a-horizontal-line
 
-[`resvg/masking-clipPath--on-a-horizontal-line.svg`](svg/resvg/masking-clipPath--on-a-horizontal-line.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/masking-clipPath--on-a-horizontal-line.svg`](svg/resvg/masking-clipPath--on-a-horizontal-line.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -597,7 +882,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__masking-mask--invalid-child
 
-[`resvg/masking-mask--invalid-child.svg`](svg/resvg/masking-mask--invalid-child.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/masking-mask--invalid-child.svg`](svg/resvg/masking-mask--invalid-child.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: nothing is drawn.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -605,7 +894,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__masking-mask--recursive-on-self
 
-[`resvg/masking-mask--recursive-on-self.svg`](svg/resvg/masking-mask--recursive-on-self.svg). WeasyPrint: broken, weasysvg: **same**. mask on a &lt;mask&gt; is ignored, as in Chromium; gradient colors mix unpremultiplied.
+[`resvg/masking-mask--recursive-on-self.svg`](svg/resvg/masking-mask--recursive-on-self.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The SVG is lost: blank.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -613,7 +906,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect
 
-[`resvg/paint-servers-linearGradient--attributes-via-xlink-href-from-rect.svg`](svg/resvg/paint-servers-linearGradient--attributes-via-xlink-href-from-rect.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/paint-servers-linearGradient--attributes-via-xlink-href-from-rect.svg`](svg/resvg/paint-servers-linearGradient--attributes-via-xlink-href-from-rect.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -621,7 +918,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1
 
-[`resvg/paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.svg`](svg/resvg/paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.svg`](svg/resvg/paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -629,7 +930,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__paint-servers-pattern--nested-objectBoundingBox
 
-[`resvg/paint-servers-pattern--nested-objectBoundingBox.svg`](svg/resvg/paint-servers-pattern--nested-objectBoundingBox.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/paint-servers-pattern--nested-objectBoundingBox.svg`](svg/resvg/paint-servers-pattern--nested-objectBoundingBox.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The inner pattern is shrunk to small fragments.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -637,7 +942,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__paint-servers-pattern--text-child
 
-[`resvg/paint-servers-pattern--text-child.svg`](svg/resvg/paint-servers-pattern--text-child.svg). WeasyPrint: font, weasysvg: **same**. Tiles start at the user space origin, patternTransform included. Glyph antialiasing differs slightly.
+[`resvg/paint-servers-pattern--text-child.svg`](svg/resvg/paint-servers-pattern--text-child.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **close to the reference**. The text tiles are spaced differently, in another font.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -645,7 +954,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__paint-servers-radialGradient--fr=0.2
 
-[`resvg/paint-servers-radialGradient--fr=0.2.svg`](svg/resvg/paint-servers-radialGradient--fr=0.2.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/paint-servers-radialGradient--fr=0.2.svg`](svg/resvg/paint-servers-radialGradient--fr=0.2.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: the gray levels agree within 2 of 255.
+- WeasyPrint: **close to the reference**. The gradient is cut to a square with dark corners.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -653,7 +966,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__paint-servers-radialGradient--gradientTransform-via-href
 
-[`resvg/paint-servers-radialGradient--gradientTransform-via-href.svg`](svg/resvg/paint-servers-radialGradient--gradientTransform-via-href.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/paint-servers-radialGradient--gradientTransform-via-href.svg`](svg/resvg/paint-servers-radialGradient--gradientTransform-via-href.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The lower two squares are missing.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -661,7 +978,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-marker--on-ArcTo
 
-[`resvg/painting-marker--on-ArcTo.svg`](svg/resvg/painting-marker--on-ArcTo.svg). WeasyPrint: broken, weasysvg: **same**. Start and end markers follow the arc tangents, as in Chromium.
+[`resvg/painting-marker--on-ArcTo.svg`](svg/resvg/painting-marker--on-ArcTo.svg)
+
+- Reference: Chromium. The path is one arc, so it has no middle vertex. resvg splits the arc into curves and puts a marker-mid between them.
+- weasysvg: **matches the reference**. Matches: a start and an end marker.
+- WeasyPrint: **differs from the reference**. The markers point the wrong way.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -669,7 +990,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-marker--orient=auto-on-M-C-C-4
 
-[`resvg/painting-marker--orient=auto-on-M-C-C-4.svg`](svg/resvg/painting-marker--orient=auto-on-M-C-C-4.svg). WeasyPrint: broken, weasysvg: **same**. The mid marker bisects the cusp with the angle wrap of Chromium and points right.
+[`resvg/painting-marker--orient=auto-on-M-C-C-4.svg`](svg/resvg/painting-marker--orient=auto-on-M-C-C-4.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: the middle marker at the cusp points left.
+- WeasyPrint: **differs from the reference**. The start marker points down instead of along the curve.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -677,7 +1002,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-mix-blend-mode--screen
 
-[`resvg/painting-mix-blend-mode--screen.svg`](svg/resvg/painting-mix-blend-mode--screen.svg). WeasyPrint: broken, weasysvg: **same**. Gradient colors mix unpremultiplied, as in Chromium.
+[`resvg/painting-mix-blend-mode--screen.svg`](svg/resvg/painting-mix-blend-mode--screen.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The blend mode is ignored: the colors are plain over.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -685,7 +1014,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-mix-blend-mode--xor
 
-[`resvg/painting-mix-blend-mode--xor.svg`](svg/resvg/painting-mix-blend-mode--xor.svg). WeasyPrint: minor, weasysvg: **same**. Gradient colors mix unpremultiplied, as in Chromium.
+[`resvg/painting-mix-blend-mode--xor.svg`](svg/resvg/painting-mix-blend-mode--xor.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. The blend is ignored.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -693,7 +1026,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-paint-order--duplicates
 
-[`resvg/painting-paint-order--duplicates.svg`](svg/resvg/painting-paint-order--duplicates.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/painting-paint-order--duplicates.svg`](svg/resvg/painting-paint-order--duplicates.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -701,7 +1038,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-paint-order--invalid
 
-[`resvg/painting-paint-order--invalid.svg`](svg/resvg/painting-paint-order--invalid.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/painting-paint-order--invalid.svg`](svg/resvg/painting-paint-order--invalid.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -709,7 +1050,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-stroke-dasharray--0-n-with-round-caps
 
-[`resvg/painting-stroke-dasharray--0-n-with-round-caps.svg`](svg/resvg/painting-stroke-dasharray--0-n-with-round-caps.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/painting-stroke-dasharray--0-n-with-round-caps.svg`](svg/resvg/painting-stroke-dasharray--0-n-with-round-caps.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **close to the reference**. The dots on the bottom and left sides sit up to 1 unit off.
+- WeasyPrint: **close to the reference**. The dots on the bottom and left sides sit up to 1 unit off.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -717,7 +1062,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__painting-stroke-dasharray--odd-count
 
-[`resvg/painting-stroke-dasharray--odd-count.svg`](svg/resvg/painting-stroke-dasharray--odd-count.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/painting-stroke-dasharray--odd-count.svg`](svg/resvg/painting-stroke-dasharray--odd-count.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **close to the reference**. The dashes drift along the circle: WeasyPrint draws it a little too large.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -725,7 +1074,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__shapes-path--M-H-H-implicit
 
-[`resvg/shapes-path--M-H-H-implicit.svg`](svg/resvg/shapes-path--M-H-H-implicit.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/shapes-path--M-H-H-implicit.svg`](svg/resvg/shapes-path--M-H-H-implicit.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -733,7 +1086,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__shapes-path--M-T
 
-[`resvg/shapes-path--M-T.svg`](svg/resvg/shapes-path--M-T.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/shapes-path--M-T.svg`](svg/resvg/shapes-path--M-T.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -741,7 +1098,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-style--class-selector
 
-[`resvg/structure-style--class-selector.svg`](svg/resvg/structure-style--class-selector.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-style--class-selector.svg`](svg/resvg/structure-style--class-selector.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -749,7 +1110,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-style--iD-selector
 
-[`resvg/structure-style--iD-selector.svg`](svg/resvg/structure-style--iD-selector.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-style--iD-selector.svg`](svg/resvg/structure-style--iD-selector.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -757,7 +1122,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-switch--single-child
 
-[`resvg/structure-switch--single-child.svg`](svg/resvg/structure-switch--single-child.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-switch--single-child.svg`](svg/resvg/structure-switch--single-child.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -765,7 +1134,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-switch--with-attributes
 
-[`resvg/structure-switch--with-attributes.svg`](svg/resvg/structure-switch--with-attributes.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/structure-switch--with-attributes.svg`](svg/resvg/structure-switch--with-attributes.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **differs from the reference**. Red: the switch is ignored and every child draws.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -773,7 +1146,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-symbol--with-transform
 
-[`resvg/structure-symbol--with-transform.svg`](svg/resvg/structure-symbol--with-transform.svg). WeasyPrint: same, weasysvg: **same**. Matches Chromium (SVG 2 applies symbol transform); the SVG 1.1 reference ignores it.
+[`resvg/structure-symbol--with-transform.svg`](svg/resvg/structure-symbol--with-transform.svg)
+
+- Reference: Chromium. The resvg suite follows SVG 1.1, where a symbol has no transform; SVG 2 and browsers apply it.
+- weasysvg: **matches the reference**. Matches Chromium: skewed as SVG 2 says.
+- WeasyPrint: **matches the reference**. Matches Chromium.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -781,7 +1158,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-symbol--with-viewBox-and-custom-use-size
 
-[`resvg/structure-symbol--with-viewBox-and-custom-use-size.svg`](svg/resvg/structure-symbol--with-viewBox-and-custom-use-size.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-symbol--with-viewBox-and-custom-use-size.svg`](svg/resvg/structure-symbol--with-viewBox-and-custom-use-size.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -789,7 +1170,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-systemLanguage--on-clipPath
 
-[`resvg/structure-systemLanguage--on-clipPath.svg`](svg/resvg/structure-systemLanguage--on-clipPath.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-systemLanguage--on-clipPath.svg`](svg/resvg/structure-systemLanguage--on-clipPath.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -797,7 +1182,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-systemLanguage--on-defs
 
-[`resvg/structure-systemLanguage--on-defs.svg`](svg/resvg/structure-systemLanguage--on-defs.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-systemLanguage--on-defs.svg`](svg/resvg/structure-systemLanguage--on-defs.svg)
+
+- Reference: resvg. Chromium draws nothing; systemLanguage on defs does not hide what is defined there, so the gradient square shows, as in the resvg suite.
+- weasysvg: **matches the reference**. Matches the resvg suite: the gradient square.
+- WeasyPrint: **matches the reference**. Matches the resvg suite.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -805,7 +1194,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-transform--scale-without-Y
 
-[`resvg/structure-transform--scale-without-Y.svg`](svg/resvg/structure-transform--scale-without-Y.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-transform--scale-without-Y.svg`](svg/resvg/structure-transform--scale-without-Y.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -813,7 +1206,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-transform--skewY
 
-[`resvg/structure-transform--skewY.svg`](svg/resvg/structure-transform--skewY.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-transform--skewY.svg`](svg/resvg/structure-transform--skewY.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -821,7 +1218,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-use--with-size
 
-[`resvg/structure-use--with-size.svg`](svg/resvg/structure-use--with-size.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-use--with-size.svg`](svg/resvg/structure-use--with-size.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -829,7 +1230,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__structure-use--xlink-to-svg-element-with-rect
 
-[`resvg/structure-use--xlink-to-svg-element-with-rect.svg`](svg/resvg/structure-use--xlink-to-svg-element-with-rect.svg). WeasyPrint: same, weasysvg: **same**.
+[`resvg/structure-use--xlink-to-svg-element-with-rect.svg`](svg/resvg/structure-use--xlink-to-svg-element-with-rect.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -837,7 +1242,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-dominant-baseline--auto
 
-[`resvg/text-dominant-baseline--auto.svg`](svg/resvg/text-dominant-baseline--auto.svg). WeasyPrint: font, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-dominant-baseline--auto.svg`](svg/resvg/text-dominant-baseline--auto.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, in the Noto Sans the test asks for.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -845,7 +1254,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-dominant-baseline--reset-size
 
-[`resvg/text-dominant-baseline--reset-size.svg`](svg/resvg/text-dominant-baseline--reset-size.svg). WeasyPrint: font, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-dominant-baseline--reset-size.svg`](svg/resvg/text-dominant-baseline--reset-size.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, in the Noto Sans the test asks for.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -853,7 +1266,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-letter-spacing--0
 
-[`resvg/text-letter-spacing--0.svg`](svg/resvg/text-letter-spacing--0.svg). WeasyPrint: font, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-letter-spacing--0.svg`](svg/resvg/text-letter-spacing--0.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, in the Noto Sans the test asks for.
+- WeasyPrint: **close to the reference**. The word is a little wider.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -861,7 +1278,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-letter-spacing--on-Arabic
 
-[`resvg/text-letter-spacing--on-Arabic.svg`](svg/resvg/text-letter-spacing--on-Arabic.svg). WeasyPrint: broken, weasysvg: **minor**. Letters joined, right to left, in the fallback font of Chromium. letter-spacing widens the spaces only; PDFium shows half of it (it drops the shift before the first glyph of a TJ array), Quartz all of it.
+[`resvg/text-letter-spacing--on-Arabic.svg`](svg/resvg/text-letter-spacing--on-Arabic.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: letter-spacing widens the spaces only.
+- WeasyPrint: **differs from the reference**. The letters are not joined and stand apart.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -869,7 +1290,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-text--nested
 
-[`resvg/text-text--nested.svg`](svg/resvg/text-text--nested.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/text-text--nested.svg`](svg/resvg/text-text--nested.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: a text inside a text draws nothing.
+- WeasyPrint: **differs from the reference**. The nested text draws, in red.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -877,7 +1302,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-text--x-and-y-with-less-values-than-characters
 
-[`resvg/text-text--x-and-y-with-less-values-than-characters.svg`](svg/resvg/text-text--x-and-y-with-less-values-than-characters.svg). WeasyPrint: font, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-text--x-and-y-with-less-values-than-characters.svg`](svg/resvg/text-text--x-and-y-with-less-values-than-characters.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -885,7 +1314,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-text-decoration--line-through
 
-[`resvg/text-text-decoration--line-through.svg`](svg/resvg/text-text-decoration--line-through.svg). WeasyPrint: broken, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-text-decoration--line-through.svg`](svg/resvg/text-text-decoration--line-through.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, the line-through included.
+- WeasyPrint: **differs from the reference**. No line-through.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -893,7 +1326,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-text-decoration--style-resolving-3
 
-[`resvg/text-text-decoration--style-resolving-3.svg`](svg/resvg/text-text-decoration--style-resolving-3.svg). WeasyPrint: broken, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-text-decoration--style-resolving-3.svg`](svg/resvg/text-text-decoration--style-resolving-3.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches, the line-through included.
+- WeasyPrint: **differs from the reference**. No line-through.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -901,7 +1338,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-textPath--with-invalid-path-and-xlink-href
 
-[`resvg/text-textPath--with-invalid-path-and-xlink-href.svg`](svg/resvg/text-textPath--with-invalid-path-and-xlink-href.svg). WeasyPrint: broken, weasysvg: **same**. Neither the path attribute nor the href resolves: nothing is drawn, as in Chromium.
+[`resvg/text-textPath--with-invalid-path-and-xlink-href.svg`](svg/resvg/text-textPath--with-invalid-path-and-xlink-href.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches: no text.
+- WeasyPrint: **differs from the reference**. Text drawn at the top.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -909,7 +1350,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-textPath--with-underline
 
-[`resvg/text-textPath--with-underline.svg`](svg/resvg/text-textPath--with-underline.svg). WeasyPrint: broken, weasysvg: **minor**. Text follows the path and the underline has the position and thickness of Chromium; it does not skip the descender of the g (no skip-ink).
+[`resvg/text-textPath--with-underline.svg`](svg/resvg/text-textPath--with-underline.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **close to the reference**. The underline runs under the descenders too: Chromium breaks it around them.
+- WeasyPrint: **differs from the reference**. No text on the path.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -917,7 +1362,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-tspan--mixed
 
-[`resvg/text-tspan--mixed.svg`](svg/resvg/text-tspan--mixed.svg). WeasyPrint: font, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-tspan--mixed.svg`](svg/resvg/text-tspan--mixed.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -925,7 +1374,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-tspan--only-with-y
 
-[`resvg/text-tspan--only-with-y.svg`](svg/resvg/text-tspan--only-with-y.svg). WeasyPrint: font, weasysvg: **same**. Noto Sans is not installed: serif, as in Chromium. resvg draws sans.
+[`resvg/text-tspan--only-with-y.svg`](svg/resvg/text-tspan--only-with-y.svg)
+
+- Reference: Chromium and resvg.
+- weasysvg: **matches the reference**. Matches.
+- WeasyPrint: **matches the reference**. Matches.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -933,7 +1386,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor
 
-[`resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg`](svg/resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg). WeasyPrint: broken, weasysvg: **same**.
+[`resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg`](svg/resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg)
+
+- Reference: Chromium. SVG 2 anchors a text chunk by the extent of its glyph positions, dy included, as Chromium does. resvg anchors by the advance.
+- weasysvg: **matches the reference**. Matches: each column is anchored with B moved up.
+- WeasyPrint: **differs from the reference**. Laid out horizontally.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -941,7 +1398,11 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg (resvg
 
 ### resvg__text-writing-mode--tb-with-rotate
 
-[`resvg/text-writing-mode--tb-with-rotate.svg`](svg/resvg/text-writing-mode--tb-with-rotate.svg). WeasyPrint: broken, weasysvg: **minor**. Vertical: CJK upright, Latin and Arabic sideways, each turned by rotate. The test marks the result as undefined; the run is longer than in Chromium.
+[`resvg/text-writing-mode--tb-with-rotate.svg`](svg/resvg/text-writing-mode--tb-with-rotate.svg)
+
+- Reference: resvg. The test is undefined behavior; the resvg suite shows its expected result.
+- weasysvg: **differs from the reference**. The Arabic word is not shaped: its letters stand apart in isolated forms, so the column runs longer.
+- WeasyPrint: **differs from the reference**. Laid out horizontally.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
