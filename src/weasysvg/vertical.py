@@ -141,18 +141,27 @@ def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances:
     rotations = [math.radians(float(value)) for value in wp_utils.normalize(node.get("rotate", "")).split()]
     spacing = svg.length(node.get("letter-spacing"), font_size)
     x, y = svg.cursor_position
-    items = []
-    # Down the column in visual order: a right-to-left run turned sideways starts from its end
-    for index in glyphs.visual_order("".join(glyphs.base(character) for character, _ in advances)):
-        character, width = advances[index]
+    # Positions and advances in logical order, as the attributes give them
+    places = []
+    for index, (character, width) in enumerate(advances):
         x = (xs[index] if index < len(xs) else x) + (dxs[index] if index < len(dxs) else 0)
         y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
-        shift = run.shift(node, index)
+        step = advance(character, width, font_size) + spacing
+        places.append([x, y, step])
+        y += step
+    svg.cursor_position = x, y
+    # A right-to-left run turned sideways fills its span from its end: its last letter at the top
+    text = "".join(glyphs.base(character) for character, _ in advances)
+    for start, end in glyphs.rtl_runs(text):
+        top = places[start][1]
+        for index in glyphs.reversed_clusters(text, start, end):
+            places[index][1] = top
+            top += places[index][2]
+    items = []
+    for index, (character, width) in enumerate(advances):
         if character.strip():
             angle = rotations[min(index, len(rotations) - 1)] if rotations else 0.0
-            items.append((character, _place(character, width, x, y + shift, angle)))
-        y += advance(character, width, font_size) + spacing
-    svg.cursor_position = x, y
+            items.append((character, _place(character, width, places[index][0], places[index][1] + run.shift(node, index), angle)))
     if not items:
         return
     svg.stream.push_state()

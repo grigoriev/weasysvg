@@ -68,11 +68,11 @@ def in_context(text: str, index: int) -> str:
     return before + character + after
 
 
-def visual_order(text: str) -> list[int]:
-    """The indices of text in visual order, left to right: each right-to-left run reversed by clusters.
+def rtl_runs(text: str) -> list[tuple[int, int]]:
+    """The right-to-left runs of text, start and end indices, for a left-to-right line.
 
-    A simple form of the bidi algorithm for a left-to-right line: strong Arabic and Hebrew letters make a
-    run, with the marks after them and the neutrals between two of them. A mark stays after its letter.
+    A simple form of the bidi algorithm: strong Arabic and Hebrew letters make a run, with the marks after
+    them and the neutrals between two of them.
     """
     classes = [unicodedata.bidirectional(character) for character in text]
     # The class of the nearest strong letter on each side of each index, None at the ends
@@ -95,24 +95,36 @@ def visual_order(text: str) -> list[int]:
             rtl[index] = rtl[index - 1]
         elif kind not in ("L", "EN", "AN"):
             rtl[index] = before[index] in ("R", "AL") and after[index] in ("R", "AL")
-    order: list[int] = []
+    runs = []
     index = 0
     while index < len(text):
-        if not rtl[index]:
-            order.append(index)
+        if rtl[index]:
+            end = index
+            while end < len(text) and rtl[end]:
+                end += 1
+            runs.append((index, end))
+            index = end
+        else:
             index += 1
-            continue
-        end = index
-        while end < len(text) and rtl[end]:
-            end += 1
-        clusters: list[list[int]] = []
-        for inner in range(index, end):
-            if classes[inner] == "NSM" and clusters:
-                clusters[-1].append(inner)
-            else:
-                clusters.append([inner])
-        order += [inner for cluster in reversed(clusters) for inner in cluster]
-        index = end
+    return runs
+
+
+def reversed_clusters(text: str, start: int, end: int) -> list[int]:
+    """The indices from start to end in visual order: clusters reversed, a mark kept after its letter."""
+    clusters: list[list[int]] = []
+    for index in range(start, end):
+        if unicodedata.bidirectional(text[index]) == "NSM" and clusters:
+            clusters[-1].append(index)
+        else:
+            clusters.append([index])
+    return [index for cluster in reversed(clusters) for index in cluster]
+
+
+def visual_order(text: str) -> list[int]:
+    """The indices of text in visual order, left to right: each right-to-left run reversed by clusters."""
+    order = list(range(len(text)))
+    for start, end in rtl_runs(text):
+        order[start:end] = reversed_clusters(text, start, end)
     return order
 
 

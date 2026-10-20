@@ -792,10 +792,13 @@ def test_a_right_to_left_run_is_reversed() -> None:
     assert glyph_layout.visual_order(text) == [0, 1, 2, 7, 6, 5, 3, 4, 8, 9]
 
 
-def test_vertical_arabic_runs_from_its_last_letter_down() -> None:
-    # Sideways, the right end of a right-to-left run lies at the bottom: dal above alef, as in Chromium
-    def glyph_ids(body: str) -> list[str]:
-        return re.findall(r"\[<([0-9a-f]+)>[^\]]*\] TJ", content(render(svg(body, height=200))))
-
-    both = glyph_ids('<text x="50" y="20" writing-mode="tb" font-size="20">\u0627\u062f</text>')
-    assert both[0] == glyph_ids('<text x="50" y="20" writing-mode="tb" font-size="20">\u062f</text>')[0]
+def test_a_vertical_arabic_run_keeps_its_place() -> None:
+    # Sideways, the right end of a right-to-left run lies at the top: the dal, then the alef, as in Chromium.
+    # The y of the text belongs to the alef, the first in logical order: the run starts there all the same
+    pdf = render(svg('<text x="50" y="20" writing-mode="tb" font-size="20">\u0627\u062f</text>', height=200))
+    placed = re.findall(r"[-\d.]+ ([-\d.]+) Tm\n(?:[^\n]*Tf\n)?\[<([0-9a-f]+)>", content(pdf))
+    dal = re.findall(r"\[<([0-9a-f]+)>", content(render(svg('<text x="50" y="20" writing-mode="tb" font-size="20">\u062f</text>', height=200))))[0]
+    ys = {glyph: float(y) for y, glyph in placed}
+    assert ys[dal] == pytest.approx(20)
+    assert min(ys.values()) == pytest.approx(20)
+    assert max(ys.values()) > 25
