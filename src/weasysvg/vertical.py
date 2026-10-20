@@ -4,7 +4,7 @@ Called by text.py for a <text> in a vertical writing mode and the <tspan> inside
 down the y axis. CJK, kana and Hangul stand upright and advance by 1em; other characters lie sideways,
 turned 90 degrees clockwise, centered on x by the middle of their em box, and advance by their width,
 as in Chromium. x, y, dx and dy apply per character, rotate turns each one further, letter-spacing
-adds to each advance, and text-anchor places the run along y.
+adds to each advance, and text-anchor places each text chunk along y.
 
 The text bounding box stays empty and text-anchor reads "start" to WeasyPrint (textpath.anchor_restyle).
 """
@@ -48,10 +48,16 @@ def upright(character: str) -> bool:
 
 @dataclass
 class _Run:
-    """The vertical run of one <text>: its nodes and the shift text-anchor gives it."""
+    """The vertical run of one <text>: its nodes, the shift text-anchor gives each character, and the next one."""
 
     nodes: set[int]
-    shift: float
+    shifts: list[float]
+    index: int = 0
+
+    def shift(self) -> float:
+        """The shift of the next character, in document order."""
+        self.index += 1
+        return self.shifts[self.index - 1] if self.index <= len(self.shifts) else 0.0
 
 
 CURRENT: ContextVar[_Run | None] = ContextVar("weasysvg_vertical", default=None)
@@ -61,38 +67,49 @@ def advance(character: str, width: float, font_size: float) -> float:
     return font_size if upright(character) else width
 
 
-def _extent(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> tuple[float, float]:
-    """The top and bottom of all characters, relative to where the first one lands, placed as draw places them.
+@dataclass
+class _Chunk:
+    """One text chunk: it starts at an absolute position, and text-anchor applies to each chunk alone."""
 
-    As in SVG 2 "apply anchoring": the extent spans the characters only, after y and dy, and the anchor
-    point is the position of the first character.
+    first: float
+    low: float = math.inf
+    high: float = -math.inf
+    count: int = 0
+
+
+def _chunks(svg: Any, texts: list[tuple[Any, float]], advances: Any) -> list[_Chunk]:
+    """The chunks of the run, each character placed as draw places it, as in SVG 2 "apply anchoring".
+
+    A chunk spans its characters, both ends of each advance, after x, y and dy. Its anchor point is the
+    position of its first character.
     """
-    y, low, high = svg.cursor_position[1], math.inf, -math.inf
-    first: float | None = None
+    y = svg.cursor_position[1]
+    chunks: list[_Chunk] = []
     for text, size in texts:
         spacing = svg.length(text.get("letter-spacing"), size)
-        ys, dys = _numbers(text, "y", size, svg.inner_height), _numbers(text, "dy", size, svg.inner_height)
+        xs, ys = _numbers(text, "x", size, svg.inner_width), _numbers(text, "y", size, svg.inner_height)
+        dys = _numbers(text, "dy", size, svg.inner_height)
         for index, (character, width) in enumerate(advances(svg, text, size)):
             y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
-            first = y if first is None else first
+            if not chunks or index < len(xs) or index < len(ys):
+                chunks.append(_Chunk(y))
+            chunk = chunks[-1]
             # letter-spacing belongs to the advance of each character, the last one included
             step = advance(character, width, size) + spacing
-            low, high = min(low, y), max(high, y + step)
+            chunk.low, chunk.high = min(chunk.low, y, y + step), max(chunk.high, y, y + step)
+            chunk.count += 1
             y += step
-    if first is None:
-        return 0.0, 0.0
-    return low - first, high - first
+    return chunks
 
 
 def start(svg: Any, node: Any, texts: list[tuple[Any, float]], advances: Any) -> _Run:
-    """Begin a vertical <text>: measure all its text for text-anchor.
-
-    Chromium anchors the extent of the characters, so a dy that moves one past the start moves the run.
-    """
-    low, high = _extent(svg, texts, advances)
+    """Begin a vertical <text>: measure each chunk of its text for text-anchor."""
     anchor = node.get(ANCHOR) or node.get("text-anchor", "start")
-    shift = {"middle": -(low + high) / 2, "end": -high}.get(anchor, -low)
-    run = _Run({id(text) for text, _ in texts}, shift)
+    shifts = []
+    for chunk in _chunks(svg, texts, advances):
+        point = {"middle": (chunk.low + chunk.high) / 2, "end": chunk.high}.get(anchor, chunk.low)
+        shifts += [chunk.first - point] * chunk.count
+    run = _Run({id(text) for text, _ in texts}, shifts)
     CURRENT.set(run)
     return run
 
@@ -130,9 +147,10 @@ def draw(svg: Any, node: Any, font_size: float, run: _Run, style: Any, advances:
     for index, (character, width) in enumerate(advances):
         x = (xs[index] if index < len(xs) else x) + (dxs[index] if index < len(dxs) else 0)
         y = (ys[index] if index < len(ys) else y) + (dys[index] if index < len(dys) else 0)
+        shift = run.shift()
         if character.strip():
             angle = rotations[min(index, len(rotations) - 1)] if rotations else 0.0
-            items.append((character, _place(character, width, x, y + run.shift, angle)))
+            items.append((character, _place(character, width, x, y + shift, angle)))
         y += advance(character, width, font_size) + spacing
     svg.cursor_position = x, y
     if not items:
