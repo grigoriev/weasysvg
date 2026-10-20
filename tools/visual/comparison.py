@@ -36,11 +36,11 @@ def anchor(title: str) -> str:
     return "".join(c for c in title.lower().replace(" ", "-") if c.isalnum() or c in "-_")
 
 
-def cell(name: str, folder: str) -> str:
+def cell(name: str, label: str, folder: str) -> str:
     path = f"{folder}/{name}.png"
     if not (CORPUS / path).exists():
         return "n/a"
-    return f'<a href="{path}"><img src="{path}" width="{WIDTH}" alt=""></a>'
+    return f'<a href="{path}"><img src="{path}" width="{WIDTH}" alt="{name} in {label}"></a>'
 
 
 def entry(item: dict[str, Any], verdict: dict[str, Any]) -> str:
@@ -48,7 +48,7 @@ def entry(item: dict[str, Any], verdict: dict[str, Any]) -> str:
     what = verdict.get("what") or ""
     note = f" {html.escape(what)}" if what else ""
     header = "| " + " | ".join(label for label, _ in COLUMNS) + " |"
-    row = "| " + " | ".join(cell(name, folder) for _, folder in COLUMNS) + " |"
+    row = "| " + " | ".join(cell(name, label, folder) for label, folder in COLUMNS) + " |"
     source = f"[`{item['source']}`](svg/{item['source']})"
     return f"### {name}\n\n{source}. WeasyPrint: {verdict.get('native_verdict', 'n/a')}, weasysvg: **{verdict.get('verdict', 'n/a')}**.{note}\n\n{header}\n|---|---|---|---|\n{row}\n"
 

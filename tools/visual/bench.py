@@ -88,6 +88,9 @@ def run(item: dict[str, Any], out: Path, handler: Warnings, panels: Path | None 
     name = item["name"]
     handler.messages = []
     pdf = out / "pdf" / f"{name}.pdf"
+    if panels is not None:
+        # A failed rendering must not leave the panel of an earlier run on the page
+        (panels / f"{name}.png").unlink(missing_ok=True)
     start = time.perf_counter()
     error = None
     try:
@@ -232,6 +235,9 @@ def main() -> int:
         write_baseline(inside(args.write_baseline), mode, rows)
     if args.against:
         return 1 if compare(inside(args.against), mode, rows) else 0
+    if panels is not None and any(row["error"] for row in rows):
+        print("rendering errors: the comparison page would miss panels")
+        return 1
     return 0
 
 

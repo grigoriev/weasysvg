@@ -25,7 +25,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-blockdiag.png"><img src="reference/chromium/diagrams__kroki-blockdiag.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-blockdiag.png"><img src="render/weasyprint/diagrams__kroki-blockdiag.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-blockdiag.png"><img src="render/weasysvg/diagrams__kroki-blockdiag.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-blockdiag.png"><img src="reference/chromium/diagrams__kroki-blockdiag.png" width="200" alt="diagrams__kroki-blockdiag in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-blockdiag.png"><img src="render/weasyprint/diagrams__kroki-blockdiag.png" width="200" alt="diagrams__kroki-blockdiag in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-blockdiag.png"><img src="render/weasysvg/diagrams__kroki-blockdiag.png" width="200" alt="diagrams__kroki-blockdiag in weasysvg"></a> |
 
 ### diagrams__kroki-bpmn
 
@@ -33,7 +33,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-bpmn.png"><img src="reference/chromium/diagrams__kroki-bpmn.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-bpmn.png"><img src="render/weasyprint/diagrams__kroki-bpmn.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-bpmn.png"><img src="render/weasysvg/diagrams__kroki-bpmn.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-bpmn.png"><img src="reference/chromium/diagrams__kroki-bpmn.png" width="200" alt="diagrams__kroki-bpmn in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-bpmn.png"><img src="render/weasyprint/diagrams__kroki-bpmn.png" width="200" alt="diagrams__kroki-bpmn in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-bpmn.png"><img src="render/weasysvg/diagrams__kroki-bpmn.png" width="200" alt="diagrams__kroki-bpmn in weasysvg"></a> |
 
 ### diagrams__kroki-c4plantuml
 
@@ -41,7 +41,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-c4plantuml.png"><img src="reference/chromium/diagrams__kroki-c4plantuml.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-c4plantuml.png"><img src="render/weasyprint/diagrams__kroki-c4plantuml.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-c4plantuml.png"><img src="render/weasysvg/diagrams__kroki-c4plantuml.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-c4plantuml.png"><img src="reference/chromium/diagrams__kroki-c4plantuml.png" width="200" alt="diagrams__kroki-c4plantuml in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-c4plantuml.png"><img src="render/weasyprint/diagrams__kroki-c4plantuml.png" width="200" alt="diagrams__kroki-c4plantuml in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-c4plantuml.png"><img src="render/weasysvg/diagrams__kroki-c4plantuml.png" width="200" alt="diagrams__kroki-c4plantuml in weasysvg"></a> |
 
 ### diagrams__kroki-d2-arch
 
@@ -49,7 +49,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-d2-arch.png"><img src="reference/chromium/diagrams__kroki-d2-arch.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-d2-arch.png"><img src="render/weasyprint/diagrams__kroki-d2-arch.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-d2-arch.png"><img src="render/weasysvg/diagrams__kroki-d2-arch.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-d2-arch.png"><img src="reference/chromium/diagrams__kroki-d2-arch.png" width="200" alt="diagrams__kroki-d2-arch in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-d2-arch.png"><img src="render/weasyprint/diagrams__kroki-d2-arch.png" width="200" alt="diagrams__kroki-d2-arch in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-d2-arch.png"><img src="render/weasysvg/diagrams__kroki-d2-arch.png" width="200" alt="diagrams__kroki-d2-arch in weasysvg"></a> |
 
 ### diagrams__kroki-d2
 
@@ -57,7 +57,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-d2.png"><img src="reference/chromium/diagrams__kroki-d2.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-d2.png"><img src="render/weasyprint/diagrams__kroki-d2.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-d2.png"><img src="render/weasysvg/diagrams__kroki-d2.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-d2.png"><img src="reference/chromium/diagrams__kroki-d2.png" width="200" alt="diagrams__kroki-d2 in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-d2.png"><img src="render/weasyprint/diagrams__kroki-d2.png" width="200" alt="diagrams__kroki-d2 in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-d2.png"><img src="render/weasysvg/diagrams__kroki-d2.png" width="200" alt="diagrams__kroki-d2 in weasysvg"></a> |
 
 ### diagrams__kroki-erd
 
@@ -65,7 +65,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-erd.png"><img src="reference/chromium/diagrams__kroki-erd.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-erd.png"><img src="render/weasyprint/diagrams__kroki-erd.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-erd.png"><img src="render/weasysvg/diagrams__kroki-erd.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-erd.png"><img src="reference/chromium/diagrams__kroki-erd.png" width="200" alt="diagrams__kroki-erd in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-erd.png"><img src="render/weasyprint/diagrams__kroki-erd.png" width="200" alt="diagrams__kroki-erd in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-erd.png"><img src="render/weasysvg/diagrams__kroki-erd.png" width="200" alt="diagrams__kroki-erd in weasysvg"></a> |
 
 ### diagrams__kroki-excalidraw
 
@@ -73,7 +73,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-excalidraw.png"><img src="reference/chromium/diagrams__kroki-excalidraw.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-excalidraw.png"><img src="render/weasyprint/diagrams__kroki-excalidraw.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-excalidraw.png"><img src="render/weasysvg/diagrams__kroki-excalidraw.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-excalidraw.png"><img src="reference/chromium/diagrams__kroki-excalidraw.png" width="200" alt="diagrams__kroki-excalidraw in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-excalidraw.png"><img src="render/weasyprint/diagrams__kroki-excalidraw.png" width="200" alt="diagrams__kroki-excalidraw in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-excalidraw.png"><img src="render/weasysvg/diagrams__kroki-excalidraw.png" width="200" alt="diagrams__kroki-excalidraw in weasysvg"></a> |
 
 ### diagrams__kroki-graphviz
 
@@ -81,7 +81,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-graphviz.png"><img src="reference/chromium/diagrams__kroki-graphviz.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-graphviz.png"><img src="render/weasyprint/diagrams__kroki-graphviz.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-graphviz.png"><img src="render/weasysvg/diagrams__kroki-graphviz.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-graphviz.png"><img src="reference/chromium/diagrams__kroki-graphviz.png" width="200" alt="diagrams__kroki-graphviz in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-graphviz.png"><img src="render/weasyprint/diagrams__kroki-graphviz.png" width="200" alt="diagrams__kroki-graphviz in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-graphviz.png"><img src="render/weasysvg/diagrams__kroki-graphviz.png" width="200" alt="diagrams__kroki-graphviz in weasysvg"></a> |
 
 ### diagrams__kroki-mermaid-er
 
@@ -89,7 +89,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-mermaid-er.png"><img src="reference/chromium/diagrams__kroki-mermaid-er.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-mermaid-er.png"><img src="render/weasyprint/diagrams__kroki-mermaid-er.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-mermaid-er.png"><img src="render/weasysvg/diagrams__kroki-mermaid-er.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-mermaid-er.png"><img src="reference/chromium/diagrams__kroki-mermaid-er.png" width="200" alt="diagrams__kroki-mermaid-er in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-mermaid-er.png"><img src="render/weasyprint/diagrams__kroki-mermaid-er.png" width="200" alt="diagrams__kroki-mermaid-er in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-mermaid-er.png"><img src="render/weasysvg/diagrams__kroki-mermaid-er.png" width="200" alt="diagrams__kroki-mermaid-er in weasysvg"></a> |
 
 ### diagrams__kroki-mermaid-mindmap
 
@@ -97,7 +97,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-mermaid-mindmap.png"><img src="reference/chromium/diagrams__kroki-mermaid-mindmap.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-mermaid-mindmap.png"><img src="render/weasyprint/diagrams__kroki-mermaid-mindmap.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-mermaid-mindmap.png"><img src="render/weasysvg/diagrams__kroki-mermaid-mindmap.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-mermaid-mindmap.png"><img src="reference/chromium/diagrams__kroki-mermaid-mindmap.png" width="200" alt="diagrams__kroki-mermaid-mindmap in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-mermaid-mindmap.png"><img src="render/weasyprint/diagrams__kroki-mermaid-mindmap.png" width="200" alt="diagrams__kroki-mermaid-mindmap in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-mermaid-mindmap.png"><img src="render/weasysvg/diagrams__kroki-mermaid-mindmap.png" width="200" alt="diagrams__kroki-mermaid-mindmap in weasysvg"></a> |
 
 ### diagrams__kroki-mermaid-state
 
@@ -105,7 +105,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-mermaid-state.png"><img src="reference/chromium/diagrams__kroki-mermaid-state.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-mermaid-state.png"><img src="render/weasyprint/diagrams__kroki-mermaid-state.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-mermaid-state.png"><img src="render/weasysvg/diagrams__kroki-mermaid-state.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-mermaid-state.png"><img src="reference/chromium/diagrams__kroki-mermaid-state.png" width="200" alt="diagrams__kroki-mermaid-state in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-mermaid-state.png"><img src="render/weasyprint/diagrams__kroki-mermaid-state.png" width="200" alt="diagrams__kroki-mermaid-state in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-mermaid-state.png"><img src="render/weasysvg/diagrams__kroki-mermaid-state.png" width="200" alt="diagrams__kroki-mermaid-state in weasysvg"></a> |
 
 ### diagrams__kroki-nomnoml
 
@@ -113,7 +113,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-nomnoml.png"><img src="reference/chromium/diagrams__kroki-nomnoml.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-nomnoml.png"><img src="render/weasyprint/diagrams__kroki-nomnoml.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-nomnoml.png"><img src="render/weasysvg/diagrams__kroki-nomnoml.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-nomnoml.png"><img src="reference/chromium/diagrams__kroki-nomnoml.png" width="200" alt="diagrams__kroki-nomnoml in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-nomnoml.png"><img src="render/weasyprint/diagrams__kroki-nomnoml.png" width="200" alt="diagrams__kroki-nomnoml in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-nomnoml.png"><img src="render/weasysvg/diagrams__kroki-nomnoml.png" width="200" alt="diagrams__kroki-nomnoml in weasysvg"></a> |
 
 ### diagrams__kroki-pikchr
 
@@ -121,7 +121,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-pikchr.png"><img src="reference/chromium/diagrams__kroki-pikchr.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-pikchr.png"><img src="render/weasyprint/diagrams__kroki-pikchr.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-pikchr.png"><img src="render/weasysvg/diagrams__kroki-pikchr.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-pikchr.png"><img src="reference/chromium/diagrams__kroki-pikchr.png" width="200" alt="diagrams__kroki-pikchr in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-pikchr.png"><img src="render/weasyprint/diagrams__kroki-pikchr.png" width="200" alt="diagrams__kroki-pikchr in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-pikchr.png"><img src="render/weasysvg/diagrams__kroki-pikchr.png" width="200" alt="diagrams__kroki-pikchr in weasysvg"></a> |
 
 ### diagrams__kroki-plantuml-activity
 
@@ -129,7 +129,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-plantuml-activity.png"><img src="reference/chromium/diagrams__kroki-plantuml-activity.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-plantuml-activity.png"><img src="render/weasyprint/diagrams__kroki-plantuml-activity.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-plantuml-activity.png"><img src="render/weasysvg/diagrams__kroki-plantuml-activity.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-plantuml-activity.png"><img src="reference/chromium/diagrams__kroki-plantuml-activity.png" width="200" alt="diagrams__kroki-plantuml-activity in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-plantuml-activity.png"><img src="render/weasyprint/diagrams__kroki-plantuml-activity.png" width="200" alt="diagrams__kroki-plantuml-activity in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-plantuml-activity.png"><img src="render/weasysvg/diagrams__kroki-plantuml-activity.png" width="200" alt="diagrams__kroki-plantuml-activity in weasysvg"></a> |
 
 ### diagrams__kroki-plantuml-sequence
 
@@ -137,7 +137,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-plantuml-sequence.png"><img src="reference/chromium/diagrams__kroki-plantuml-sequence.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-plantuml-sequence.png"><img src="render/weasyprint/diagrams__kroki-plantuml-sequence.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-plantuml-sequence.png"><img src="render/weasysvg/diagrams__kroki-plantuml-sequence.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-plantuml-sequence.png"><img src="reference/chromium/diagrams__kroki-plantuml-sequence.png" width="200" alt="diagrams__kroki-plantuml-sequence in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-plantuml-sequence.png"><img src="render/weasyprint/diagrams__kroki-plantuml-sequence.png" width="200" alt="diagrams__kroki-plantuml-sequence in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-plantuml-sequence.png"><img src="render/weasysvg/diagrams__kroki-plantuml-sequence.png" width="200" alt="diagrams__kroki-plantuml-sequence in weasysvg"></a> |
 
 ### diagrams__kroki-structurizr
 
@@ -145,7 +145,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-structurizr.png"><img src="reference/chromium/diagrams__kroki-structurizr.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-structurizr.png"><img src="render/weasyprint/diagrams__kroki-structurizr.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-structurizr.png"><img src="render/weasysvg/diagrams__kroki-structurizr.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-structurizr.png"><img src="reference/chromium/diagrams__kroki-structurizr.png" width="200" alt="diagrams__kroki-structurizr in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-structurizr.png"><img src="render/weasyprint/diagrams__kroki-structurizr.png" width="200" alt="diagrams__kroki-structurizr in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-structurizr.png"><img src="render/weasysvg/diagrams__kroki-structurizr.png" width="200" alt="diagrams__kroki-structurizr in weasysvg"></a> |
 
 ### diagrams__kroki-svgbob
 
@@ -153,7 +153,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-svgbob.png"><img src="reference/chromium/diagrams__kroki-svgbob.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-svgbob.png"><img src="render/weasyprint/diagrams__kroki-svgbob.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-svgbob.png"><img src="render/weasysvg/diagrams__kroki-svgbob.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-svgbob.png"><img src="reference/chromium/diagrams__kroki-svgbob.png" width="200" alt="diagrams__kroki-svgbob in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-svgbob.png"><img src="render/weasyprint/diagrams__kroki-svgbob.png" width="200" alt="diagrams__kroki-svgbob in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-svgbob.png"><img src="render/weasysvg/diagrams__kroki-svgbob.png" width="200" alt="diagrams__kroki-svgbob in weasysvg"></a> |
 
 ### diagrams__kroki-vegalite
 
@@ -161,7 +161,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-vegalite.png"><img src="reference/chromium/diagrams__kroki-vegalite.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-vegalite.png"><img src="render/weasyprint/diagrams__kroki-vegalite.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-vegalite.png"><img src="render/weasysvg/diagrams__kroki-vegalite.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-vegalite.png"><img src="reference/chromium/diagrams__kroki-vegalite.png" width="200" alt="diagrams__kroki-vegalite in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-vegalite.png"><img src="render/weasyprint/diagrams__kroki-vegalite.png" width="200" alt="diagrams__kroki-vegalite in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-vegalite.png"><img src="render/weasysvg/diagrams__kroki-vegalite.png" width="200" alt="diagrams__kroki-vegalite in weasysvg"></a> |
 
 ### diagrams__kroki-wavedrom
 
@@ -169,7 +169,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__kroki-wavedrom.png"><img src="reference/chromium/diagrams__kroki-wavedrom.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__kroki-wavedrom.png"><img src="render/weasyprint/diagrams__kroki-wavedrom.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__kroki-wavedrom.png"><img src="render/weasysvg/diagrams__kroki-wavedrom.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__kroki-wavedrom.png"><img src="reference/chromium/diagrams__kroki-wavedrom.png" width="200" alt="diagrams__kroki-wavedrom in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__kroki-wavedrom.png"><img src="render/weasyprint/diagrams__kroki-wavedrom.png" width="200" alt="diagrams__kroki-wavedrom in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__kroki-wavedrom.png"><img src="render/weasysvg/diagrams__kroki-wavedrom.png" width="200" alt="diagrams__kroki-wavedrom in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-class
 
@@ -177,7 +177,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-class.png"><img src="reference/chromium/diagrams__mermaid-ink-class.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-class.png"><img src="render/weasyprint/diagrams__mermaid-ink-class.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-class.png"><img src="render/weasysvg/diagrams__mermaid-ink-class.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-class.png"><img src="reference/chromium/diagrams__mermaid-ink-class.png" width="200" alt="diagrams__mermaid-ink-class in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-class.png"><img src="render/weasyprint/diagrams__mermaid-ink-class.png" width="200" alt="diagrams__mermaid-ink-class in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-class.png"><img src="render/weasysvg/diagrams__mermaid-ink-class.png" width="200" alt="diagrams__mermaid-ink-class in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-er
 
@@ -185,7 +185,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-er.png"><img src="reference/chromium/diagrams__mermaid-ink-er.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-er.png"><img src="render/weasyprint/diagrams__mermaid-ink-er.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-er.png"><img src="render/weasysvg/diagrams__mermaid-ink-er.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-er.png"><img src="reference/chromium/diagrams__mermaid-ink-er.png" width="200" alt="diagrams__mermaid-ink-er in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-er.png"><img src="render/weasyprint/diagrams__mermaid-ink-er.png" width="200" alt="diagrams__mermaid-ink-er in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-er.png"><img src="render/weasysvg/diagrams__mermaid-ink-er.png" width="200" alt="diagrams__mermaid-ink-er in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-flowchart
 
@@ -193,7 +193,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-flowchart.png"><img src="reference/chromium/diagrams__mermaid-ink-flowchart.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-flowchart.png"><img src="render/weasyprint/diagrams__mermaid-ink-flowchart.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-flowchart.png"><img src="render/weasysvg/diagrams__mermaid-ink-flowchart.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-flowchart.png"><img src="reference/chromium/diagrams__mermaid-ink-flowchart.png" width="200" alt="diagrams__mermaid-ink-flowchart in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-flowchart.png"><img src="render/weasyprint/diagrams__mermaid-ink-flowchart.png" width="200" alt="diagrams__mermaid-ink-flowchart in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-flowchart.png"><img src="render/weasysvg/diagrams__mermaid-ink-flowchart.png" width="200" alt="diagrams__mermaid-ink-flowchart in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-gantt
 
@@ -201,7 +201,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-gantt.png"><img src="reference/chromium/diagrams__mermaid-ink-gantt.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-gantt.png"><img src="render/weasyprint/diagrams__mermaid-ink-gantt.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-gantt.png"><img src="render/weasysvg/diagrams__mermaid-ink-gantt.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-gantt.png"><img src="reference/chromium/diagrams__mermaid-ink-gantt.png" width="200" alt="diagrams__mermaid-ink-gantt in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-gantt.png"><img src="render/weasyprint/diagrams__mermaid-ink-gantt.png" width="200" alt="diagrams__mermaid-ink-gantt in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-gantt.png"><img src="render/weasysvg/diagrams__mermaid-ink-gantt.png" width="200" alt="diagrams__mermaid-ink-gantt in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-gitgraph
 
@@ -209,7 +209,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-gitgraph.png"><img src="reference/chromium/diagrams__mermaid-ink-gitgraph.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-gitgraph.png"><img src="render/weasyprint/diagrams__mermaid-ink-gitgraph.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-gitgraph.png"><img src="render/weasysvg/diagrams__mermaid-ink-gitgraph.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-gitgraph.png"><img src="reference/chromium/diagrams__mermaid-ink-gitgraph.png" width="200" alt="diagrams__mermaid-ink-gitgraph in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-gitgraph.png"><img src="render/weasyprint/diagrams__mermaid-ink-gitgraph.png" width="200" alt="diagrams__mermaid-ink-gitgraph in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-gitgraph.png"><img src="render/weasysvg/diagrams__mermaid-ink-gitgraph.png" width="200" alt="diagrams__mermaid-ink-gitgraph in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-journey
 
@@ -217,7 +217,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-journey.png"><img src="reference/chromium/diagrams__mermaid-ink-journey.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-journey.png"><img src="render/weasyprint/diagrams__mermaid-ink-journey.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-journey.png"><img src="render/weasysvg/diagrams__mermaid-ink-journey.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-journey.png"><img src="reference/chromium/diagrams__mermaid-ink-journey.png" width="200" alt="diagrams__mermaid-ink-journey in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-journey.png"><img src="render/weasyprint/diagrams__mermaid-ink-journey.png" width="200" alt="diagrams__mermaid-ink-journey in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-journey.png"><img src="render/weasysvg/diagrams__mermaid-ink-journey.png" width="200" alt="diagrams__mermaid-ink-journey in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-mindmap
 
@@ -225,7 +225,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-mindmap.png"><img src="reference/chromium/diagrams__mermaid-ink-mindmap.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-mindmap.png"><img src="render/weasyprint/diagrams__mermaid-ink-mindmap.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-mindmap.png"><img src="render/weasysvg/diagrams__mermaid-ink-mindmap.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-mindmap.png"><img src="reference/chromium/diagrams__mermaid-ink-mindmap.png" width="200" alt="diagrams__mermaid-ink-mindmap in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-mindmap.png"><img src="render/weasyprint/diagrams__mermaid-ink-mindmap.png" width="200" alt="diagrams__mermaid-ink-mindmap in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-mindmap.png"><img src="render/weasysvg/diagrams__mermaid-ink-mindmap.png" width="200" alt="diagrams__mermaid-ink-mindmap in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-pie
 
@@ -233,7 +233,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-pie.png"><img src="reference/chromium/diagrams__mermaid-ink-pie.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-pie.png"><img src="render/weasyprint/diagrams__mermaid-ink-pie.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-pie.png"><img src="render/weasysvg/diagrams__mermaid-ink-pie.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-pie.png"><img src="reference/chromium/diagrams__mermaid-ink-pie.png" width="200" alt="diagrams__mermaid-ink-pie in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-pie.png"><img src="render/weasyprint/diagrams__mermaid-ink-pie.png" width="200" alt="diagrams__mermaid-ink-pie in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-pie.png"><img src="render/weasysvg/diagrams__mermaid-ink-pie.png" width="200" alt="diagrams__mermaid-ink-pie in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-sequence
 
@@ -241,7 +241,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-sequence.png"><img src="reference/chromium/diagrams__mermaid-ink-sequence.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-sequence.png"><img src="render/weasyprint/diagrams__mermaid-ink-sequence.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-sequence.png"><img src="render/weasysvg/diagrams__mermaid-ink-sequence.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-sequence.png"><img src="reference/chromium/diagrams__mermaid-ink-sequence.png" width="200" alt="diagrams__mermaid-ink-sequence in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-sequence.png"><img src="render/weasyprint/diagrams__mermaid-ink-sequence.png" width="200" alt="diagrams__mermaid-ink-sequence in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-sequence.png"><img src="render/weasysvg/diagrams__mermaid-ink-sequence.png" width="200" alt="diagrams__mermaid-ink-sequence in weasysvg"></a> |
 
 ### diagrams__mermaid-ink-state
 
@@ -249,7 +249,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/diagrams__mermaid-ink-state.png"><img src="reference/chromium/diagrams__mermaid-ink-state.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-state.png"><img src="render/weasyprint/diagrams__mermaid-ink-state.png" width="200" alt=""></a> | <a href="render/weasysvg/diagrams__mermaid-ink-state.png"><img src="render/weasysvg/diagrams__mermaid-ink-state.png" width="200" alt=""></a> |
+| <a href="reference/chromium/diagrams__mermaid-ink-state.png"><img src="reference/chromium/diagrams__mermaid-ink-state.png" width="200" alt="diagrams__mermaid-ink-state in Chromium"></a> | n/a | <a href="render/weasyprint/diagrams__mermaid-ink-state.png"><img src="render/weasyprint/diagrams__mermaid-ink-state.png" width="200" alt="diagrams__mermaid-ink-state in WeasyPrint"></a> | <a href="render/weasysvg/diagrams__mermaid-ink-state.png"><img src="render/weasysvg/diagrams__mermaid-ink-state.png" width="200" alt="diagrams__mermaid-ink-state in weasysvg"></a> |
 
 ## draw.io
 
@@ -259,7 +259,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/drawio__connect-shapes.png"><img src="reference/chromium/drawio__connect-shapes.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/drawio__connect-shapes.png"><img src="render/weasyprint/drawio__connect-shapes.png" width="200" alt=""></a> | <a href="render/weasysvg/drawio__connect-shapes.png"><img src="render/weasysvg/drawio__connect-shapes.png" width="200" alt=""></a> |
+| <a href="reference/chromium/drawio__connect-shapes.png"><img src="reference/chromium/drawio__connect-shapes.png" width="200" alt="drawio__connect-shapes in Chromium"></a> | n/a | <a href="render/weasyprint/drawio__connect-shapes.png"><img src="render/weasyprint/drawio__connect-shapes.png" width="200" alt="drawio__connect-shapes in WeasyPrint"></a> | <a href="render/weasysvg/drawio__connect-shapes.png"><img src="render/weasysvg/drawio__connect-shapes.png" width="200" alt="drawio__connect-shapes in weasysvg"></a> |
 
 ### drawio__flowchart.drawio
 
@@ -267,7 +267,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/drawio__flowchart.drawio.png"><img src="reference/chromium/drawio__flowchart.drawio.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/drawio__flowchart.drawio.png"><img src="render/weasyprint/drawio__flowchart.drawio.png" width="200" alt=""></a> | <a href="render/weasysvg/drawio__flowchart.drawio.png"><img src="render/weasysvg/drawio__flowchart.drawio.png" width="200" alt=""></a> |
+| <a href="reference/chromium/drawio__flowchart.drawio.png"><img src="reference/chromium/drawio__flowchart.drawio.png" width="200" alt="drawio__flowchart.drawio in Chromium"></a> | n/a | <a href="render/weasyprint/drawio__flowchart.drawio.png"><img src="render/weasyprint/drawio__flowchart.drawio.png" width="200" alt="drawio__flowchart.drawio in WeasyPrint"></a> | <a href="render/weasysvg/drawio__flowchart.drawio.png"><img src="render/weasysvg/drawio__flowchart.drawio.png" width="200" alt="drawio__flowchart.drawio in weasysvg"></a> |
 
 ### drawio__infographic
 
@@ -275,7 +275,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/drawio__infographic.png"><img src="reference/chromium/drawio__infographic.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/drawio__infographic.png"><img src="render/weasyprint/drawio__infographic.png" width="200" alt=""></a> | <a href="render/weasysvg/drawio__infographic.png"><img src="render/weasysvg/drawio__infographic.png" width="200" alt=""></a> |
+| <a href="reference/chromium/drawio__infographic.png"><img src="reference/chromium/drawio__infographic.png" width="200" alt="drawio__infographic in Chromium"></a> | n/a | <a href="render/weasyprint/drawio__infographic.png"><img src="render/weasyprint/drawio__infographic.png" width="200" alt="drawio__infographic in WeasyPrint"></a> | <a href="render/weasysvg/drawio__infographic.png"><img src="render/weasysvg/drawio__infographic.png" width="200" alt="drawio__infographic in weasysvg"></a> |
 
 ### drawio__infographic2
 
@@ -283,7 +283,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/drawio__infographic2.png"><img src="reference/chromium/drawio__infographic2.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/drawio__infographic2.png"><img src="render/weasyprint/drawio__infographic2.png" width="200" alt=""></a> | <a href="render/weasysvg/drawio__infographic2.png"><img src="render/weasysvg/drawio__infographic2.png" width="200" alt=""></a> |
+| <a href="reference/chromium/drawio__infographic2.png"><img src="reference/chromium/drawio__infographic2.png" width="200" alt="drawio__infographic2 in Chromium"></a> | n/a | <a href="render/weasyprint/drawio__infographic2.png"><img src="render/weasyprint/drawio__infographic2.png" width="200" alt="drawio__infographic2 in WeasyPrint"></a> | <a href="render/weasysvg/drawio__infographic2.png"><img src="render/weasysvg/drawio__infographic2.png" width="200" alt="drawio__infographic2 in weasysvg"></a> |
 
 ### drawio__notion-template.drawio
 
@@ -291,7 +291,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/drawio__notion-template.drawio.png"><img src="reference/chromium/drawio__notion-template.drawio.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/drawio__notion-template.drawio.png"><img src="render/weasyprint/drawio__notion-template.drawio.png" width="200" alt=""></a> | <a href="render/weasysvg/drawio__notion-template.drawio.png"><img src="render/weasysvg/drawio__notion-template.drawio.png" width="200" alt=""></a> |
+| <a href="reference/chromium/drawio__notion-template.drawio.png"><img src="reference/chromium/drawio__notion-template.drawio.png" width="200" alt="drawio__notion-template.drawio in Chromium"></a> | n/a | <a href="render/weasyprint/drawio__notion-template.drawio.png"><img src="render/weasyprint/drawio__notion-template.drawio.png" width="200" alt="drawio__notion-template.drawio in WeasyPrint"></a> | <a href="render/weasysvg/drawio__notion-template.drawio.png"><img src="render/weasysvg/drawio__notion-template.drawio.png" width="200" alt="drawio__notion-template.drawio in weasysvg"></a> |
 
 ### drawio__svgfile
 
@@ -299,7 +299,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/drawio__svgfile.png"><img src="reference/chromium/drawio__svgfile.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/drawio__svgfile.png"><img src="render/weasyprint/drawio__svgfile.png" width="200" alt=""></a> | <a href="render/weasysvg/drawio__svgfile.png"><img src="render/weasysvg/drawio__svgfile.png" width="200" alt=""></a> |
+| <a href="reference/chromium/drawio__svgfile.png"><img src="reference/chromium/drawio__svgfile.png" width="200" alt="drawio__svgfile in Chromium"></a> | n/a | <a href="render/weasyprint/drawio__svgfile.png"><img src="render/weasyprint/drawio__svgfile.png" width="200" alt="drawio__svgfile in WeasyPrint"></a> | <a href="render/weasysvg/drawio__svgfile.png"><img src="render/weasysvg/drawio__svgfile.png" width="200" alt="drawio__svgfile in weasysvg"></a> |
 
 ## foreignObject
 
@@ -309,7 +309,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/fo__mdn-foreignobject.png"><img src="reference/chromium/fo__mdn-foreignobject.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/fo__mdn-foreignobject.png"><img src="render/weasyprint/fo__mdn-foreignobject.png" width="200" alt=""></a> | <a href="render/weasysvg/fo__mdn-foreignobject.png"><img src="render/weasysvg/fo__mdn-foreignobject.png" width="200" alt=""></a> |
+| <a href="reference/chromium/fo__mdn-foreignobject.png"><img src="reference/chromium/fo__mdn-foreignobject.png" width="200" alt="fo__mdn-foreignobject in Chromium"></a> | n/a | <a href="render/weasyprint/fo__mdn-foreignobject.png"><img src="render/weasyprint/fo__mdn-foreignobject.png" width="200" alt="fo__mdn-foreignobject in WeasyPrint"></a> | <a href="render/weasysvg/fo__mdn-foreignobject.png"><img src="render/weasysvg/fo__mdn-foreignobject.png" width="200" alt="fo__mdn-foreignobject in weasysvg"></a> |
 
 ### fo__rich-html
 
@@ -317,7 +317,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/fo__rich-html.png"><img src="reference/chromium/fo__rich-html.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/fo__rich-html.png"><img src="render/weasyprint/fo__rich-html.png" width="200" alt=""></a> | <a href="render/weasysvg/fo__rich-html.png"><img src="render/weasysvg/fo__rich-html.png" width="200" alt=""></a> |
+| <a href="reference/chromium/fo__rich-html.png"><img src="reference/chromium/fo__rich-html.png" width="200" alt="fo__rich-html in Chromium"></a> | n/a | <a href="render/weasyprint/fo__rich-html.png"><img src="render/weasyprint/fo__rich-html.png" width="200" alt="fo__rich-html in WeasyPrint"></a> | <a href="render/weasysvg/fo__rich-html.png"><img src="render/weasysvg/fo__rich-html.png" width="200" alt="fo__rich-html in weasysvg"></a> |
 
 ## Wikimedia Commons
 
@@ -327,7 +327,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Bitmap_VS_SVG.png"><img src="reference/chromium/real__wm-Bitmap_VS_SVG.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Bitmap_VS_SVG.png"><img src="render/weasyprint/real__wm-Bitmap_VS_SVG.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Bitmap_VS_SVG.png"><img src="render/weasysvg/real__wm-Bitmap_VS_SVG.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Bitmap_VS_SVG.png"><img src="reference/chromium/real__wm-Bitmap_VS_SVG.png" width="200" alt="real__wm-Bitmap_VS_SVG in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Bitmap_VS_SVG.png"><img src="render/weasyprint/real__wm-Bitmap_VS_SVG.png" width="200" alt="real__wm-Bitmap_VS_SVG in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Bitmap_VS_SVG.png"><img src="render/weasysvg/real__wm-Bitmap_VS_SVG.png" width="200" alt="real__wm-Bitmap_VS_SVG in weasysvg"></a> |
 
 ### real__wm-Flag_of_Brazil
 
@@ -335,7 +335,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Flag_of_Brazil.png"><img src="reference/chromium/real__wm-Flag_of_Brazil.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Flag_of_Brazil.png"><img src="render/weasyprint/real__wm-Flag_of_Brazil.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Flag_of_Brazil.png"><img src="render/weasysvg/real__wm-Flag_of_Brazil.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Flag_of_Brazil.png"><img src="reference/chromium/real__wm-Flag_of_Brazil.png" width="200" alt="real__wm-Flag_of_Brazil in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Flag_of_Brazil.png"><img src="render/weasyprint/real__wm-Flag_of_Brazil.png" width="200" alt="real__wm-Flag_of_Brazil in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Flag_of_Brazil.png"><img src="render/weasysvg/real__wm-Flag_of_Brazil.png" width="200" alt="real__wm-Flag_of_Brazil in weasysvg"></a> |
 
 ### real__wm-Flag_of_Switzerland
 
@@ -343,7 +343,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Flag_of_Switzerland.png"><img src="reference/chromium/real__wm-Flag_of_Switzerland.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Flag_of_Switzerland.png"><img src="render/weasyprint/real__wm-Flag_of_Switzerland.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Flag_of_Switzerland.png"><img src="render/weasysvg/real__wm-Flag_of_Switzerland.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Flag_of_Switzerland.png"><img src="reference/chromium/real__wm-Flag_of_Switzerland.png" width="200" alt="real__wm-Flag_of_Switzerland in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Flag_of_Switzerland.png"><img src="render/weasyprint/real__wm-Flag_of_Switzerland.png" width="200" alt="real__wm-Flag_of_Switzerland in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Flag_of_Switzerland.png"><img src="render/weasysvg/real__wm-Flag_of_Switzerland.png" width="200" alt="real__wm-Flag_of_Switzerland in weasysvg"></a> |
 
 ### real__wm-Flag_of_the_United_Kingdom
 
@@ -351,7 +351,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Flag_of_the_United_Kingdom.png"><img src="reference/chromium/real__wm-Flag_of_the_United_Kingdom.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Flag_of_the_United_Kingdom.png"><img src="render/weasyprint/real__wm-Flag_of_the_United_Kingdom.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Flag_of_the_United_Kingdom.png"><img src="render/weasysvg/real__wm-Flag_of_the_United_Kingdom.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Flag_of_the_United_Kingdom.png"><img src="reference/chromium/real__wm-Flag_of_the_United_Kingdom.png" width="200" alt="real__wm-Flag_of_the_United_Kingdom in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Flag_of_the_United_Kingdom.png"><img src="render/weasyprint/real__wm-Flag_of_the_United_Kingdom.png" width="200" alt="real__wm-Flag_of_the_United_Kingdom in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Flag_of_the_United_Kingdom.png"><img src="render/weasysvg/real__wm-Flag_of_the_United_Kingdom.png" width="200" alt="real__wm-Flag_of_the_United_Kingdom in weasysvg"></a> |
 
 ### real__wm-Git-logo
 
@@ -359,7 +359,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Git-logo.png"><img src="reference/chromium/real__wm-Git-logo.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Git-logo.png"><img src="render/weasyprint/real__wm-Git-logo.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Git-logo.png"><img src="render/weasysvg/real__wm-Git-logo.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Git-logo.png"><img src="reference/chromium/real__wm-Git-logo.png" width="200" alt="real__wm-Git-logo in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Git-logo.png"><img src="render/weasyprint/real__wm-Git-logo.png" width="200" alt="real__wm-Git-logo in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Git-logo.png"><img src="render/weasysvg/real__wm-Git-logo.png" width="200" alt="real__wm-Git-logo in weasysvg"></a> |
 
 ### real__wm-Inkscape_Logo
 
@@ -367,7 +367,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Inkscape_Logo.png"><img src="reference/chromium/real__wm-Inkscape_Logo.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Inkscape_Logo.png"><img src="render/weasyprint/real__wm-Inkscape_Logo.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Inkscape_Logo.png"><img src="render/weasysvg/real__wm-Inkscape_Logo.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Inkscape_Logo.png"><img src="reference/chromium/real__wm-Inkscape_Logo.png" width="200" alt="real__wm-Inkscape_Logo in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Inkscape_Logo.png"><img src="render/weasyprint/real__wm-Inkscape_Logo.png" width="200" alt="real__wm-Inkscape_Logo in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Inkscape_Logo.png"><img src="render/weasysvg/real__wm-Inkscape_Logo.png" width="200" alt="real__wm-Inkscape_Logo in weasysvg"></a> |
 
 ### real__wm-Kubernetes_logo_without_workmark
 
@@ -375,7 +375,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Kubernetes_logo_without_workmark.png"><img src="reference/chromium/real__wm-Kubernetes_logo_without_workmark.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Kubernetes_logo_without_workmark.png"><img src="render/weasyprint/real__wm-Kubernetes_logo_without_workmark.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Kubernetes_logo_without_workmark.png"><img src="render/weasysvg/real__wm-Kubernetes_logo_without_workmark.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Kubernetes_logo_without_workmark.png"><img src="reference/chromium/real__wm-Kubernetes_logo_without_workmark.png" width="200" alt="real__wm-Kubernetes_logo_without_workmark in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Kubernetes_logo_without_workmark.png"><img src="render/weasyprint/real__wm-Kubernetes_logo_without_workmark.png" width="200" alt="real__wm-Kubernetes_logo_without_workmark in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Kubernetes_logo_without_workmark.png"><img src="render/weasysvg/real__wm-Kubernetes_logo_without_workmark.png" width="200" alt="real__wm-Kubernetes_logo_without_workmark in weasysvg"></a> |
 
 ### real__wm-OSI_Model_v1
 
@@ -383,7 +383,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-OSI_Model_v1.png"><img src="reference/chromium/real__wm-OSI_Model_v1.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-OSI_Model_v1.png"><img src="render/weasyprint/real__wm-OSI_Model_v1.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-OSI_Model_v1.png"><img src="render/weasysvg/real__wm-OSI_Model_v1.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-OSI_Model_v1.png"><img src="reference/chromium/real__wm-OSI_Model_v1.png" width="200" alt="real__wm-OSI_Model_v1 in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-OSI_Model_v1.png"><img src="render/weasyprint/real__wm-OSI_Model_v1.png" width="200" alt="real__wm-OSI_Model_v1 in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-OSI_Model_v1.png"><img src="render/weasysvg/real__wm-OSI_Model_v1.png" width="200" alt="real__wm-OSI_Model_v1 in weasysvg"></a> |
 
 ### real__wm-Openstreetmap_logo
 
@@ -391,7 +391,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Openstreetmap_logo.png"><img src="reference/chromium/real__wm-Openstreetmap_logo.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Openstreetmap_logo.png"><img src="render/weasyprint/real__wm-Openstreetmap_logo.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Openstreetmap_logo.png"><img src="render/weasysvg/real__wm-Openstreetmap_logo.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Openstreetmap_logo.png"><img src="reference/chromium/real__wm-Openstreetmap_logo.png" width="200" alt="real__wm-Openstreetmap_logo in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Openstreetmap_logo.png"><img src="render/weasyprint/real__wm-Openstreetmap_logo.png" width="200" alt="real__wm-Openstreetmap_logo in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Openstreetmap_logo.png"><img src="render/weasysvg/real__wm-Openstreetmap_logo.png" width="200" alt="real__wm-Openstreetmap_logo in weasysvg"></a> |
 
 ### real__wm-Python-logo-notext
 
@@ -399,7 +399,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Python-logo-notext.png"><img src="reference/chromium/real__wm-Python-logo-notext.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Python-logo-notext.png"><img src="render/weasyprint/real__wm-Python-logo-notext.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Python-logo-notext.png"><img src="render/weasysvg/real__wm-Python-logo-notext.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Python-logo-notext.png"><img src="reference/chromium/real__wm-Python-logo-notext.png" width="200" alt="real__wm-Python-logo-notext in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Python-logo-notext.png"><img src="render/weasyprint/real__wm-Python-logo-notext.png" width="200" alt="real__wm-Python-logo-notext in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Python-logo-notext.png"><img src="render/weasysvg/real__wm-Python-logo-notext.png" width="200" alt="real__wm-Python-logo-notext in weasysvg"></a> |
 
 ### real__wm-SVG_Logo
 
@@ -407,7 +407,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-SVG_Logo.png"><img src="reference/chromium/real__wm-SVG_Logo.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-SVG_Logo.png"><img src="render/weasyprint/real__wm-SVG_Logo.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-SVG_Logo.png"><img src="render/weasysvg/real__wm-SVG_Logo.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-SVG_Logo.png"><img src="reference/chromium/real__wm-SVG_Logo.png" width="200" alt="real__wm-SVG_Logo in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-SVG_Logo.png"><img src="render/weasyprint/real__wm-SVG_Logo.png" width="200" alt="real__wm-SVG_Logo in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-SVG_Logo.png"><img src="render/weasysvg/real__wm-SVG_Logo.png" width="200" alt="real__wm-SVG_Logo in weasysvg"></a> |
 
 ### real__wm-Simple_Periodic_Table_Chart-blocks
 
@@ -415,7 +415,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Simple_Periodic_Table_Chart-blocks.png"><img src="reference/chromium/real__wm-Simple_Periodic_Table_Chart-blocks.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Simple_Periodic_Table_Chart-blocks.png"><img src="render/weasyprint/real__wm-Simple_Periodic_Table_Chart-blocks.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Simple_Periodic_Table_Chart-blocks.png"><img src="render/weasysvg/real__wm-Simple_Periodic_Table_Chart-blocks.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Simple_Periodic_Table_Chart-blocks.png"><img src="reference/chromium/real__wm-Simple_Periodic_Table_Chart-blocks.png" width="200" alt="real__wm-Simple_Periodic_Table_Chart-blocks in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Simple_Periodic_Table_Chart-blocks.png"><img src="render/weasyprint/real__wm-Simple_Periodic_Table_Chart-blocks.png" width="200" alt="real__wm-Simple_Periodic_Table_Chart-blocks in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Simple_Periodic_Table_Chart-blocks.png"><img src="render/weasysvg/real__wm-Simple_Periodic_Table_Chart-blocks.png" width="200" alt="real__wm-Simple_Periodic_Table_Chart-blocks in weasysvg"></a> |
 
 ### real__wm-Tux
 
@@ -423,7 +423,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Tux.png"><img src="reference/chromium/real__wm-Tux.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Tux.png"><img src="render/weasyprint/real__wm-Tux.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Tux.png"><img src="render/weasysvg/real__wm-Tux.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Tux.png"><img src="reference/chromium/real__wm-Tux.png" width="200" alt="real__wm-Tux in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Tux.png"><img src="render/weasyprint/real__wm-Tux.png" width="200" alt="real__wm-Tux in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Tux.png"><img src="render/weasysvg/real__wm-Tux.png" width="200" alt="real__wm-Tux in weasysvg"></a> |
 
 ### real__wm-Wikimedia-logo
 
@@ -431,7 +431,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/real__wm-Wikimedia-logo.png"><img src="reference/chromium/real__wm-Wikimedia-logo.png" width="200" alt=""></a> | n/a | <a href="render/weasyprint/real__wm-Wikimedia-logo.png"><img src="render/weasyprint/real__wm-Wikimedia-logo.png" width="200" alt=""></a> | <a href="render/weasysvg/real__wm-Wikimedia-logo.png"><img src="render/weasysvg/real__wm-Wikimedia-logo.png" width="200" alt=""></a> |
+| <a href="reference/chromium/real__wm-Wikimedia-logo.png"><img src="reference/chromium/real__wm-Wikimedia-logo.png" width="200" alt="real__wm-Wikimedia-logo in Chromium"></a> | n/a | <a href="render/weasyprint/real__wm-Wikimedia-logo.png"><img src="render/weasyprint/real__wm-Wikimedia-logo.png" width="200" alt="real__wm-Wikimedia-logo in WeasyPrint"></a> | <a href="render/weasysvg/real__wm-Wikimedia-logo.png"><img src="render/weasysvg/real__wm-Wikimedia-logo.png" width="200" alt="real__wm-Wikimedia-logo in weasysvg"></a> |
 
 ## resvg feature tests
 
@@ -441,7 +441,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="reference/chromium/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="reference/resvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="render/weasyprint/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="render/weasysvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="reference/chromium/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt="resvg__filters-feColorMatrix--type=luminanceToAlpha in Chromium"></a> | <a href="reference/resvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="reference/resvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt="resvg__filters-feColorMatrix--type=luminanceToAlpha in resvg"></a> | <a href="render/weasyprint/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="render/weasyprint/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt="resvg__filters-feColorMatrix--type=luminanceToAlpha in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png"><img src="render/weasysvg/resvg__filters-feColorMatrix--type=luminanceToAlpha.png" width="200" alt="resvg__filters-feColorMatrix--type=luminanceToAlpha in weasysvg"></a> |
 
 ### resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values
 
@@ -449,7 +449,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="reference/chromium/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="reference/resvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="render/weasyprint/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="render/weasysvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="reference/chromium/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt="resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values in Chromium"></a> | <a href="reference/resvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="reference/resvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt="resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values in resvg"></a> | <a href="render/weasyprint/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="render/weasyprint/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt="resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png"><img src="render/weasysvg/resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values.png" width="200" alt="resvg__filters-feColorMatrix--type=matrix-with-non-normalized-values in weasysvg"></a> |
 
 ### resvg__filters-feComposite--operator=arithmetic-with-large-k1-4
 
@@ -457,7 +457,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="reference/chromium/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="reference/resvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="render/weasyprint/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="render/weasysvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="reference/chromium/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt="resvg__filters-feComposite--operator=arithmetic-with-large-k1-4 in Chromium"></a> | <a href="reference/resvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="reference/resvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt="resvg__filters-feComposite--operator=arithmetic-with-large-k1-4 in resvg"></a> | <a href="render/weasyprint/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="render/weasyprint/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt="resvg__filters-feComposite--operator=arithmetic-with-large-k1-4 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png"><img src="render/weasysvg/resvg__filters-feComposite--operator=arithmetic-with-large-k1-4.png" width="200" alt="resvg__filters-feComposite--operator=arithmetic-with-large-k1-4 in weasysvg"></a> |
 
 ### resvg__filters-feComposite--operator=over
 
@@ -465,7 +465,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feComposite--operator=over.png"><img src="reference/chromium/resvg__filters-feComposite--operator=over.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feComposite--operator=over.png"><img src="reference/resvg/resvg__filters-feComposite--operator=over.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feComposite--operator=over.png"><img src="render/weasyprint/resvg__filters-feComposite--operator=over.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feComposite--operator=over.png"><img src="render/weasysvg/resvg__filters-feComposite--operator=over.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feComposite--operator=over.png"><img src="reference/chromium/resvg__filters-feComposite--operator=over.png" width="200" alt="resvg__filters-feComposite--operator=over in Chromium"></a> | <a href="reference/resvg/resvg__filters-feComposite--operator=over.png"><img src="reference/resvg/resvg__filters-feComposite--operator=over.png" width="200" alt="resvg__filters-feComposite--operator=over in resvg"></a> | <a href="render/weasyprint/resvg__filters-feComposite--operator=over.png"><img src="render/weasyprint/resvg__filters-feComposite--operator=over.png" width="200" alt="resvg__filters-feComposite--operator=over in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feComposite--operator=over.png"><img src="render/weasysvg/resvg__filters-feComposite--operator=over.png" width="200" alt="resvg__filters-feComposite--operator=over in weasysvg"></a> |
 
 ### resvg__filters-feDropShadow--hsla-color
 
@@ -473,7 +473,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feDropShadow--hsla-color.png"><img src="reference/chromium/resvg__filters-feDropShadow--hsla-color.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feDropShadow--hsla-color.png"><img src="reference/resvg/resvg__filters-feDropShadow--hsla-color.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feDropShadow--hsla-color.png"><img src="render/weasyprint/resvg__filters-feDropShadow--hsla-color.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feDropShadow--hsla-color.png"><img src="render/weasysvg/resvg__filters-feDropShadow--hsla-color.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feDropShadow--hsla-color.png"><img src="reference/chromium/resvg__filters-feDropShadow--hsla-color.png" width="200" alt="resvg__filters-feDropShadow--hsla-color in Chromium"></a> | <a href="reference/resvg/resvg__filters-feDropShadow--hsla-color.png"><img src="reference/resvg/resvg__filters-feDropShadow--hsla-color.png" width="200" alt="resvg__filters-feDropShadow--hsla-color in resvg"></a> | <a href="render/weasyprint/resvg__filters-feDropShadow--hsla-color.png"><img src="render/weasyprint/resvg__filters-feDropShadow--hsla-color.png" width="200" alt="resvg__filters-feDropShadow--hsla-color in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feDropShadow--hsla-color.png"><img src="render/weasysvg/resvg__filters-feDropShadow--hsla-color.png" width="200" alt="resvg__filters-feDropShadow--hsla-color in weasysvg"></a> |
 
 ### resvg__filters-feDropShadow--with-percent-offset
 
@@ -481,7 +481,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feDropShadow--with-percent-offset.png"><img src="reference/chromium/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feDropShadow--with-percent-offset.png"><img src="reference/resvg/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feDropShadow--with-percent-offset.png"><img src="render/weasyprint/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feDropShadow--with-percent-offset.png"><img src="render/weasysvg/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feDropShadow--with-percent-offset.png"><img src="reference/chromium/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt="resvg__filters-feDropShadow--with-percent-offset in Chromium"></a> | <a href="reference/resvg/resvg__filters-feDropShadow--with-percent-offset.png"><img src="reference/resvg/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt="resvg__filters-feDropShadow--with-percent-offset in resvg"></a> | <a href="render/weasyprint/resvg__filters-feDropShadow--with-percent-offset.png"><img src="render/weasyprint/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt="resvg__filters-feDropShadow--with-percent-offset in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feDropShadow--with-percent-offset.png"><img src="render/weasysvg/resvg__filters-feDropShadow--with-percent-offset.png" width="200" alt="resvg__filters-feDropShadow--with-percent-offset in weasysvg"></a> |
 
 ### resvg__filters-feFlood--seagreen
 
@@ -489,7 +489,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feFlood--seagreen.png"><img src="reference/chromium/resvg__filters-feFlood--seagreen.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feFlood--seagreen.png"><img src="reference/resvg/resvg__filters-feFlood--seagreen.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feFlood--seagreen.png"><img src="render/weasyprint/resvg__filters-feFlood--seagreen.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feFlood--seagreen.png"><img src="render/weasysvg/resvg__filters-feFlood--seagreen.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feFlood--seagreen.png"><img src="reference/chromium/resvg__filters-feFlood--seagreen.png" width="200" alt="resvg__filters-feFlood--seagreen in Chromium"></a> | <a href="reference/resvg/resvg__filters-feFlood--seagreen.png"><img src="reference/resvg/resvg__filters-feFlood--seagreen.png" width="200" alt="resvg__filters-feFlood--seagreen in resvg"></a> | <a href="render/weasyprint/resvg__filters-feFlood--seagreen.png"><img src="render/weasyprint/resvg__filters-feFlood--seagreen.png" width="200" alt="resvg__filters-feFlood--seagreen in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feFlood--seagreen.png"><img src="render/weasysvg/resvg__filters-feFlood--seagreen.png" width="200" alt="resvg__filters-feFlood--seagreen in weasysvg"></a> |
 
 ### resvg__filters-feFlood--with-opacity-on-target-element
 
@@ -497,7 +497,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="reference/chromium/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="reference/resvg/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="render/weasyprint/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="render/weasysvg/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="reference/chromium/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt="resvg__filters-feFlood--with-opacity-on-target-element in Chromium"></a> | <a href="reference/resvg/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="reference/resvg/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt="resvg__filters-feFlood--with-opacity-on-target-element in resvg"></a> | <a href="render/weasyprint/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="render/weasyprint/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt="resvg__filters-feFlood--with-opacity-on-target-element in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feFlood--with-opacity-on-target-element.png"><img src="render/weasysvg/resvg__filters-feFlood--with-opacity-on-target-element.png" width="200" alt="resvg__filters-feFlood--with-opacity-on-target-element in weasysvg"></a> |
 
 ### resvg__filters-feGaussianBlur--small-stdDeviation
 
@@ -505,7 +505,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="reference/chromium/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="reference/resvg/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="render/weasyprint/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="render/weasysvg/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="reference/chromium/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt="resvg__filters-feGaussianBlur--small-stdDeviation in Chromium"></a> | <a href="reference/resvg/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="reference/resvg/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt="resvg__filters-feGaussianBlur--small-stdDeviation in resvg"></a> | <a href="render/weasyprint/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="render/weasyprint/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt="resvg__filters-feGaussianBlur--small-stdDeviation in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feGaussianBlur--small-stdDeviation.png"><img src="render/weasysvg/resvg__filters-feGaussianBlur--small-stdDeviation.png" width="200" alt="resvg__filters-feGaussianBlur--small-stdDeviation in weasysvg"></a> |
 
 ### resvg__filters-feGaussianBlur--stdDeviation=0-5
 
@@ -513,7 +513,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="reference/chromium/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="reference/resvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="render/weasyprint/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="render/weasysvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="reference/chromium/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt="resvg__filters-feGaussianBlur--stdDeviation=0-5 in Chromium"></a> | <a href="reference/resvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="reference/resvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt="resvg__filters-feGaussianBlur--stdDeviation=0-5 in resvg"></a> | <a href="render/weasyprint/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="render/weasyprint/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt="resvg__filters-feGaussianBlur--stdDeviation=0-5 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png"><img src="render/weasysvg/resvg__filters-feGaussianBlur--stdDeviation=0-5.png" width="200" alt="resvg__filters-feGaussianBlur--stdDeviation=0-5 in weasysvg"></a> |
 
 ### resvg__filters-feOffset--complex-transform
 
@@ -521,7 +521,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feOffset--complex-transform.png"><img src="reference/chromium/resvg__filters-feOffset--complex-transform.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feOffset--complex-transform.png"><img src="reference/resvg/resvg__filters-feOffset--complex-transform.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feOffset--complex-transform.png"><img src="render/weasyprint/resvg__filters-feOffset--complex-transform.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feOffset--complex-transform.png"><img src="render/weasysvg/resvg__filters-feOffset--complex-transform.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feOffset--complex-transform.png"><img src="reference/chromium/resvg__filters-feOffset--complex-transform.png" width="200" alt="resvg__filters-feOffset--complex-transform in Chromium"></a> | <a href="reference/resvg/resvg__filters-feOffset--complex-transform.png"><img src="reference/resvg/resvg__filters-feOffset--complex-transform.png" width="200" alt="resvg__filters-feOffset--complex-transform in resvg"></a> | <a href="render/weasyprint/resvg__filters-feOffset--complex-transform.png"><img src="render/weasyprint/resvg__filters-feOffset--complex-transform.png" width="200" alt="resvg__filters-feOffset--complex-transform in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feOffset--complex-transform.png"><img src="render/weasysvg/resvg__filters-feOffset--complex-transform.png" width="200" alt="resvg__filters-feOffset--complex-transform in weasysvg"></a> |
 
 ### resvg__filters-feOffset--fractional-offset
 
@@ -529,7 +529,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feOffset--fractional-offset.png"><img src="reference/chromium/resvg__filters-feOffset--fractional-offset.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feOffset--fractional-offset.png"><img src="reference/resvg/resvg__filters-feOffset--fractional-offset.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feOffset--fractional-offset.png"><img src="render/weasyprint/resvg__filters-feOffset--fractional-offset.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feOffset--fractional-offset.png"><img src="render/weasysvg/resvg__filters-feOffset--fractional-offset.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feOffset--fractional-offset.png"><img src="reference/chromium/resvg__filters-feOffset--fractional-offset.png" width="200" alt="resvg__filters-feOffset--fractional-offset in Chromium"></a> | <a href="reference/resvg/resvg__filters-feOffset--fractional-offset.png"><img src="reference/resvg/resvg__filters-feOffset--fractional-offset.png" width="200" alt="resvg__filters-feOffset--fractional-offset in resvg"></a> | <a href="render/weasyprint/resvg__filters-feOffset--fractional-offset.png"><img src="render/weasyprint/resvg__filters-feOffset--fractional-offset.png" width="200" alt="resvg__filters-feOffset--fractional-offset in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feOffset--fractional-offset.png"><img src="render/weasysvg/resvg__filters-feOffset--fractional-offset.png" width="200" alt="resvg__filters-feOffset--fractional-offset in weasysvg"></a> |
 
 ### resvg__filters-feTurbulence--baseFrequency=0.01
 
@@ -537,7 +537,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="reference/chromium/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="reference/resvg/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="render/weasyprint/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="render/weasysvg/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="reference/chromium/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt="resvg__filters-feTurbulence--baseFrequency=0.01 in Chromium"></a> | <a href="reference/resvg/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="reference/resvg/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt="resvg__filters-feTurbulence--baseFrequency=0.01 in resvg"></a> | <a href="render/weasyprint/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="render/weasyprint/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt="resvg__filters-feTurbulence--baseFrequency=0.01 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feTurbulence--baseFrequency=0.01.png"><img src="render/weasysvg/resvg__filters-feTurbulence--baseFrequency=0.01.png" width="200" alt="resvg__filters-feTurbulence--baseFrequency=0.01 in weasysvg"></a> |
 
 ### resvg__filters-feTurbulence--type=invalid
 
@@ -545,7 +545,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-feTurbulence--type=invalid.png"><img src="reference/chromium/resvg__filters-feTurbulence--type=invalid.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-feTurbulence--type=invalid.png"><img src="reference/resvg/resvg__filters-feTurbulence--type=invalid.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-feTurbulence--type=invalid.png"><img src="render/weasyprint/resvg__filters-feTurbulence--type=invalid.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-feTurbulence--type=invalid.png"><img src="render/weasysvg/resvg__filters-feTurbulence--type=invalid.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-feTurbulence--type=invalid.png"><img src="reference/chromium/resvg__filters-feTurbulence--type=invalid.png" width="200" alt="resvg__filters-feTurbulence--type=invalid in Chromium"></a> | <a href="reference/resvg/resvg__filters-feTurbulence--type=invalid.png"><img src="reference/resvg/resvg__filters-feTurbulence--type=invalid.png" width="200" alt="resvg__filters-feTurbulence--type=invalid in resvg"></a> | <a href="render/weasyprint/resvg__filters-feTurbulence--type=invalid.png"><img src="render/weasyprint/resvg__filters-feTurbulence--type=invalid.png" width="200" alt="resvg__filters-feTurbulence--type=invalid in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-feTurbulence--type=invalid.png"><img src="render/weasysvg/resvg__filters-feTurbulence--type=invalid.png" width="200" alt="resvg__filters-feTurbulence--type=invalid in weasysvg"></a> |
 
 ### resvg__filters-filter--in=SourceAlpha
 
@@ -553,7 +553,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-filter--in=SourceAlpha.png"><img src="reference/chromium/resvg__filters-filter--in=SourceAlpha.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-filter--in=SourceAlpha.png"><img src="reference/resvg/resvg__filters-filter--in=SourceAlpha.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-filter--in=SourceAlpha.png"><img src="render/weasyprint/resvg__filters-filter--in=SourceAlpha.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-filter--in=SourceAlpha.png"><img src="render/weasysvg/resvg__filters-filter--in=SourceAlpha.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-filter--in=SourceAlpha.png"><img src="reference/chromium/resvg__filters-filter--in=SourceAlpha.png" width="200" alt="resvg__filters-filter--in=SourceAlpha in Chromium"></a> | <a href="reference/resvg/resvg__filters-filter--in=SourceAlpha.png"><img src="reference/resvg/resvg__filters-filter--in=SourceAlpha.png" width="200" alt="resvg__filters-filter--in=SourceAlpha in resvg"></a> | <a href="render/weasyprint/resvg__filters-filter--in=SourceAlpha.png"><img src="render/weasyprint/resvg__filters-filter--in=SourceAlpha.png" width="200" alt="resvg__filters-filter--in=SourceAlpha in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-filter--in=SourceAlpha.png"><img src="render/weasysvg/resvg__filters-filter--in=SourceAlpha.png" width="200" alt="resvg__filters-filter--in=SourceAlpha in weasysvg"></a> |
 
 ### resvg__filters-filter--on-the-root-svg
 
@@ -561,7 +561,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-filter--on-the-root-svg.png"><img src="reference/chromium/resvg__filters-filter--on-the-root-svg.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-filter--on-the-root-svg.png"><img src="reference/resvg/resvg__filters-filter--on-the-root-svg.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-filter--on-the-root-svg.png"><img src="render/weasyprint/resvg__filters-filter--on-the-root-svg.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-filter--on-the-root-svg.png"><img src="render/weasysvg/resvg__filters-filter--on-the-root-svg.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-filter--on-the-root-svg.png"><img src="reference/chromium/resvg__filters-filter--on-the-root-svg.png" width="200" alt="resvg__filters-filter--on-the-root-svg in Chromium"></a> | <a href="reference/resvg/resvg__filters-filter--on-the-root-svg.png"><img src="reference/resvg/resvg__filters-filter--on-the-root-svg.png" width="200" alt="resvg__filters-filter--on-the-root-svg in resvg"></a> | <a href="render/weasyprint/resvg__filters-filter--on-the-root-svg.png"><img src="render/weasyprint/resvg__filters-filter--on-the-root-svg.png" width="200" alt="resvg__filters-filter--on-the-root-svg in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-filter--on-the-root-svg.png"><img src="render/weasysvg/resvg__filters-filter--on-the-root-svg.png" width="200" alt="resvg__filters-filter--on-the-root-svg in weasysvg"></a> |
 
 ### resvg__filters-filter-functions--blur-function-two-values
 
@@ -569,7 +569,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-filter-functions--blur-function-two-values.png"><img src="reference/chromium/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-filter-functions--blur-function-two-values.png"><img src="reference/resvg/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-filter-functions--blur-function-two-values.png"><img src="render/weasyprint/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-filter-functions--blur-function-two-values.png"><img src="render/weasysvg/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-filter-functions--blur-function-two-values.png"><img src="reference/chromium/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt="resvg__filters-filter-functions--blur-function-two-values in Chromium"></a> | <a href="reference/resvg/resvg__filters-filter-functions--blur-function-two-values.png"><img src="reference/resvg/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt="resvg__filters-filter-functions--blur-function-two-values in resvg"></a> | <a href="render/weasyprint/resvg__filters-filter-functions--blur-function-two-values.png"><img src="render/weasyprint/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt="resvg__filters-filter-functions--blur-function-two-values in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-filter-functions--blur-function-two-values.png"><img src="render/weasysvg/resvg__filters-filter-functions--blur-function-two-values.png" width="200" alt="resvg__filters-filter-functions--blur-function-two-values in weasysvg"></a> |
 
 ### resvg__filters-filter-functions--drop-shadow-function-comma-separated
 
@@ -577,7 +577,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="reference/chromium/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="reference/resvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="render/weasyprint/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="render/weasysvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="reference/chromium/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt="resvg__filters-filter-functions--drop-shadow-function-comma-separated in Chromium"></a> | <a href="reference/resvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="reference/resvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt="resvg__filters-filter-functions--drop-shadow-function-comma-separated in resvg"></a> | <a href="render/weasyprint/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="render/weasyprint/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt="resvg__filters-filter-functions--drop-shadow-function-comma-separated in WeasyPrint"></a> | <a href="render/weasysvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png"><img src="render/weasysvg/resvg__filters-filter-functions--drop-shadow-function-comma-separated.png" width="200" alt="resvg__filters-filter-functions--drop-shadow-function-comma-separated in weasysvg"></a> |
 
 ### resvg__masking-clipPath--clip-path-on-children
 
@@ -585,7 +585,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__masking-clipPath--clip-path-on-children.png"><img src="reference/chromium/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__masking-clipPath--clip-path-on-children.png"><img src="reference/resvg/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__masking-clipPath--clip-path-on-children.png"><img src="render/weasyprint/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__masking-clipPath--clip-path-on-children.png"><img src="render/weasysvg/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__masking-clipPath--clip-path-on-children.png"><img src="reference/chromium/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt="resvg__masking-clipPath--clip-path-on-children in Chromium"></a> | <a href="reference/resvg/resvg__masking-clipPath--clip-path-on-children.png"><img src="reference/resvg/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt="resvg__masking-clipPath--clip-path-on-children in resvg"></a> | <a href="render/weasyprint/resvg__masking-clipPath--clip-path-on-children.png"><img src="render/weasyprint/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt="resvg__masking-clipPath--clip-path-on-children in WeasyPrint"></a> | <a href="render/weasysvg/resvg__masking-clipPath--clip-path-on-children.png"><img src="render/weasysvg/resvg__masking-clipPath--clip-path-on-children.png" width="200" alt="resvg__masking-clipPath--clip-path-on-children in weasysvg"></a> |
 
 ### resvg__masking-clipPath--on-a-horizontal-line
 
@@ -593,7 +593,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="reference/chromium/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="reference/resvg/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="render/weasyprint/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="render/weasysvg/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="reference/chromium/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt="resvg__masking-clipPath--on-a-horizontal-line in Chromium"></a> | <a href="reference/resvg/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="reference/resvg/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt="resvg__masking-clipPath--on-a-horizontal-line in resvg"></a> | <a href="render/weasyprint/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="render/weasyprint/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt="resvg__masking-clipPath--on-a-horizontal-line in WeasyPrint"></a> | <a href="render/weasysvg/resvg__masking-clipPath--on-a-horizontal-line.png"><img src="render/weasysvg/resvg__masking-clipPath--on-a-horizontal-line.png" width="200" alt="resvg__masking-clipPath--on-a-horizontal-line in weasysvg"></a> |
 
 ### resvg__masking-mask--invalid-child
 
@@ -601,7 +601,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__masking-mask--invalid-child.png"><img src="reference/chromium/resvg__masking-mask--invalid-child.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__masking-mask--invalid-child.png"><img src="reference/resvg/resvg__masking-mask--invalid-child.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__masking-mask--invalid-child.png"><img src="render/weasyprint/resvg__masking-mask--invalid-child.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__masking-mask--invalid-child.png"><img src="render/weasysvg/resvg__masking-mask--invalid-child.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__masking-mask--invalid-child.png"><img src="reference/chromium/resvg__masking-mask--invalid-child.png" width="200" alt="resvg__masking-mask--invalid-child in Chromium"></a> | <a href="reference/resvg/resvg__masking-mask--invalid-child.png"><img src="reference/resvg/resvg__masking-mask--invalid-child.png" width="200" alt="resvg__masking-mask--invalid-child in resvg"></a> | <a href="render/weasyprint/resvg__masking-mask--invalid-child.png"><img src="render/weasyprint/resvg__masking-mask--invalid-child.png" width="200" alt="resvg__masking-mask--invalid-child in WeasyPrint"></a> | <a href="render/weasysvg/resvg__masking-mask--invalid-child.png"><img src="render/weasysvg/resvg__masking-mask--invalid-child.png" width="200" alt="resvg__masking-mask--invalid-child in weasysvg"></a> |
 
 ### resvg__masking-mask--recursive-on-self
 
@@ -609,7 +609,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__masking-mask--recursive-on-self.png"><img src="reference/chromium/resvg__masking-mask--recursive-on-self.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__masking-mask--recursive-on-self.png"><img src="reference/resvg/resvg__masking-mask--recursive-on-self.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__masking-mask--recursive-on-self.png"><img src="render/weasyprint/resvg__masking-mask--recursive-on-self.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__masking-mask--recursive-on-self.png"><img src="render/weasysvg/resvg__masking-mask--recursive-on-self.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__masking-mask--recursive-on-self.png"><img src="reference/chromium/resvg__masking-mask--recursive-on-self.png" width="200" alt="resvg__masking-mask--recursive-on-self in Chromium"></a> | <a href="reference/resvg/resvg__masking-mask--recursive-on-self.png"><img src="reference/resvg/resvg__masking-mask--recursive-on-self.png" width="200" alt="resvg__masking-mask--recursive-on-self in resvg"></a> | <a href="render/weasyprint/resvg__masking-mask--recursive-on-self.png"><img src="render/weasyprint/resvg__masking-mask--recursive-on-self.png" width="200" alt="resvg__masking-mask--recursive-on-self in WeasyPrint"></a> | <a href="render/weasysvg/resvg__masking-mask--recursive-on-self.png"><img src="render/weasysvg/resvg__masking-mask--recursive-on-self.png" width="200" alt="resvg__masking-mask--recursive-on-self in weasysvg"></a> |
 
 ### resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect
 
@@ -617,7 +617,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="reference/chromium/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="reference/resvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="render/weasyprint/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="render/weasysvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="reference/chromium/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt="resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect in Chromium"></a> | <a href="reference/resvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="reference/resvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt="resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect in resvg"></a> | <a href="render/weasyprint/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="render/weasyprint/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt="resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect in WeasyPrint"></a> | <a href="render/weasysvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png"><img src="render/weasysvg/resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect.png" width="200" alt="resvg__paint-servers-linearGradient--attributes-via-xlink-href-from-rect in weasysvg"></a> |
 
 ### resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1
 
@@ -625,7 +625,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="reference/chromium/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="reference/resvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="render/weasyprint/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="render/weasysvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="reference/chromium/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt="resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1 in Chromium"></a> | <a href="reference/resvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="reference/resvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt="resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1 in resvg"></a> | <a href="render/weasyprint/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="render/weasyprint/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt="resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png"><img src="render/weasysvg/resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.png" width="200" alt="resvg__paint-servers-linearGradient--stops-via-xlink-href-complex-order-1 in weasysvg"></a> |
 
 ### resvg__paint-servers-pattern--nested-objectBoundingBox
 
@@ -633,7 +633,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="reference/chromium/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="reference/resvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="render/weasyprint/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="render/weasysvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="reference/chromium/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt="resvg__paint-servers-pattern--nested-objectBoundingBox in Chromium"></a> | <a href="reference/resvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="reference/resvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt="resvg__paint-servers-pattern--nested-objectBoundingBox in resvg"></a> | <a href="render/weasyprint/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="render/weasyprint/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt="resvg__paint-servers-pattern--nested-objectBoundingBox in WeasyPrint"></a> | <a href="render/weasysvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png"><img src="render/weasysvg/resvg__paint-servers-pattern--nested-objectBoundingBox.png" width="200" alt="resvg__paint-servers-pattern--nested-objectBoundingBox in weasysvg"></a> |
 
 ### resvg__paint-servers-pattern--text-child
 
@@ -641,7 +641,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__paint-servers-pattern--text-child.png"><img src="reference/chromium/resvg__paint-servers-pattern--text-child.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__paint-servers-pattern--text-child.png"><img src="reference/resvg/resvg__paint-servers-pattern--text-child.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__paint-servers-pattern--text-child.png"><img src="render/weasyprint/resvg__paint-servers-pattern--text-child.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__paint-servers-pattern--text-child.png"><img src="render/weasysvg/resvg__paint-servers-pattern--text-child.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__paint-servers-pattern--text-child.png"><img src="reference/chromium/resvg__paint-servers-pattern--text-child.png" width="200" alt="resvg__paint-servers-pattern--text-child in Chromium"></a> | <a href="reference/resvg/resvg__paint-servers-pattern--text-child.png"><img src="reference/resvg/resvg__paint-servers-pattern--text-child.png" width="200" alt="resvg__paint-servers-pattern--text-child in resvg"></a> | <a href="render/weasyprint/resvg__paint-servers-pattern--text-child.png"><img src="render/weasyprint/resvg__paint-servers-pattern--text-child.png" width="200" alt="resvg__paint-servers-pattern--text-child in WeasyPrint"></a> | <a href="render/weasysvg/resvg__paint-servers-pattern--text-child.png"><img src="render/weasysvg/resvg__paint-servers-pattern--text-child.png" width="200" alt="resvg__paint-servers-pattern--text-child in weasysvg"></a> |
 
 ### resvg__paint-servers-radialGradient--fr=0.2
 
@@ -649,7 +649,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="reference/chromium/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="reference/resvg/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="render/weasyprint/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="render/weasysvg/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="reference/chromium/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt="resvg__paint-servers-radialGradient--fr=0.2 in Chromium"></a> | <a href="reference/resvg/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="reference/resvg/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt="resvg__paint-servers-radialGradient--fr=0.2 in resvg"></a> | <a href="render/weasyprint/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="render/weasyprint/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt="resvg__paint-servers-radialGradient--fr=0.2 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__paint-servers-radialGradient--fr=0.2.png"><img src="render/weasysvg/resvg__paint-servers-radialGradient--fr=0.2.png" width="200" alt="resvg__paint-servers-radialGradient--fr=0.2 in weasysvg"></a> |
 
 ### resvg__paint-servers-radialGradient--gradientTransform-via-href
 
@@ -657,7 +657,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="reference/chromium/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="reference/resvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="render/weasyprint/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="render/weasysvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="reference/chromium/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt="resvg__paint-servers-radialGradient--gradientTransform-via-href in Chromium"></a> | <a href="reference/resvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="reference/resvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt="resvg__paint-servers-radialGradient--gradientTransform-via-href in resvg"></a> | <a href="render/weasyprint/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="render/weasyprint/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt="resvg__paint-servers-radialGradient--gradientTransform-via-href in WeasyPrint"></a> | <a href="render/weasysvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png"><img src="render/weasysvg/resvg__paint-servers-radialGradient--gradientTransform-via-href.png" width="200" alt="resvg__paint-servers-radialGradient--gradientTransform-via-href in weasysvg"></a> |
 
 ### resvg__painting-marker--on-ArcTo
 
@@ -665,7 +665,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-marker--on-ArcTo.png"><img src="reference/chromium/resvg__painting-marker--on-ArcTo.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-marker--on-ArcTo.png"><img src="reference/resvg/resvg__painting-marker--on-ArcTo.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-marker--on-ArcTo.png"><img src="render/weasyprint/resvg__painting-marker--on-ArcTo.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-marker--on-ArcTo.png"><img src="render/weasysvg/resvg__painting-marker--on-ArcTo.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-marker--on-ArcTo.png"><img src="reference/chromium/resvg__painting-marker--on-ArcTo.png" width="200" alt="resvg__painting-marker--on-ArcTo in Chromium"></a> | <a href="reference/resvg/resvg__painting-marker--on-ArcTo.png"><img src="reference/resvg/resvg__painting-marker--on-ArcTo.png" width="200" alt="resvg__painting-marker--on-ArcTo in resvg"></a> | <a href="render/weasyprint/resvg__painting-marker--on-ArcTo.png"><img src="render/weasyprint/resvg__painting-marker--on-ArcTo.png" width="200" alt="resvg__painting-marker--on-ArcTo in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-marker--on-ArcTo.png"><img src="render/weasysvg/resvg__painting-marker--on-ArcTo.png" width="200" alt="resvg__painting-marker--on-ArcTo in weasysvg"></a> |
 
 ### resvg__painting-marker--orient=auto-on-M-C-C-4
 
@@ -673,7 +673,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="reference/chromium/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="reference/resvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="render/weasyprint/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="render/weasysvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="reference/chromium/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt="resvg__painting-marker--orient=auto-on-M-C-C-4 in Chromium"></a> | <a href="reference/resvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="reference/resvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt="resvg__painting-marker--orient=auto-on-M-C-C-4 in resvg"></a> | <a href="render/weasyprint/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="render/weasyprint/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt="resvg__painting-marker--orient=auto-on-M-C-C-4 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png"><img src="render/weasysvg/resvg__painting-marker--orient=auto-on-M-C-C-4.png" width="200" alt="resvg__painting-marker--orient=auto-on-M-C-C-4 in weasysvg"></a> |
 
 ### resvg__painting-mix-blend-mode--screen
 
@@ -681,7 +681,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-mix-blend-mode--screen.png"><img src="reference/chromium/resvg__painting-mix-blend-mode--screen.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-mix-blend-mode--screen.png"><img src="reference/resvg/resvg__painting-mix-blend-mode--screen.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-mix-blend-mode--screen.png"><img src="render/weasyprint/resvg__painting-mix-blend-mode--screen.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-mix-blend-mode--screen.png"><img src="render/weasysvg/resvg__painting-mix-blend-mode--screen.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-mix-blend-mode--screen.png"><img src="reference/chromium/resvg__painting-mix-blend-mode--screen.png" width="200" alt="resvg__painting-mix-blend-mode--screen in Chromium"></a> | <a href="reference/resvg/resvg__painting-mix-blend-mode--screen.png"><img src="reference/resvg/resvg__painting-mix-blend-mode--screen.png" width="200" alt="resvg__painting-mix-blend-mode--screen in resvg"></a> | <a href="render/weasyprint/resvg__painting-mix-blend-mode--screen.png"><img src="render/weasyprint/resvg__painting-mix-blend-mode--screen.png" width="200" alt="resvg__painting-mix-blend-mode--screen in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-mix-blend-mode--screen.png"><img src="render/weasysvg/resvg__painting-mix-blend-mode--screen.png" width="200" alt="resvg__painting-mix-blend-mode--screen in weasysvg"></a> |
 
 ### resvg__painting-mix-blend-mode--xor
 
@@ -689,7 +689,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-mix-blend-mode--xor.png"><img src="reference/chromium/resvg__painting-mix-blend-mode--xor.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-mix-blend-mode--xor.png"><img src="reference/resvg/resvg__painting-mix-blend-mode--xor.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-mix-blend-mode--xor.png"><img src="render/weasyprint/resvg__painting-mix-blend-mode--xor.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-mix-blend-mode--xor.png"><img src="render/weasysvg/resvg__painting-mix-blend-mode--xor.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-mix-blend-mode--xor.png"><img src="reference/chromium/resvg__painting-mix-blend-mode--xor.png" width="200" alt="resvg__painting-mix-blend-mode--xor in Chromium"></a> | <a href="reference/resvg/resvg__painting-mix-blend-mode--xor.png"><img src="reference/resvg/resvg__painting-mix-blend-mode--xor.png" width="200" alt="resvg__painting-mix-blend-mode--xor in resvg"></a> | <a href="render/weasyprint/resvg__painting-mix-blend-mode--xor.png"><img src="render/weasyprint/resvg__painting-mix-blend-mode--xor.png" width="200" alt="resvg__painting-mix-blend-mode--xor in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-mix-blend-mode--xor.png"><img src="render/weasysvg/resvg__painting-mix-blend-mode--xor.png" width="200" alt="resvg__painting-mix-blend-mode--xor in weasysvg"></a> |
 
 ### resvg__painting-paint-order--duplicates
 
@@ -697,7 +697,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-paint-order--duplicates.png"><img src="reference/chromium/resvg__painting-paint-order--duplicates.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-paint-order--duplicates.png"><img src="reference/resvg/resvg__painting-paint-order--duplicates.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-paint-order--duplicates.png"><img src="render/weasyprint/resvg__painting-paint-order--duplicates.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-paint-order--duplicates.png"><img src="render/weasysvg/resvg__painting-paint-order--duplicates.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-paint-order--duplicates.png"><img src="reference/chromium/resvg__painting-paint-order--duplicates.png" width="200" alt="resvg__painting-paint-order--duplicates in Chromium"></a> | <a href="reference/resvg/resvg__painting-paint-order--duplicates.png"><img src="reference/resvg/resvg__painting-paint-order--duplicates.png" width="200" alt="resvg__painting-paint-order--duplicates in resvg"></a> | <a href="render/weasyprint/resvg__painting-paint-order--duplicates.png"><img src="render/weasyprint/resvg__painting-paint-order--duplicates.png" width="200" alt="resvg__painting-paint-order--duplicates in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-paint-order--duplicates.png"><img src="render/weasysvg/resvg__painting-paint-order--duplicates.png" width="200" alt="resvg__painting-paint-order--duplicates in weasysvg"></a> |
 
 ### resvg__painting-paint-order--invalid
 
@@ -705,7 +705,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-paint-order--invalid.png"><img src="reference/chromium/resvg__painting-paint-order--invalid.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-paint-order--invalid.png"><img src="reference/resvg/resvg__painting-paint-order--invalid.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-paint-order--invalid.png"><img src="render/weasyprint/resvg__painting-paint-order--invalid.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-paint-order--invalid.png"><img src="render/weasysvg/resvg__painting-paint-order--invalid.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-paint-order--invalid.png"><img src="reference/chromium/resvg__painting-paint-order--invalid.png" width="200" alt="resvg__painting-paint-order--invalid in Chromium"></a> | <a href="reference/resvg/resvg__painting-paint-order--invalid.png"><img src="reference/resvg/resvg__painting-paint-order--invalid.png" width="200" alt="resvg__painting-paint-order--invalid in resvg"></a> | <a href="render/weasyprint/resvg__painting-paint-order--invalid.png"><img src="render/weasyprint/resvg__painting-paint-order--invalid.png" width="200" alt="resvg__painting-paint-order--invalid in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-paint-order--invalid.png"><img src="render/weasysvg/resvg__painting-paint-order--invalid.png" width="200" alt="resvg__painting-paint-order--invalid in weasysvg"></a> |
 
 ### resvg__painting-stroke-dasharray--0-n-with-round-caps
 
@@ -713,7 +713,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="reference/chromium/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="reference/resvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="render/weasyprint/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="render/weasysvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="reference/chromium/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt="resvg__painting-stroke-dasharray--0-n-with-round-caps in Chromium"></a> | <a href="reference/resvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="reference/resvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt="resvg__painting-stroke-dasharray--0-n-with-round-caps in resvg"></a> | <a href="render/weasyprint/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="render/weasyprint/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt="resvg__painting-stroke-dasharray--0-n-with-round-caps in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png"><img src="render/weasysvg/resvg__painting-stroke-dasharray--0-n-with-round-caps.png" width="200" alt="resvg__painting-stroke-dasharray--0-n-with-round-caps in weasysvg"></a> |
 
 ### resvg__painting-stroke-dasharray--odd-count
 
@@ -721,7 +721,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__painting-stroke-dasharray--odd-count.png"><img src="reference/chromium/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__painting-stroke-dasharray--odd-count.png"><img src="reference/resvg/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__painting-stroke-dasharray--odd-count.png"><img src="render/weasyprint/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__painting-stroke-dasharray--odd-count.png"><img src="render/weasysvg/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__painting-stroke-dasharray--odd-count.png"><img src="reference/chromium/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt="resvg__painting-stroke-dasharray--odd-count in Chromium"></a> | <a href="reference/resvg/resvg__painting-stroke-dasharray--odd-count.png"><img src="reference/resvg/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt="resvg__painting-stroke-dasharray--odd-count in resvg"></a> | <a href="render/weasyprint/resvg__painting-stroke-dasharray--odd-count.png"><img src="render/weasyprint/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt="resvg__painting-stroke-dasharray--odd-count in WeasyPrint"></a> | <a href="render/weasysvg/resvg__painting-stroke-dasharray--odd-count.png"><img src="render/weasysvg/resvg__painting-stroke-dasharray--odd-count.png" width="200" alt="resvg__painting-stroke-dasharray--odd-count in weasysvg"></a> |
 
 ### resvg__shapes-path--M-H-H-implicit
 
@@ -729,7 +729,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__shapes-path--M-H-H-implicit.png"><img src="reference/chromium/resvg__shapes-path--M-H-H-implicit.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__shapes-path--M-H-H-implicit.png"><img src="reference/resvg/resvg__shapes-path--M-H-H-implicit.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__shapes-path--M-H-H-implicit.png"><img src="render/weasyprint/resvg__shapes-path--M-H-H-implicit.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__shapes-path--M-H-H-implicit.png"><img src="render/weasysvg/resvg__shapes-path--M-H-H-implicit.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__shapes-path--M-H-H-implicit.png"><img src="reference/chromium/resvg__shapes-path--M-H-H-implicit.png" width="200" alt="resvg__shapes-path--M-H-H-implicit in Chromium"></a> | <a href="reference/resvg/resvg__shapes-path--M-H-H-implicit.png"><img src="reference/resvg/resvg__shapes-path--M-H-H-implicit.png" width="200" alt="resvg__shapes-path--M-H-H-implicit in resvg"></a> | <a href="render/weasyprint/resvg__shapes-path--M-H-H-implicit.png"><img src="render/weasyprint/resvg__shapes-path--M-H-H-implicit.png" width="200" alt="resvg__shapes-path--M-H-H-implicit in WeasyPrint"></a> | <a href="render/weasysvg/resvg__shapes-path--M-H-H-implicit.png"><img src="render/weasysvg/resvg__shapes-path--M-H-H-implicit.png" width="200" alt="resvg__shapes-path--M-H-H-implicit in weasysvg"></a> |
 
 ### resvg__shapes-path--M-T
 
@@ -737,7 +737,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__shapes-path--M-T.png"><img src="reference/chromium/resvg__shapes-path--M-T.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__shapes-path--M-T.png"><img src="reference/resvg/resvg__shapes-path--M-T.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__shapes-path--M-T.png"><img src="render/weasyprint/resvg__shapes-path--M-T.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__shapes-path--M-T.png"><img src="render/weasysvg/resvg__shapes-path--M-T.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__shapes-path--M-T.png"><img src="reference/chromium/resvg__shapes-path--M-T.png" width="200" alt="resvg__shapes-path--M-T in Chromium"></a> | <a href="reference/resvg/resvg__shapes-path--M-T.png"><img src="reference/resvg/resvg__shapes-path--M-T.png" width="200" alt="resvg__shapes-path--M-T in resvg"></a> | <a href="render/weasyprint/resvg__shapes-path--M-T.png"><img src="render/weasyprint/resvg__shapes-path--M-T.png" width="200" alt="resvg__shapes-path--M-T in WeasyPrint"></a> | <a href="render/weasysvg/resvg__shapes-path--M-T.png"><img src="render/weasysvg/resvg__shapes-path--M-T.png" width="200" alt="resvg__shapes-path--M-T in weasysvg"></a> |
 
 ### resvg__structure-style--class-selector
 
@@ -745,7 +745,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-style--class-selector.png"><img src="reference/chromium/resvg__structure-style--class-selector.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-style--class-selector.png"><img src="reference/resvg/resvg__structure-style--class-selector.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-style--class-selector.png"><img src="render/weasyprint/resvg__structure-style--class-selector.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-style--class-selector.png"><img src="render/weasysvg/resvg__structure-style--class-selector.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-style--class-selector.png"><img src="reference/chromium/resvg__structure-style--class-selector.png" width="200" alt="resvg__structure-style--class-selector in Chromium"></a> | <a href="reference/resvg/resvg__structure-style--class-selector.png"><img src="reference/resvg/resvg__structure-style--class-selector.png" width="200" alt="resvg__structure-style--class-selector in resvg"></a> | <a href="render/weasyprint/resvg__structure-style--class-selector.png"><img src="render/weasyprint/resvg__structure-style--class-selector.png" width="200" alt="resvg__structure-style--class-selector in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-style--class-selector.png"><img src="render/weasysvg/resvg__structure-style--class-selector.png" width="200" alt="resvg__structure-style--class-selector in weasysvg"></a> |
 
 ### resvg__structure-style--iD-selector
 
@@ -753,7 +753,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-style--iD-selector.png"><img src="reference/chromium/resvg__structure-style--iD-selector.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-style--iD-selector.png"><img src="reference/resvg/resvg__structure-style--iD-selector.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-style--iD-selector.png"><img src="render/weasyprint/resvg__structure-style--iD-selector.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-style--iD-selector.png"><img src="render/weasysvg/resvg__structure-style--iD-selector.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-style--iD-selector.png"><img src="reference/chromium/resvg__structure-style--iD-selector.png" width="200" alt="resvg__structure-style--iD-selector in Chromium"></a> | <a href="reference/resvg/resvg__structure-style--iD-selector.png"><img src="reference/resvg/resvg__structure-style--iD-selector.png" width="200" alt="resvg__structure-style--iD-selector in resvg"></a> | <a href="render/weasyprint/resvg__structure-style--iD-selector.png"><img src="render/weasyprint/resvg__structure-style--iD-selector.png" width="200" alt="resvg__structure-style--iD-selector in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-style--iD-selector.png"><img src="render/weasysvg/resvg__structure-style--iD-selector.png" width="200" alt="resvg__structure-style--iD-selector in weasysvg"></a> |
 
 ### resvg__structure-switch--single-child
 
@@ -761,7 +761,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-switch--single-child.png"><img src="reference/chromium/resvg__structure-switch--single-child.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-switch--single-child.png"><img src="reference/resvg/resvg__structure-switch--single-child.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-switch--single-child.png"><img src="render/weasyprint/resvg__structure-switch--single-child.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-switch--single-child.png"><img src="render/weasysvg/resvg__structure-switch--single-child.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-switch--single-child.png"><img src="reference/chromium/resvg__structure-switch--single-child.png" width="200" alt="resvg__structure-switch--single-child in Chromium"></a> | <a href="reference/resvg/resvg__structure-switch--single-child.png"><img src="reference/resvg/resvg__structure-switch--single-child.png" width="200" alt="resvg__structure-switch--single-child in resvg"></a> | <a href="render/weasyprint/resvg__structure-switch--single-child.png"><img src="render/weasyprint/resvg__structure-switch--single-child.png" width="200" alt="resvg__structure-switch--single-child in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-switch--single-child.png"><img src="render/weasysvg/resvg__structure-switch--single-child.png" width="200" alt="resvg__structure-switch--single-child in weasysvg"></a> |
 
 ### resvg__structure-switch--with-attributes
 
@@ -769,7 +769,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-switch--with-attributes.png"><img src="reference/chromium/resvg__structure-switch--with-attributes.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-switch--with-attributes.png"><img src="reference/resvg/resvg__structure-switch--with-attributes.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-switch--with-attributes.png"><img src="render/weasyprint/resvg__structure-switch--with-attributes.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-switch--with-attributes.png"><img src="render/weasysvg/resvg__structure-switch--with-attributes.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-switch--with-attributes.png"><img src="reference/chromium/resvg__structure-switch--with-attributes.png" width="200" alt="resvg__structure-switch--with-attributes in Chromium"></a> | <a href="reference/resvg/resvg__structure-switch--with-attributes.png"><img src="reference/resvg/resvg__structure-switch--with-attributes.png" width="200" alt="resvg__structure-switch--with-attributes in resvg"></a> | <a href="render/weasyprint/resvg__structure-switch--with-attributes.png"><img src="render/weasyprint/resvg__structure-switch--with-attributes.png" width="200" alt="resvg__structure-switch--with-attributes in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-switch--with-attributes.png"><img src="render/weasysvg/resvg__structure-switch--with-attributes.png" width="200" alt="resvg__structure-switch--with-attributes in weasysvg"></a> |
 
 ### resvg__structure-symbol--with-transform
 
@@ -777,7 +777,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-symbol--with-transform.png"><img src="reference/chromium/resvg__structure-symbol--with-transform.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-symbol--with-transform.png"><img src="reference/resvg/resvg__structure-symbol--with-transform.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-symbol--with-transform.png"><img src="render/weasyprint/resvg__structure-symbol--with-transform.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-symbol--with-transform.png"><img src="render/weasysvg/resvg__structure-symbol--with-transform.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-symbol--with-transform.png"><img src="reference/chromium/resvg__structure-symbol--with-transform.png" width="200" alt="resvg__structure-symbol--with-transform in Chromium"></a> | <a href="reference/resvg/resvg__structure-symbol--with-transform.png"><img src="reference/resvg/resvg__structure-symbol--with-transform.png" width="200" alt="resvg__structure-symbol--with-transform in resvg"></a> | <a href="render/weasyprint/resvg__structure-symbol--with-transform.png"><img src="render/weasyprint/resvg__structure-symbol--with-transform.png" width="200" alt="resvg__structure-symbol--with-transform in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-symbol--with-transform.png"><img src="render/weasysvg/resvg__structure-symbol--with-transform.png" width="200" alt="resvg__structure-symbol--with-transform in weasysvg"></a> |
 
 ### resvg__structure-symbol--with-viewBox-and-custom-use-size
 
@@ -785,7 +785,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="reference/chromium/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="reference/resvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="render/weasyprint/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="render/weasysvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="reference/chromium/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt="resvg__structure-symbol--with-viewBox-and-custom-use-size in Chromium"></a> | <a href="reference/resvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="reference/resvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt="resvg__structure-symbol--with-viewBox-and-custom-use-size in resvg"></a> | <a href="render/weasyprint/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="render/weasyprint/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt="resvg__structure-symbol--with-viewBox-and-custom-use-size in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png"><img src="render/weasysvg/resvg__structure-symbol--with-viewBox-and-custom-use-size.png" width="200" alt="resvg__structure-symbol--with-viewBox-and-custom-use-size in weasysvg"></a> |
 
 ### resvg__structure-systemLanguage--on-clipPath
 
@@ -793,7 +793,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-systemLanguage--on-clipPath.png"><img src="reference/chromium/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-systemLanguage--on-clipPath.png"><img src="reference/resvg/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-systemLanguage--on-clipPath.png"><img src="render/weasyprint/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-systemLanguage--on-clipPath.png"><img src="render/weasysvg/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-systemLanguage--on-clipPath.png"><img src="reference/chromium/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt="resvg__structure-systemLanguage--on-clipPath in Chromium"></a> | <a href="reference/resvg/resvg__structure-systemLanguage--on-clipPath.png"><img src="reference/resvg/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt="resvg__structure-systemLanguage--on-clipPath in resvg"></a> | <a href="render/weasyprint/resvg__structure-systemLanguage--on-clipPath.png"><img src="render/weasyprint/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt="resvg__structure-systemLanguage--on-clipPath in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-systemLanguage--on-clipPath.png"><img src="render/weasysvg/resvg__structure-systemLanguage--on-clipPath.png" width="200" alt="resvg__structure-systemLanguage--on-clipPath in weasysvg"></a> |
 
 ### resvg__structure-systemLanguage--on-defs
 
@@ -801,7 +801,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-systemLanguage--on-defs.png"><img src="reference/chromium/resvg__structure-systemLanguage--on-defs.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-systemLanguage--on-defs.png"><img src="reference/resvg/resvg__structure-systemLanguage--on-defs.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-systemLanguage--on-defs.png"><img src="render/weasyprint/resvg__structure-systemLanguage--on-defs.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-systemLanguage--on-defs.png"><img src="render/weasysvg/resvg__structure-systemLanguage--on-defs.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-systemLanguage--on-defs.png"><img src="reference/chromium/resvg__structure-systemLanguage--on-defs.png" width="200" alt="resvg__structure-systemLanguage--on-defs in Chromium"></a> | <a href="reference/resvg/resvg__structure-systemLanguage--on-defs.png"><img src="reference/resvg/resvg__structure-systemLanguage--on-defs.png" width="200" alt="resvg__structure-systemLanguage--on-defs in resvg"></a> | <a href="render/weasyprint/resvg__structure-systemLanguage--on-defs.png"><img src="render/weasyprint/resvg__structure-systemLanguage--on-defs.png" width="200" alt="resvg__structure-systemLanguage--on-defs in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-systemLanguage--on-defs.png"><img src="render/weasysvg/resvg__structure-systemLanguage--on-defs.png" width="200" alt="resvg__structure-systemLanguage--on-defs in weasysvg"></a> |
 
 ### resvg__structure-transform--scale-without-Y
 
@@ -809,7 +809,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-transform--scale-without-Y.png"><img src="reference/chromium/resvg__structure-transform--scale-without-Y.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-transform--scale-without-Y.png"><img src="reference/resvg/resvg__structure-transform--scale-without-Y.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-transform--scale-without-Y.png"><img src="render/weasyprint/resvg__structure-transform--scale-without-Y.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-transform--scale-without-Y.png"><img src="render/weasysvg/resvg__structure-transform--scale-without-Y.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-transform--scale-without-Y.png"><img src="reference/chromium/resvg__structure-transform--scale-without-Y.png" width="200" alt="resvg__structure-transform--scale-without-Y in Chromium"></a> | <a href="reference/resvg/resvg__structure-transform--scale-without-Y.png"><img src="reference/resvg/resvg__structure-transform--scale-without-Y.png" width="200" alt="resvg__structure-transform--scale-without-Y in resvg"></a> | <a href="render/weasyprint/resvg__structure-transform--scale-without-Y.png"><img src="render/weasyprint/resvg__structure-transform--scale-without-Y.png" width="200" alt="resvg__structure-transform--scale-without-Y in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-transform--scale-without-Y.png"><img src="render/weasysvg/resvg__structure-transform--scale-without-Y.png" width="200" alt="resvg__structure-transform--scale-without-Y in weasysvg"></a> |
 
 ### resvg__structure-transform--skewY
 
@@ -817,7 +817,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-transform--skewY.png"><img src="reference/chromium/resvg__structure-transform--skewY.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-transform--skewY.png"><img src="reference/resvg/resvg__structure-transform--skewY.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-transform--skewY.png"><img src="render/weasyprint/resvg__structure-transform--skewY.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-transform--skewY.png"><img src="render/weasysvg/resvg__structure-transform--skewY.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-transform--skewY.png"><img src="reference/chromium/resvg__structure-transform--skewY.png" width="200" alt="resvg__structure-transform--skewY in Chromium"></a> | <a href="reference/resvg/resvg__structure-transform--skewY.png"><img src="reference/resvg/resvg__structure-transform--skewY.png" width="200" alt="resvg__structure-transform--skewY in resvg"></a> | <a href="render/weasyprint/resvg__structure-transform--skewY.png"><img src="render/weasyprint/resvg__structure-transform--skewY.png" width="200" alt="resvg__structure-transform--skewY in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-transform--skewY.png"><img src="render/weasysvg/resvg__structure-transform--skewY.png" width="200" alt="resvg__structure-transform--skewY in weasysvg"></a> |
 
 ### resvg__structure-use--with-size
 
@@ -825,7 +825,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-use--with-size.png"><img src="reference/chromium/resvg__structure-use--with-size.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-use--with-size.png"><img src="reference/resvg/resvg__structure-use--with-size.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-use--with-size.png"><img src="render/weasyprint/resvg__structure-use--with-size.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-use--with-size.png"><img src="render/weasysvg/resvg__structure-use--with-size.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-use--with-size.png"><img src="reference/chromium/resvg__structure-use--with-size.png" width="200" alt="resvg__structure-use--with-size in Chromium"></a> | <a href="reference/resvg/resvg__structure-use--with-size.png"><img src="reference/resvg/resvg__structure-use--with-size.png" width="200" alt="resvg__structure-use--with-size in resvg"></a> | <a href="render/weasyprint/resvg__structure-use--with-size.png"><img src="render/weasyprint/resvg__structure-use--with-size.png" width="200" alt="resvg__structure-use--with-size in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-use--with-size.png"><img src="render/weasysvg/resvg__structure-use--with-size.png" width="200" alt="resvg__structure-use--with-size in weasysvg"></a> |
 
 ### resvg__structure-use--xlink-to-svg-element-with-rect
 
@@ -833,7 +833,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="reference/chromium/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="reference/resvg/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="render/weasyprint/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="render/weasysvg/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="reference/chromium/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt="resvg__structure-use--xlink-to-svg-element-with-rect in Chromium"></a> | <a href="reference/resvg/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="reference/resvg/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt="resvg__structure-use--xlink-to-svg-element-with-rect in resvg"></a> | <a href="render/weasyprint/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="render/weasyprint/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt="resvg__structure-use--xlink-to-svg-element-with-rect in WeasyPrint"></a> | <a href="render/weasysvg/resvg__structure-use--xlink-to-svg-element-with-rect.png"><img src="render/weasysvg/resvg__structure-use--xlink-to-svg-element-with-rect.png" width="200" alt="resvg__structure-use--xlink-to-svg-element-with-rect in weasysvg"></a> |
 
 ### resvg__text-dominant-baseline--auto
 
@@ -841,7 +841,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-dominant-baseline--auto.png"><img src="reference/chromium/resvg__text-dominant-baseline--auto.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-dominant-baseline--auto.png"><img src="reference/resvg/resvg__text-dominant-baseline--auto.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-dominant-baseline--auto.png"><img src="render/weasyprint/resvg__text-dominant-baseline--auto.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-dominant-baseline--auto.png"><img src="render/weasysvg/resvg__text-dominant-baseline--auto.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-dominant-baseline--auto.png"><img src="reference/chromium/resvg__text-dominant-baseline--auto.png" width="200" alt="resvg__text-dominant-baseline--auto in Chromium"></a> | <a href="reference/resvg/resvg__text-dominant-baseline--auto.png"><img src="reference/resvg/resvg__text-dominant-baseline--auto.png" width="200" alt="resvg__text-dominant-baseline--auto in resvg"></a> | <a href="render/weasyprint/resvg__text-dominant-baseline--auto.png"><img src="render/weasyprint/resvg__text-dominant-baseline--auto.png" width="200" alt="resvg__text-dominant-baseline--auto in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-dominant-baseline--auto.png"><img src="render/weasysvg/resvg__text-dominant-baseline--auto.png" width="200" alt="resvg__text-dominant-baseline--auto in weasysvg"></a> |
 
 ### resvg__text-dominant-baseline--reset-size
 
@@ -849,7 +849,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-dominant-baseline--reset-size.png"><img src="reference/chromium/resvg__text-dominant-baseline--reset-size.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-dominant-baseline--reset-size.png"><img src="reference/resvg/resvg__text-dominant-baseline--reset-size.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-dominant-baseline--reset-size.png"><img src="render/weasyprint/resvg__text-dominant-baseline--reset-size.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-dominant-baseline--reset-size.png"><img src="render/weasysvg/resvg__text-dominant-baseline--reset-size.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-dominant-baseline--reset-size.png"><img src="reference/chromium/resvg__text-dominant-baseline--reset-size.png" width="200" alt="resvg__text-dominant-baseline--reset-size in Chromium"></a> | <a href="reference/resvg/resvg__text-dominant-baseline--reset-size.png"><img src="reference/resvg/resvg__text-dominant-baseline--reset-size.png" width="200" alt="resvg__text-dominant-baseline--reset-size in resvg"></a> | <a href="render/weasyprint/resvg__text-dominant-baseline--reset-size.png"><img src="render/weasyprint/resvg__text-dominant-baseline--reset-size.png" width="200" alt="resvg__text-dominant-baseline--reset-size in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-dominant-baseline--reset-size.png"><img src="render/weasysvg/resvg__text-dominant-baseline--reset-size.png" width="200" alt="resvg__text-dominant-baseline--reset-size in weasysvg"></a> |
 
 ### resvg__text-letter-spacing--0
 
@@ -857,7 +857,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-letter-spacing--0.png"><img src="reference/chromium/resvg__text-letter-spacing--0.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-letter-spacing--0.png"><img src="reference/resvg/resvg__text-letter-spacing--0.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-letter-spacing--0.png"><img src="render/weasyprint/resvg__text-letter-spacing--0.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-letter-spacing--0.png"><img src="render/weasysvg/resvg__text-letter-spacing--0.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-letter-spacing--0.png"><img src="reference/chromium/resvg__text-letter-spacing--0.png" width="200" alt="resvg__text-letter-spacing--0 in Chromium"></a> | <a href="reference/resvg/resvg__text-letter-spacing--0.png"><img src="reference/resvg/resvg__text-letter-spacing--0.png" width="200" alt="resvg__text-letter-spacing--0 in resvg"></a> | <a href="render/weasyprint/resvg__text-letter-spacing--0.png"><img src="render/weasyprint/resvg__text-letter-spacing--0.png" width="200" alt="resvg__text-letter-spacing--0 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-letter-spacing--0.png"><img src="render/weasysvg/resvg__text-letter-spacing--0.png" width="200" alt="resvg__text-letter-spacing--0 in weasysvg"></a> |
 
 ### resvg__text-letter-spacing--on-Arabic
 
@@ -865,7 +865,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-letter-spacing--on-Arabic.png"><img src="reference/chromium/resvg__text-letter-spacing--on-Arabic.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-letter-spacing--on-Arabic.png"><img src="reference/resvg/resvg__text-letter-spacing--on-Arabic.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-letter-spacing--on-Arabic.png"><img src="render/weasyprint/resvg__text-letter-spacing--on-Arabic.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-letter-spacing--on-Arabic.png"><img src="render/weasysvg/resvg__text-letter-spacing--on-Arabic.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-letter-spacing--on-Arabic.png"><img src="reference/chromium/resvg__text-letter-spacing--on-Arabic.png" width="200" alt="resvg__text-letter-spacing--on-Arabic in Chromium"></a> | <a href="reference/resvg/resvg__text-letter-spacing--on-Arabic.png"><img src="reference/resvg/resvg__text-letter-spacing--on-Arabic.png" width="200" alt="resvg__text-letter-spacing--on-Arabic in resvg"></a> | <a href="render/weasyprint/resvg__text-letter-spacing--on-Arabic.png"><img src="render/weasyprint/resvg__text-letter-spacing--on-Arabic.png" width="200" alt="resvg__text-letter-spacing--on-Arabic in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-letter-spacing--on-Arabic.png"><img src="render/weasysvg/resvg__text-letter-spacing--on-Arabic.png" width="200" alt="resvg__text-letter-spacing--on-Arabic in weasysvg"></a> |
 
 ### resvg__text-text--nested
 
@@ -873,7 +873,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-text--nested.png"><img src="reference/chromium/resvg__text-text--nested.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-text--nested.png"><img src="reference/resvg/resvg__text-text--nested.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-text--nested.png"><img src="render/weasyprint/resvg__text-text--nested.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-text--nested.png"><img src="render/weasysvg/resvg__text-text--nested.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-text--nested.png"><img src="reference/chromium/resvg__text-text--nested.png" width="200" alt="resvg__text-text--nested in Chromium"></a> | <a href="reference/resvg/resvg__text-text--nested.png"><img src="reference/resvg/resvg__text-text--nested.png" width="200" alt="resvg__text-text--nested in resvg"></a> | <a href="render/weasyprint/resvg__text-text--nested.png"><img src="render/weasyprint/resvg__text-text--nested.png" width="200" alt="resvg__text-text--nested in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-text--nested.png"><img src="render/weasysvg/resvg__text-text--nested.png" width="200" alt="resvg__text-text--nested in weasysvg"></a> |
 
 ### resvg__text-text--x-and-y-with-less-values-than-characters
 
@@ -881,7 +881,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="reference/chromium/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="reference/resvg/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="render/weasyprint/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="render/weasysvg/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="reference/chromium/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt="resvg__text-text--x-and-y-with-less-values-than-characters in Chromium"></a> | <a href="reference/resvg/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="reference/resvg/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt="resvg__text-text--x-and-y-with-less-values-than-characters in resvg"></a> | <a href="render/weasyprint/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="render/weasyprint/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt="resvg__text-text--x-and-y-with-less-values-than-characters in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-text--x-and-y-with-less-values-than-characters.png"><img src="render/weasysvg/resvg__text-text--x-and-y-with-less-values-than-characters.png" width="200" alt="resvg__text-text--x-and-y-with-less-values-than-characters in weasysvg"></a> |
 
 ### resvg__text-text-decoration--line-through
 
@@ -889,7 +889,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-text-decoration--line-through.png"><img src="reference/chromium/resvg__text-text-decoration--line-through.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-text-decoration--line-through.png"><img src="reference/resvg/resvg__text-text-decoration--line-through.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-text-decoration--line-through.png"><img src="render/weasyprint/resvg__text-text-decoration--line-through.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-text-decoration--line-through.png"><img src="render/weasysvg/resvg__text-text-decoration--line-through.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-text-decoration--line-through.png"><img src="reference/chromium/resvg__text-text-decoration--line-through.png" width="200" alt="resvg__text-text-decoration--line-through in Chromium"></a> | <a href="reference/resvg/resvg__text-text-decoration--line-through.png"><img src="reference/resvg/resvg__text-text-decoration--line-through.png" width="200" alt="resvg__text-text-decoration--line-through in resvg"></a> | <a href="render/weasyprint/resvg__text-text-decoration--line-through.png"><img src="render/weasyprint/resvg__text-text-decoration--line-through.png" width="200" alt="resvg__text-text-decoration--line-through in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-text-decoration--line-through.png"><img src="render/weasysvg/resvg__text-text-decoration--line-through.png" width="200" alt="resvg__text-text-decoration--line-through in weasysvg"></a> |
 
 ### resvg__text-text-decoration--style-resolving-3
 
@@ -897,7 +897,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-text-decoration--style-resolving-3.png"><img src="reference/chromium/resvg__text-text-decoration--style-resolving-3.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-text-decoration--style-resolving-3.png"><img src="reference/resvg/resvg__text-text-decoration--style-resolving-3.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-text-decoration--style-resolving-3.png"><img src="render/weasyprint/resvg__text-text-decoration--style-resolving-3.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-text-decoration--style-resolving-3.png"><img src="render/weasysvg/resvg__text-text-decoration--style-resolving-3.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-text-decoration--style-resolving-3.png"><img src="reference/chromium/resvg__text-text-decoration--style-resolving-3.png" width="200" alt="resvg__text-text-decoration--style-resolving-3 in Chromium"></a> | <a href="reference/resvg/resvg__text-text-decoration--style-resolving-3.png"><img src="reference/resvg/resvg__text-text-decoration--style-resolving-3.png" width="200" alt="resvg__text-text-decoration--style-resolving-3 in resvg"></a> | <a href="render/weasyprint/resvg__text-text-decoration--style-resolving-3.png"><img src="render/weasyprint/resvg__text-text-decoration--style-resolving-3.png" width="200" alt="resvg__text-text-decoration--style-resolving-3 in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-text-decoration--style-resolving-3.png"><img src="render/weasysvg/resvg__text-text-decoration--style-resolving-3.png" width="200" alt="resvg__text-text-decoration--style-resolving-3 in weasysvg"></a> |
 
 ### resvg__text-textPath--with-invalid-path-and-xlink-href
 
@@ -905,7 +905,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="reference/chromium/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="reference/resvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="render/weasyprint/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="render/weasysvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="reference/chromium/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt="resvg__text-textPath--with-invalid-path-and-xlink-href in Chromium"></a> | <a href="reference/resvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="reference/resvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt="resvg__text-textPath--with-invalid-path-and-xlink-href in resvg"></a> | <a href="render/weasyprint/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="render/weasyprint/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt="resvg__text-textPath--with-invalid-path-and-xlink-href in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png"><img src="render/weasysvg/resvg__text-textPath--with-invalid-path-and-xlink-href.png" width="200" alt="resvg__text-textPath--with-invalid-path-and-xlink-href in weasysvg"></a> |
 
 ### resvg__text-textPath--with-underline
 
@@ -913,7 +913,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-textPath--with-underline.png"><img src="reference/chromium/resvg__text-textPath--with-underline.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-textPath--with-underline.png"><img src="reference/resvg/resvg__text-textPath--with-underline.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-textPath--with-underline.png"><img src="render/weasyprint/resvg__text-textPath--with-underline.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-textPath--with-underline.png"><img src="render/weasysvg/resvg__text-textPath--with-underline.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-textPath--with-underline.png"><img src="reference/chromium/resvg__text-textPath--with-underline.png" width="200" alt="resvg__text-textPath--with-underline in Chromium"></a> | <a href="reference/resvg/resvg__text-textPath--with-underline.png"><img src="reference/resvg/resvg__text-textPath--with-underline.png" width="200" alt="resvg__text-textPath--with-underline in resvg"></a> | <a href="render/weasyprint/resvg__text-textPath--with-underline.png"><img src="render/weasyprint/resvg__text-textPath--with-underline.png" width="200" alt="resvg__text-textPath--with-underline in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-textPath--with-underline.png"><img src="render/weasysvg/resvg__text-textPath--with-underline.png" width="200" alt="resvg__text-textPath--with-underline in weasysvg"></a> |
 
 ### resvg__text-tspan--mixed
 
@@ -921,7 +921,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-tspan--mixed.png"><img src="reference/chromium/resvg__text-tspan--mixed.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-tspan--mixed.png"><img src="reference/resvg/resvg__text-tspan--mixed.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-tspan--mixed.png"><img src="render/weasyprint/resvg__text-tspan--mixed.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-tspan--mixed.png"><img src="render/weasysvg/resvg__text-tspan--mixed.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-tspan--mixed.png"><img src="reference/chromium/resvg__text-tspan--mixed.png" width="200" alt="resvg__text-tspan--mixed in Chromium"></a> | <a href="reference/resvg/resvg__text-tspan--mixed.png"><img src="reference/resvg/resvg__text-tspan--mixed.png" width="200" alt="resvg__text-tspan--mixed in resvg"></a> | <a href="render/weasyprint/resvg__text-tspan--mixed.png"><img src="render/weasyprint/resvg__text-tspan--mixed.png" width="200" alt="resvg__text-tspan--mixed in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-tspan--mixed.png"><img src="render/weasysvg/resvg__text-tspan--mixed.png" width="200" alt="resvg__text-tspan--mixed in weasysvg"></a> |
 
 ### resvg__text-tspan--only-with-y
 
@@ -929,7 +929,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-tspan--only-with-y.png"><img src="reference/chromium/resvg__text-tspan--only-with-y.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-tspan--only-with-y.png"><img src="reference/resvg/resvg__text-tspan--only-with-y.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-tspan--only-with-y.png"><img src="render/weasyprint/resvg__text-tspan--only-with-y.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-tspan--only-with-y.png"><img src="render/weasysvg/resvg__text-tspan--only-with-y.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-tspan--only-with-y.png"><img src="reference/chromium/resvg__text-tspan--only-with-y.png" width="200" alt="resvg__text-tspan--only-with-y in Chromium"></a> | <a href="reference/resvg/resvg__text-tspan--only-with-y.png"><img src="reference/resvg/resvg__text-tspan--only-with-y.png" width="200" alt="resvg__text-tspan--only-with-y in resvg"></a> | <a href="render/weasyprint/resvg__text-tspan--only-with-y.png"><img src="render/weasyprint/resvg__text-tspan--only-with-y.png" width="200" alt="resvg__text-tspan--only-with-y in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-tspan--only-with-y.png"><img src="render/weasysvg/resvg__text-tspan--only-with-y.png" width="200" alt="resvg__text-tspan--only-with-y in weasysvg"></a> |
 
 ### resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor
 
@@ -937,7 +937,7 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="reference/chromium/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="reference/resvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="render/weasyprint/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="render/weasysvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="reference/chromium/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt="resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor in Chromium"></a> | <a href="reference/resvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="reference/resvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt="resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor in resvg"></a> | <a href="render/weasyprint/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="render/weasyprint/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt="resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png"><img src="render/weasysvg/resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor.png" width="200" alt="resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor in weasysvg"></a> |
 
 ### resvg__text-writing-mode--tb-with-rotate
 
@@ -945,4 +945,4 @@ Each SVG of the corpus in four renderings: Chromium, the reference; resvg; Weasy
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
-| <a href="reference/chromium/resvg__text-writing-mode--tb-with-rotate.png"><img src="reference/chromium/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt=""></a> | <a href="reference/resvg/resvg__text-writing-mode--tb-with-rotate.png"><img src="reference/resvg/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt=""></a> | <a href="render/weasyprint/resvg__text-writing-mode--tb-with-rotate.png"><img src="render/weasyprint/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt=""></a> | <a href="render/weasysvg/resvg__text-writing-mode--tb-with-rotate.png"><img src="render/weasysvg/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt=""></a> |
+| <a href="reference/chromium/resvg__text-writing-mode--tb-with-rotate.png"><img src="reference/chromium/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt="resvg__text-writing-mode--tb-with-rotate in Chromium"></a> | <a href="reference/resvg/resvg__text-writing-mode--tb-with-rotate.png"><img src="reference/resvg/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt="resvg__text-writing-mode--tb-with-rotate in resvg"></a> | <a href="render/weasyprint/resvg__text-writing-mode--tb-with-rotate.png"><img src="render/weasyprint/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt="resvg__text-writing-mode--tb-with-rotate in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-writing-mode--tb-with-rotate.png"><img src="render/weasysvg/resvg__text-writing-mode--tb-with-rotate.png" width="200" alt="resvg__text-writing-mode--tb-with-rotate in weasysvg"></a> |
