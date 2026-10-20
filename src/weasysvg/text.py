@@ -65,23 +65,43 @@ _ORIGINAL_CASCADE = wp_svg.Node.cascade
 _ORIGINAL_TEXT = wp_svg.TAGS["text"]
 
 
-# ---------------- font-size keywords ----------------
+# ---------------- font sizes ----------------
 
 
 def cascade(self: Any, child: Any) -> None:
-    _ORIGINAL_CASCADE(self, child)
+    """Cascade the attributes to child, with the font size inherited as computed, not as written.
+
+    WeasyPrint copies the font-size of the parent to the child as text: a relative size such as "2em" then
+    applies again to the size it made. Without it the child takes "1em", the computed size of the parent.
+    """
+    parent = self.attrib.pop("font-size", None) if self is not child else None
+    try:
+        _ORIGINAL_CASCADE(self, child)
+    finally:
+        if parent is not None:
+            self.attrib["font-size"] = parent
     value = child.attrib.get("font-size")
     if value is None:
         return
     keyword = value.strip().lower()
     if keyword in ("unset", "revert", "revert-layer"):
-        parent = self.attrib.get("font-size") if self is not child else None
-        if parent is None:
-            del child.attrib["font-size"]
-        else:
-            child.attrib["font-size"] = parent
+        del child.attrib["font-size"]
     elif keyword in FONT_SIZE_KEYWORDS:
         child.attrib["font-size"] = FONT_SIZE_KEYWORDS[keyword]
+
+
+def ex_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:
+    """A font-size in ex becomes px: one ex is the x-height of the font, as in Chromium, not half the em."""
+    value = normalize(node.attrib.get("font-size", "")).split(" ", 1)[0]
+    if not value.endswith("ex"):
+        return None
+    try:
+        count = float(value[:-2])
+    except ValueError:
+        return None
+    saved = {"font-size": node.attrib["font-size"]}
+    node.attrib["font-size"] = f"{count * _metrics(svg, node, font_size)[2]}px"
+    return saved
 
 
 # ---------------- nested text ----------------
@@ -608,6 +628,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
+    _core.add_restyler(ex_restyle)
     _core.add_restyler(anchor_restyle)
     _core.add_before_draw(chunk_started)
     _core.add_after_draw(chunk_boxes)

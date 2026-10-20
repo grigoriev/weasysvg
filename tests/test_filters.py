@@ -518,7 +518,7 @@ def test_a_failing_layer_restores_the_stream(layer: Layer, opacity: float) -> No
     fake = FakeSvg()
     stream = fake.stream
     plan = filters.Plan([layer], None)
-    node = SimpleNamespace(tag="g")
+    node = SimpleNamespace(tag="g", attrib={})
     with pytest.raises(RuntimeError):
         filters.draw(fake, failing_original, node, 12, None, plan, opacity)
     # Else the caller pops the state of a mask or group stream, and q and Q of the page drift apart

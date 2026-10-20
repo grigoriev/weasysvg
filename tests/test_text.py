@@ -49,6 +49,34 @@ def test_font_size_unset_takes_the_parent() -> None:
     assert font_sizes(pdf) == [20, 16]
 
 
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ('<g font-size="2em"><text x="10" y="50">A</text></g>', 32),
+        ('<text x="10" y="50" font-size="2em"><tspan>A</tspan></text>', 32),
+        ('<g font-size="20px"><g font-size="150%"><text x="10" y="50">A</text></g></g>', 30),
+        ('<g font-size="2em"><text x="10" y="50" font-size="inherit">A</text></g>', 32),
+        ('<g font-size="20px"><g font-size="larger"><text x="10" y="50">A</text></g></g>', 24),
+    ],
+)
+def test_a_relative_font_size_applies_once(body: str, expected: float) -> None:
+    # A child inherits the computed size: WeasyPrint copied the text "2em", and applied it again
+    assert font_sizes(render(svg(body))) == [pytest.approx(expected, abs=0.01)]
+
+
+@pytest.mark.parametrize("body", ['<text x="10" y="50" font-size="4ex">A</text>', '<text x="10" y="50" font-size="4ex"><tspan>A</tspan></text>'])
+def test_ex_is_the_x_height_of_the_font(body: str) -> None:
+    # As in Chromium: the x-height of Liberation Sans is 1082 of 2048 units, not half the em
+    pdf = render(svg(f'<g font-family="Liberation Sans">{body}</g>'))
+    assert font_sizes(pdf) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
+
+
+def test_a_word_ending_in_ex_is_no_size() -> None:
+    node = SimpleNamespace(attrib={"font-size": "complex"})
+    assert text.ex_restyle(None, node, 16) is None
+    assert node.attrib == {"font-size": "complex"}
+
+
 def test_cascade_on_itself_is_harmless(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(text, "_ORIGINAL_CASCADE", lambda self, child: None)
     node = type("Node", (), {"attrib": {"font-size": "unset"}})()

@@ -29,7 +29,7 @@ from .fonts import IN_FOREIGN_OBJECT
 
 STASH = "data-weasyprint-foreign-html"
 VOID = frozenset(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"])
-INHERITED = ("font-family", "font-size", "font-weight", "font-style", "font-variant", "color", "line-height", "direction", "letter-spacing", "word-spacing", "white-space", "text-align")
+INHERITED = ("font-family", "font-weight", "font-style", "font-variant", "color", "line-height", "direction", "letter-spacing", "word-spacing", "white-space", "text-align")
 # The wrappers that stand for the SVG ancestors carry class and id for the selectors, never a box of their own
 WRAPPER_CSS = (
     ".wp-fo-anc{display:block!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;"
@@ -133,8 +133,9 @@ def _object_geometry(svg: Any, node: Any, font_size: float) -> tuple[float, floa
     x, y = svg.point(node.get("x"), node.get("y"), font_size)
     width, height = svg.point(node.get("width"), node.get("height"), font_size)
     visible = node.get("overflow") == "visible"
-    # The cascade of the SVG already resolved what the HTML inherits from it
-    inherited = "".join(f"{name}:{node.get(name)};" for name in INHERITED if node.get(name))
+    # The cascade of the SVG already resolved what the HTML inherits from it. The font size is computed
+    # here: the SVG cascade leaves it to each element
+    inherited = f"font-size:{font_size}px;" + "".join(f"{name}:{node.get(name)};" for name in INHERITED if node.get(name))
     return x, y, width, height, visible, inherited
 
 
