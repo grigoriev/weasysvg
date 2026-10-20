@@ -10,7 +10,7 @@ from xml.etree import ElementTree as ET
 import pytest
 import weasyprint
 from helpers import SVG_NS, XHTML_NS, RecordingStream, close, content, page_html, rasterize, render, svg, text_of
-from PIL import Image
+from PIL import Image, ImageChops
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
 from weasysvg import foreign_object
@@ -293,13 +293,17 @@ MARKER_SCALE = 8  # px per CSS px
 
 
 def ink_box(image: Image.Image, color: tuple[int, int, int], columns: slice) -> tuple[float, float, float, float]:
-    """The box of the pixels near color within columns, in CSS px: left, top, right, bottom."""
-    import numpy as np
+    """The box of the pixels near color within columns, in CSS px: left, top, right, bottom.
 
-    pixels = np.abs(np.asarray(image, dtype=int)[:, columns] - color).max(axis=2) < 100
-    rows, cols = np.where(pixels.any(axis=1))[0], np.where(pixels.any(axis=0))[0]
+    PIL only: numpy is no dependency of the tests before Python 3.12.
+    """
     start = columns.start or 0
-    return ((start + cols[0]) / MARKER_SCALE, rows[0] / MARKER_SCALE, (start + cols[-1] + 1) / MARKER_SCALE, (rows[-1] + 1) / MARKER_SCALE)
+    part = image.crop((start, 0, columns.stop if columns.stop is not None else image.width, image.height))
+    red, green, blue = ImageChops.difference(part, Image.new("RGB", part.size, color)).split()
+    near = ImageChops.lighter(ImageChops.lighter(red, green), blue).point(lambda value: 255 if value < 100 else 0)
+    box = near.getbbox()
+    assert box is not None, f"no pixel near {color}"
+    return ((start + box[0]) / MARKER_SCALE, box[1] / MARKER_SCALE, (start + box[2]) / MARKER_SCALE, box[3] / MARKER_SCALE)
 
 
 def marker_and_text(style: str, item: str = "I") -> tuple[tuple[float, ...], tuple[float, ...], Image.Image]:
