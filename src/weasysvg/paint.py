@@ -38,6 +38,7 @@ from weasyprint.svg import utils as wp_utils
 from . import _core
 
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
+DASH_EPSILON = 1e-3  # user units: the length a dash of length 0 gets, too short to see
 ARC_CONSTANT = 4 * (2**0.5 - 1) / 3  # the control point of a quarter circle in one Bezier, per unit of radius
 SHAPES = frozenset(("circle", "ellipse", "line", "path", "polyline", "polygon", "rect"))
 BLEND_MODES = {
@@ -280,7 +281,28 @@ def set_graphical_state(self: Any, node: Any, font_size: float, context: Any = N
     fill, stroke = _ORIGINAL_SET_GRAPHICAL_STATE(self, node, font_size, context=context)
     if stroke:
         self.stream.set_line_width(self.length(node.get("stroke-width", "1px"), font_size))
+    dashes = tuple(self.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
+    if 0 in dashes and any(dashes) and min(dashes) >= 0:
+        # The same dashes as WeasyPrint set, the offset included, with no dash of length 0
+        offset = self.length(node.get("stroke-dashoffset"), font_size)
+        if offset < 0:
+            offset = sum(dashes) - abs(offset) % sum(dashes)
+        self.stream.set_dash(no_zero_dashes(dashes), offset)
     return fill, stroke
+
+
+def no_zero_dashes(dashes: tuple[float, ...]) -> tuple[float, ...]:
+    """The dash array with each dash of length 0 lengthened to DASH_EPSILON, taken from the gap after it.
+
+    PDFium moves a dash of length 0 along the path, about 1 unit each 240: the dots of a dotted line
+    drifted. The period stays the same. A gap of 0 stays: a tiny gap could show as a hairline.
+    """
+    # An odd array repeats to an even one: dashes and gaps alternate
+    out = list(dashes * 2 if len(dashes) % 2 else dashes)
+    for index in range(0, len(out), 2):
+        if out[index] == 0 and out[index + 1] > DASH_EPSILON:
+            out[index], out[index + 1] = DASH_EPSILON, out[index + 1] - DASH_EPSILON
+    return tuple(out)
 
 
 # ---------------- patterns ----------------

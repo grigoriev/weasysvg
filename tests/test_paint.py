@@ -619,3 +619,38 @@ def test_a_link_with_text_and_a_shape_clips_by_both() -> None:
     pdf = render(svg(f'<defs>{clip}</defs><g transform="translate(10 70)">{link}</g>'))
     # pixel() reads pt: the right stem of the "H" lies at about 38 to 48 user units
     assert any(near(pixel(pdf, x, 37), RED) for x in range(30, 37))
+
+
+def test_zero_length_dashes_keep_their_place_in_pdfium() -> None:
+    # PDFium moves dashes of length 0 along the path, about 1 unit each 240: dots on the bottom edge,
+    # drawn right to left from the corner at x=160, sit at 160, 120, 80 and 40
+    style = 'fill="none" stroke="green" stroke-width="20" stroke-dasharray="0 40" stroke-linecap="round"'
+    pdf = render(svg(f'<rect x="40" y="40" width="120" height="120" {style}/>', height=200))
+    image = rasterize(pdf, 96 / 72).convert("RGB")
+    row = [cast(tuple[int, int, int], image.getpixel((x, 160))) for x in range(200)]
+    green = [x for x, (red, green, _) in enumerate(row) if green > 80 and red < 100]
+    dots = [x for x in green if x - 1 not in green]
+    assert dots == [30, 70, 110, 150]
+    # The period stays 40
+    assert re.search(r"\[0\.001 39\.999\] 0 d", content(pdf))
+
+
+def test_zero_length_dashes_keep_a_negative_offset() -> None:
+    # An offset of -10 starts 30 into the period of 40, as WeasyPrint computes it
+    style = 'fill="none" stroke="green" stroke-width="2" stroke-dasharray="0 40" stroke-dashoffset="-10" stroke-linecap="round"'
+    assert re.search(r"\[0\.001 39\.999\] 30 d", content(render(svg(f'<path d="M 0 50 H 200" {style}/>'))))
+
+
+@pytest.mark.parametrize(
+    ("dashes", "expected"),
+    [
+        ((0, 40), (0.001, 39.999)),
+        # An odd array repeats: its 0 is a dash once and a gap once
+        ((0, 10, 5), (0.001, 9.999, 5, 0, 10, 5)),
+        # A gap of 0 and a dash before a gap too short to give from stay
+        ((40, 0), (40, 0)),
+        ((0, 0.0005), (0, 0.0005)),
+    ],
+)
+def test_no_zero_dashes(dashes: tuple[float, ...], expected: tuple[float, ...]) -> None:
+    assert paint.no_zero_dashes(dashes) == pytest.approx(expected)

@@ -6,8 +6,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
-| matches the reference | 47 | 109 |
-| close to the reference | 15 | 5 |
+| matches the reference | 47 | 110 |
+| close to the reference | 15 | 4 |
 | differs from the reference | 53 | 1 |
 
 References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
@@ -1053,8 +1053,8 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 [`resvg/painting-stroke-dasharray--0-n-with-round-caps.svg`](svg/resvg/painting-stroke-dasharray--0-n-with-round-caps.svg)
 
 - Reference: Chromium and resvg.
-- weasysvg: **close to the reference**. The dots on the bottom and left sides sit up to 1 unit off.
-- WeasyPrint: **close to the reference**. The dots on the bottom and left sides sit up to 1 unit off.
+- weasysvg: **matches the reference**. Matches: each dot in its place.
+- WeasyPrint: **close to the reference**. The dots on the bottom and left sides sit up to 1 unit off: PDFium moves dashes of length 0 along the path.
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
