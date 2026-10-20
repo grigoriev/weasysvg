@@ -318,8 +318,8 @@
   "name": "fo__mdn-foreignobject",
   "reference": "chromium",
   "reference_why": "resvg has no foreignObject: the box stays empty.",
-  "verdict": "close",
-  "what": "Text as in Chromium, but no scrollbar for overflow: auto, so the text reflows into the full width of the box. A print has no use for a scrollbar.",
+  "verdict": "better",
+  "what": "Better for print: no scrollbar for overflow: auto, which paper cannot scroll. The text takes the full width of the box, and one more line shows.",
   "native_verdict": "differs",
   "native_what": "The box is empty."
  },

@@ -41,8 +41,9 @@ GROUPS = {
     "resvg": "resvg feature tests",
 }
 # Each verdict compares a rendering with the reference of its SVG
-VERDICTS = ("same", "close", "differs")
-LABELS = {"same": "matches the reference", "close": "close to the reference", "differs": "differs from the reference"}
+VERDICTS = ("better", "same", "close", "differs")
+LABELS = {"better": "better than the reference", "same": "matches the reference", "close": "close to the reference", "differs": "differs from the reference"}
+ICONS = {"better": "⬆️", "same": "✅", "close": "🟡", "differs": "❌"}
 # The reference of an SVG: the renderer, or both, judged right for it; "browser" is an English desktop browser
 REFERENCES = {"chromium": "Chromium", "resvg": "resvg", "both": "Chromium and resvg", "browser": "an English browser"}
 COLUMNS = (("Chromium", "render/chromium"), ("resvg", "render/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
@@ -144,27 +145,33 @@ def cell(name: str, label: str, folder: str, missing: str) -> str:
     return f'<a href="{path}"><img src="{path}" width="{WIDTH}" alt="{name} in {label}"></a>'
 
 
-def judged(label: str, verdict: str | None, what: str | None) -> str:
-    """One line of the verdicts of an SVG: the renderer, its verdict and what differs."""
-    note = f" {html.escape(what)}" if what else ""
-    return f"{label}: **{LABELS.get(verdict or '', 'n/a')}**.{note}"
+def judged(icon: str, who: str, status: str, what: str | None) -> str:
+    """One row of the verdict table of an SVG: an icon, the renderer, its verdict and what differs."""
+    # A | inside a cell would end it
+    note = html.escape(what or "").replace("|", "\\|")
+    return f"| {icon} | {who} | {status} | {note} |"
 
 
 def entry(item: dict[str, Any], verdict: dict[str, Any], resvg_error: str | None) -> str:
     name = item["name"]
-    why = verdict.get("reference_why") or ""
-    reference = f"Reference: {REFERENCES.get(verdict.get('reference') or '', 'n/a')}." + (f" {html.escape(why)}" if why else "")
-    lines = [reference, judged("weasysvg", verdict.get("verdict"), verdict.get("what")), judged("WeasyPrint", verdict.get("native_verdict"), verdict.get("native_what"))]
+    ours, native = verdict.get("verdict") or "", verdict.get("native_verdict") or ""
+    rows = [
+        "| | Renderer | Verdict | What |",
+        "|---|---|---|---|",
+        judged("📌", "Reference", REFERENCES.get(verdict.get("reference") or "", "n/a"), verdict.get("reference_why")),
+        judged(ICONS.get(ours, ""), "weasysvg", f"**{LABELS.get(ours, 'n/a')}**", verdict.get("what")),
+        judged(ICONS.get(native, ""), "WeasyPrint", f"**{LABELS.get(native, 'n/a')}**", verdict.get("native_what")),
+    ]
     header = "| " + " | ".join(label for label, _ in COLUMNS) + " |"
     row = "| " + " | ".join(cell(name, label, folder, (resvg_error if label == "resvg" else None) or "n/a") for label, folder in COLUMNS) + " |"
     source = f"[`{item['source']}`](svg/{item['source']})"
-    return f"### {name}\n\n{source}\n\n" + "\n".join(f"- {line}" for line in lines) + f"\n\n{header}\n|---|---|---|---|\n{row}\n"
+    return f"### {name}\n\n{source}\n\n" + "\n".join(rows) + f"\n\n{header}\n|---|---|---|---|\n{row}\n"
 
 
 def summary(verdicts: list[dict[str, Any]], version: str) -> str:
     native, ours = Counter(v.get("native_verdict") for v in verdicts), Counter(v.get("verdict") for v in verdicts)
     lines = [f"| Verdict | WeasyPrint {version} | WeasyPrint {version} with weasysvg |", "|---|---|---|"]
-    lines += [f"| {LABELS[key]} | {native[key]} | {ours[key]} |" for key in VERDICTS]
+    lines += [f"| {ICONS[key]} {LABELS[key]} | {native[key]} | {ours[key]} |" for key in VERDICTS]
     references = Counter(v.get("reference") for v in verdicts)
     lines += ["", "References: " + ", ".join(f"{label} {references[key]}" for key, label in REFERENCES.items()) + "."]
     return "\n".join(lines)

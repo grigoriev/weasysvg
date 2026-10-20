@@ -105,9 +105,10 @@ compares each rendering with that reference:
 
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
-| matches the reference | 47 | 110 |
-| close to the reference | 15 | 4 |
-| differs from the reference | 53 | 1 |
+| ⬆️ better than the reference | 0 | 1 |
+| ✅ matches the reference | 47 | 110 |
+| 🟡 close to the reference | 15 | 3 |
+| ❌ differs from the reference | 53 | 1 |
 
 All 35 diagrams from draw.io, kroki and mermaid.ink match the reference. Each verdict says what
 differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
@@ -127,7 +128,6 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 - `feComposite` arithmetic needs one input to be a flood of the whole filter region, or both inputs to
   be the same. A translucent result composites over the value of the formula on nothing.
 - Except on a plain rect, a blur with two different deviations uses their mean.
-- `overflow: auto` inside a `<foreignObject>` shows no scrollbar, so text reflows into the full width.
 
 ## Development
 

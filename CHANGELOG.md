@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `corpus/COMPARISON.md` and the interactive `corpus/comparison.html` on GitHub Pages: every corpus SVG
   in Chromium, resvg, WeasyPrint alone and with weasysvg.
 - Each corpus SVG names its reference (Chromium, resvg, both, or an English browser). The verdicts say
-  whether a rendering matches it, comes close or differs, and what differs. The comparison page shows
-  the SVG in your own browser too, and a swipe between any two renderers.
+  whether a rendering is better than it, matches it, comes close or differs, and what differs, in a
+  table with an icon per status. The comparison page shows the SVG in your own browser too, and a swipe
+  between any two renderers.
 - `corpus/fonts`: the fonts the resvg tests ask for. The references, weasysvg and resvg all use them.

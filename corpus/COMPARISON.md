@@ -6,9 +6,10 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
-| matches the reference | 47 | 110 |
-| close to the reference | 15 | 4 |
-| differs from the reference | 53 | 1 |
+| ⬆️ better than the reference | 0 | 1 |
+| ✅ matches the reference | 47 | 110 |
+| 🟡 close to the reference | 15 | 3 |
+| ❌ differs from the reference | 53 | 1 |
 
 References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
@@ -24,9 +25,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-blockdiag.svg`](svg/diagrams/kroki-blockdiag.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: boxes, arrows and the blurred shadows.
-- WeasyPrint: **close to the reference**. Shadows are hard offset copies instead of blurred ones.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: boxes, arrows and the blurred shadows. |
+| 🟡 | WeasyPrint | **close to the reference** | Shadows are hard offset copies instead of blurred ones. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -36,9 +39,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-bpmn.svg`](svg/diagrams/kroki-bpmn.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -48,9 +53,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-c4plantuml.svg`](svg/diagrams/kroki-c4plantuml.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, fonts included.
-- WeasyPrint: **close to the reference**. Same drawing in another font.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, fonts included. |
+| 🟡 | WeasyPrint | **close to the reference** | Same drawing in another font. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -60,9 +67,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-d2-arch.svg`](svg/diagrams/kroki-d2-arch.svg)
 
-- Reference: Chromium. resvg ignores the @font-face fonts the SVG embeds and falls back to a serif.
-- weasysvg: **matches the reference**. Matches, with the embedded fonts.
-- WeasyPrint: **differs from the reference**. Nothing but a black rectangle: the SVG is lost.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg ignores the @font-face fonts the SVG embeds and falls back to a serif. |
+| ✅ | weasysvg | **matches the reference** | Matches, with the embedded fonts. |
+| ❌ | WeasyPrint | **differs from the reference** | Nothing but a black rectangle: the SVG is lost. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -72,9 +81,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-d2.svg`](svg/diagrams/kroki-d2.svg)
 
-- Reference: Chromium. resvg ignores the embedded @font-face fonts.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Two black bars instead of the diagram.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg ignores the embedded @font-face fonts. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Two black bars instead of the diagram. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -84,9 +95,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-erd.svg`](svg/diagrams/kroki-erd.svg)
 
-- Reference: Chromium. resvg draws the sans-serif labels in a serif.
-- weasysvg: **matches the reference**. Matches, underlined keys included.
-- WeasyPrint: **close to the reference**. The key fields name and id lose their underline; the font differs.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg draws the sans-serif labels in a serif. |
+| ✅ | weasysvg | **matches the reference** | Matches, underlined keys included. |
+| 🟡 | WeasyPrint | **close to the reference** | The key fields name and id lose their underline; the font differs. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -96,9 +109,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-excalidraw.svg`](svg/diagrams/kroki-excalidraw.svg)
 
-- Reference: Chromium. resvg ignores the embedded hand-drawn font.
-- weasysvg: **matches the reference**. Matches, hand-drawn font included.
-- WeasyPrint: **close to the reference**. Wider gap between the words.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg ignores the embedded hand-drawn font. |
+| ✅ | weasysvg | **matches the reference** | Matches, hand-drawn font included. |
+| 🟡 | WeasyPrint | **close to the reference** | Wider gap between the words. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -108,9 +123,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-graphviz.svg`](svg/diagrams/kroki-graphviz.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **close to the reference**. Same drawing in another font.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | Same drawing in another font. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -120,9 +137,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-mermaid-er.svg`](svg/diagrams/kroki-mermaid-er.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches, labels included.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches, labels included. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -132,9 +151,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-mermaid-mindmap.svg`](svg/diagrams/kroki-mermaid-mindmap.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -144,9 +165,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-mermaid-state.svg`](svg/diagrams/kroki-mermaid-state.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -156,9 +179,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-nomnoml.svg`](svg/diagrams/kroki-nomnoml.svg)
 
-- Reference: Chromium. resvg draws no text at all here.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg draws no text at all here. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -168,9 +193,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-pikchr.svg`](svg/diagrams/kroki-pikchr.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All text is missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All text is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -180,9 +207,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-plantuml-activity.svg`](svg/diagrams/kroki-plantuml-activity.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, the underlined word included.
-- WeasyPrint: **close to the reference**. The underline under &#x27;waiting&#x27; is missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, the underlined word included. |
+| 🟡 | WeasyPrint | **close to the reference** | The underline under &#x27;waiting&#x27; is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -192,9 +221,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-plantuml-sequence.svg`](svg/diagrams/kroki-plantuml-sequence.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -204,9 +235,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-structurizr.svg`](svg/diagrams/kroki-structurizr.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -216,9 +249,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-svgbob.svg`](svg/diagrams/kroki-svgbob.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -228,9 +263,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-vegalite.svg`](svg/diagrams/kroki-vegalite.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -240,9 +277,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/kroki-wavedrom.svg`](svg/diagrams/kroki-wavedrom.svg)
 
-- Reference: Chromium. resvg drops the lane labels and the fills of the data cells.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg drops the lane labels and the fills of the data cells. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -252,9 +291,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-class.svg`](svg/diagrams/mermaid-ink-class.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -264,9 +305,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-er.svg`](svg/diagrams/mermaid-ink-er.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -276,9 +319,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-flowchart.svg`](svg/diagrams/mermaid-ink-flowchart.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -288,9 +333,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-gantt.svg`](svg/diagrams/mermaid-ink-gantt.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **close to the reference**. The axis dates lose their year: 01-05 instead of 2014-01-05.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The axis dates lose their year: 01-05 instead of 2014-01-05. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -300,9 +347,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-gitgraph.svg`](svg/diagrams/mermaid-ink-gitgraph.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -312,9 +361,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-journey.svg`](svg/diagrams/mermaid-ink-journey.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -324,9 +375,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-mindmap.svg`](svg/diagrams/mermaid-ink-mindmap.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -336,9 +389,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-pie.svg`](svg/diagrams/mermaid-ink-pie.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -348,9 +403,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-sequence.svg`](svg/diagrams/mermaid-ink-sequence.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -360,9 +417,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`diagrams/mermaid-ink-state.svg`](svg/diagrams/mermaid-ink-state.svg)
 
-- Reference: Chromium. resvg has no foreignObject: every label is missing.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All labels are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -374,9 +433,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`drawio/connect-shapes.svg`](svg/drawio/connect-shapes.svg)
 
-- Reference: Chromium. resvg draws the labels in a serif.
-- weasysvg: **matches the reference**. Matches. The remote GIFs are blocked in every rendering, by policy.
-- WeasyPrint: **close to the reference**. The links lose their underline.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg draws the labels in a serif. |
+| ✅ | weasysvg | **matches the reference** | Matches. The remote GIFs are blocked in every rendering, by policy. |
+| 🟡 | WeasyPrint | **close to the reference** | The links lose their underline. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -386,9 +447,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`drawio/flowchart.drawio.svg`](svg/drawio/flowchart.drawio.svg)
 
-- Reference: Chromium. resvg ignores the switch with requiredFeatures and shows the fallback text &#x27;Text is not SVG&#x27;.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Labels are cut to &#x27;Lamp...&#x27; and the fallback text &#x27;Text is not SVG&#x27; shows.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg ignores the switch with requiredFeatures and shows the fallback text &#x27;Text is not SVG&#x27;. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Labels are cut to &#x27;Lamp...&#x27; and the fallback text &#x27;Text is not SVG&#x27; shows. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -398,9 +461,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`drawio/infographic.svg`](svg/drawio/infographic.svg)
 
-- Reference: Chromium. resvg shows raw HTML source in place of the foreignObject text.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Most text is missing, raw HTML shows.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg shows raw HTML source in place of the foreignObject text. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Most text is missing, raw HTML shows. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -410,9 +475,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`drawio/infographic2.svg`](svg/drawio/infographic2.svg)
 
-- Reference: Chromium. resvg shows &#x27;Not supported by viewer&#x27; fallbacks.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. &#x27;Not supported by viewer&#x27; fallbacks show in large orange type.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg shows &#x27;Not supported by viewer&#x27; fallbacks. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | &#x27;Not supported by viewer&#x27; fallbacks show in large orange type. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -422,9 +489,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`drawio/notion-template.drawio.svg`](svg/drawio/notion-template.drawio.svg)
 
-- Reference: Chromium. resvg shows the fallback &#x27;Click Here to...&#x27;.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Shows the fallback &#x27;Click Here to...&#x27;.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg shows the fallback &#x27;Click Here to...&#x27;. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Shows the fallback &#x27;Click Here to...&#x27;. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -434,9 +503,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`drawio/svgfile.svg`](svg/drawio/svgfile.svg)
 
-- Reference: Chromium. resvg shows &#x27;Not supported by viewer&#x27; fallbacks.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Fallback texts in place of the labels.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg shows &#x27;Not supported by viewer&#x27; fallbacks. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Fallback texts in place of the labels. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -448,9 +519,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`fo/mdn-foreignobject.svg`](svg/fo/mdn-foreignobject.svg)
 
-- Reference: Chromium. resvg has no foreignObject: the box stays empty.
-- weasysvg: **close to the reference**. Text as in Chromium, but no scrollbar for overflow: auto, so the text reflows into the full width of the box. A print has no use for a scrollbar.
-- WeasyPrint: **differs from the reference**. The box is empty.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject: the box stays empty. |
+| ⬆️ | weasysvg | **better than the reference** | Better for print: no scrollbar for overflow: auto, which paper cannot scroll. The text takes the full width of the box, and one more line shows. |
+| ❌ | WeasyPrint | **differs from the reference** | The box is empty. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -460,9 +533,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`fo/rich-html.svg`](svg/fo/rich-html.svg)
 
-- Reference: Chromium. resvg has no foreignObject.
-- weasysvg: **matches the reference**. Matches: heading, list, table and the rotated paragraph.
-- WeasyPrint: **differs from the reference**. All HTML content is missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no foreignObject. |
+| ✅ | weasysvg | **matches the reference** | Matches: heading, list, table and the rotated paragraph. |
+| ❌ | WeasyPrint | **differs from the reference** | All HTML content is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -474,9 +549,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Bitmap_VS_SVG.svg`](svg/real/wm-Bitmap_VS_SVG.svg)
 
-- Reference: an English browser. Chromium of the references ran with no English language: the switch has no fallback child, so it drew no title. An English browser shows Raster and Vector, as weasysvg does (see the browser panel).
-- weasysvg: **matches the reference**. Matches an English browser: Raster and Vector titles.
-- WeasyPrint: **differs from the reference**. All translations of the titles are drawn on top of each other.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | an English browser | Chromium of the references ran with no English language: the switch has no fallback child, so it drew no title. An English browser shows Raster and Vector, as weasysvg does (see the browser panel). |
+| ✅ | weasysvg | **matches the reference** | Matches an English browser: Raster and Vector titles. |
+| ❌ | WeasyPrint | **differs from the reference** | All translations of the titles are drawn on top of each other. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -486,9 +563,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Flag_of_Brazil.svg`](svg/real/wm-Flag_of_Brazil.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -498,9 +577,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Flag_of_Switzerland.svg`](svg/real/wm-Flag_of_Switzerland.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -510,9 +591,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Flag_of_the_United_Kingdom.svg`](svg/real/wm-Flag_of_the_United_Kingdom.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -522,9 +605,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Git-logo.svg`](svg/real/wm-Git-logo.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -534,9 +619,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Inkscape_Logo.svg`](svg/real/wm-Inkscape_Logo.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -546,9 +633,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Kubernetes_logo_without_workmark.svg`](svg/real/wm-Kubernetes_logo_without_workmark.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -558,9 +647,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-OSI_Model_v1.svg`](svg/real/wm-OSI_Model_v1.svg)
 
-- Reference: Chromium. resvg drops the second line of every label.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. All translations of every label are drawn on top of each other.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg drops the second line of every label. |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | All translations of every label are drawn on top of each other. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -570,9 +661,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Openstreetmap_logo.svg`](svg/real/wm-Openstreetmap_logo.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **close to the reference**. The shadow of the lens ring is darker and sharper than in Chromium: the ring is a filled shape thinner than two deviations, and the levels of a blur know only the nearest edge.
-- WeasyPrint: **differs from the reference**. No shadows, and the handle is a flat dark shape.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| 🟡 | weasysvg | **close to the reference** | The shadow of the lens ring is darker and sharper than in Chromium: the ring is a filled shape thinner than two deviations, and the levels of a blur know only the nearest edge. |
+| ❌ | WeasyPrint | **differs from the reference** | No shadows, and the handle is a flat dark shape. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -582,9 +675,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Python-logo-notext.svg`](svg/real/wm-Python-logo-notext.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -594,9 +689,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-SVG_Logo.svg`](svg/real/wm-SVG_Logo.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -606,9 +703,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Simple_Periodic_Table_Chart-blocks.svg`](svg/real/wm-Simple_Periodic_Table_Chart-blocks.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: each number and symbol is centered in its cell.
-- WeasyPrint: **differs from the reference**. All translations of every label are drawn on top of each other.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: each number and symbol is centered in its cell. |
+| ❌ | WeasyPrint | **differs from the reference** | All translations of every label are drawn on top of each other. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -618,9 +717,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Tux.svg`](svg/real/wm-Tux.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, the blurred shading of the feet included.
-- WeasyPrint: **close to the reference**. The soft shading under the feet is missing: hard edges instead.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, the blurred shading of the feet included. |
+| 🟡 | WeasyPrint | **close to the reference** | The soft shading under the feet is missing: hard edges instead. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -630,9 +731,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`real/wm-Wikimedia-logo.svg`](svg/real/wm-Wikimedia-logo.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -644,9 +747,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feColorMatrix--type=luminanceToAlpha.svg`](svg/resvg/filters-feColorMatrix--type=luminanceToAlpha.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in color.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The filter is dropped: the rainbow gradient shows in color. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -656,9 +761,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feColorMatrix--type=matrix-with-non-normalized-values.svg`](svg/resvg/filters-feColorMatrix--type=matrix-with-non-normalized-values.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The filter is dropped: the rainbow gradient shows in color.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The filter is dropped: the rainbow gradient shows in color. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -668,9 +775,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feComposite--operator=arithmetic-with-large-k1-4.svg`](svg/resvg/filters-feComposite--operator=arithmetic-with-large-k1-4.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The filter is dropped: a plain green square.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The filter is dropped: a plain green square. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -680,9 +789,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feComposite--operator=over.svg`](svg/resvg/filters-feComposite--operator=over.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The filter is dropped: a plain green square.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The filter is dropped: a plain green square. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -692,9 +803,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feDropShadow--hsla-color.svg`](svg/resvg/filters-feDropShadow--hsla-color.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: the blue glow.
-- WeasyPrint: **differs from the reference**. No shadow.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: the blue glow. |
+| ❌ | WeasyPrint | **differs from the reference** | No shadow. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -704,9 +817,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feDropShadow--with-percent-offset.svg`](svg/resvg/filters-feDropShadow--with-percent-offset.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. No shadow.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | No shadow. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -716,9 +831,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feFlood--seagreen.svg`](svg/resvg/filters-feFlood--seagreen.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. A black square instead of the seagreen flood.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | A black square instead of the seagreen flood. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -728,9 +845,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feFlood--with-opacity-on-target-element.svg`](svg/resvg/filters-feFlood--with-opacity-on-target-element.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Grey and dark green instead of the pale flood.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Grey and dark green instead of the pale flood. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -740,9 +859,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feGaussianBlur--small-stdDeviation.svg`](svg/resvg/filters-feGaussianBlur--small-stdDeviation.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **close to the reference**. Not blurred; the blur is small.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | Not blurred; the blur is small. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -752,9 +873,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feGaussianBlur--stdDeviation=0-5.svg`](svg/resvg/filters-feGaussianBlur--stdDeviation=0-5.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: blurred along y only, the left and right edges stay sharp.
-- WeasyPrint: **differs from the reference**. Not blurred at all.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: blurred along y only, the left and right edges stay sharp. |
+| ❌ | WeasyPrint | **differs from the reference** | Not blurred at all. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -764,9 +887,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feOffset--complex-transform.svg`](svg/resvg/filters-feOffset--complex-transform.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The offset is taken in the wrong space: the shape lands lower and larger.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The offset is taken in the wrong space: the shape lands lower and larger. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -776,9 +901,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feOffset--fractional-offset.svg`](svg/resvg/filters-feOffset--fractional-offset.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -788,9 +915,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feTurbulence--baseFrequency=0.01.svg`](svg/resvg/filters-feTurbulence--baseFrequency=0.01.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. A black square instead of the noise.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | A black square instead of the noise. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -800,9 +929,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-feTurbulence--type=invalid.svg`](svg/resvg/filters-feTurbulence--type=invalid.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. A black square instead of the noise.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | A black square instead of the noise. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -812,9 +943,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-filter--in=SourceAlpha.svg`](svg/resvg/filters-filter--in=SourceAlpha.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: the blurred black silhouette.
-- WeasyPrint: **differs from the reference**. The filter is dropped: the green square.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: the blurred black silhouette. |
+| ❌ | WeasyPrint | **differs from the reference** | The filter is dropped: the green square. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -824,9 +957,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-filter--on-the-root-svg.svg`](svg/resvg/filters-filter--on-the-root-svg.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **close to the reference**. The blurred square has mitered corners, not round ones: a blur of anything but a plain rect is drawn in levels.
-- WeasyPrint: **differs from the reference**. Not blurred.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| 🟡 | weasysvg | **close to the reference** | The blurred square has mitered corners, not round ones: a blur of anything but a plain rect is drawn in levels. |
+| ❌ | WeasyPrint | **differs from the reference** | Not blurred. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -836,9 +971,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-filter-functions--blur-function-two-values.svg`](svg/resvg/filters-filter-functions--blur-function-two-values.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: an invalid blur() leaves the element unfiltered.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: an invalid blur() leaves the element unfiltered. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -848,9 +985,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/filters-filter-functions--drop-shadow-function-comma-separated.svg`](svg/resvg/filters-filter-functions--drop-shadow-function-comma-separated.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: the invalid function is ignored.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: the invalid function is ignored. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -860,9 +999,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/masking-clipPath--clip-path-on-children.svg`](svg/resvg/masking-clipPath--clip-path-on-children.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Only the small center piece shows.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Only the small center piece shows. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -872,9 +1013,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/masking-clipPath--on-a-horizontal-line.svg`](svg/resvg/masking-clipPath--on-a-horizontal-line.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -884,9 +1027,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/masking-mask--invalid-child.svg`](svg/resvg/masking-mask--invalid-child.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: nothing is drawn.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: nothing is drawn. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -896,9 +1041,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/masking-mask--recursive-on-self.svg`](svg/resvg/masking-mask--recursive-on-self.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The SVG is lost: blank.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The SVG is lost: blank. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -908,9 +1055,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/paint-servers-linearGradient--attributes-via-xlink-href-from-rect.svg`](svg/resvg/paint-servers-linearGradient--attributes-via-xlink-href-from-rect.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -920,9 +1069,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.svg`](svg/resvg/paint-servers-linearGradient--stops-via-xlink-href-complex-order-1.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -932,9 +1083,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/paint-servers-pattern--nested-objectBoundingBox.svg`](svg/resvg/paint-servers-pattern--nested-objectBoundingBox.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The inner pattern is shrunk to small fragments.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The inner pattern is shrunk to small fragments. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -944,9 +1097,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/paint-servers-pattern--text-child.svg`](svg/resvg/paint-servers-pattern--text-child.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **close to the reference**. The text tiles are spaced differently, in another font.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The text tiles are spaced differently, in another font. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -956,9 +1111,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/paint-servers-radialGradient--fr=0.2.svg`](svg/resvg/paint-servers-radialGradient--fr=0.2.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: the gray levels agree within 2 of 255.
-- WeasyPrint: **close to the reference**. The gradient is cut to a square with dark corners.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: the gray levels agree within 2 of 255. |
+| 🟡 | WeasyPrint | **close to the reference** | The gradient is cut to a square with dark corners. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -968,9 +1125,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/paint-servers-radialGradient--gradientTransform-via-href.svg`](svg/resvg/paint-servers-radialGradient--gradientTransform-via-href.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The lower two squares are missing.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The lower two squares are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -980,9 +1139,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-marker--on-ArcTo.svg`](svg/resvg/painting-marker--on-ArcTo.svg)
 
-- Reference: Chromium. The path is one arc, so it has no middle vertex. resvg splits the arc into curves and puts a marker-mid between them.
-- weasysvg: **matches the reference**. Matches: a start and an end marker.
-- WeasyPrint: **differs from the reference**. The markers point the wrong way.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | The path is one arc, so it has no middle vertex. resvg splits the arc into curves and puts a marker-mid between them. |
+| ✅ | weasysvg | **matches the reference** | Matches: a start and an end marker. |
+| ❌ | WeasyPrint | **differs from the reference** | The markers point the wrong way. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -992,9 +1153,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-marker--orient=auto-on-M-C-C-4.svg`](svg/resvg/painting-marker--orient=auto-on-M-C-C-4.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: the middle marker at the cusp points left.
-- WeasyPrint: **differs from the reference**. The start marker points down instead of along the curve.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: the middle marker at the cusp points left. |
+| ❌ | WeasyPrint | **differs from the reference** | The start marker points down instead of along the curve. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1004,9 +1167,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-mix-blend-mode--screen.svg`](svg/resvg/painting-mix-blend-mode--screen.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The blend mode is ignored: the colors are plain over.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The blend mode is ignored: the colors are plain over. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1016,9 +1181,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-mix-blend-mode--xor.svg`](svg/resvg/painting-mix-blend-mode--xor.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. The blend is ignored.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | The blend is ignored. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1028,9 +1195,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-paint-order--duplicates.svg`](svg/resvg/painting-paint-order--duplicates.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1040,9 +1209,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-paint-order--invalid.svg`](svg/resvg/painting-paint-order--invalid.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1052,9 +1223,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-stroke-dasharray--0-n-with-round-caps.svg`](svg/resvg/painting-stroke-dasharray--0-n-with-round-caps.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: each dot in its place.
-- WeasyPrint: **close to the reference**. The dots on the bottom and left sides sit up to 1 unit off: PDFium moves dashes of length 0 along the path.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: each dot in its place. |
+| 🟡 | WeasyPrint | **close to the reference** | The dots on the bottom and left sides sit up to 1 unit off: PDFium moves dashes of length 0 along the path. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1064,9 +1237,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/painting-stroke-dasharray--odd-count.svg`](svg/resvg/painting-stroke-dasharray--odd-count.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **close to the reference**. The dashes drift along the circle: WeasyPrint draws it a little too large.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The dashes drift along the circle: WeasyPrint draws it a little too large. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1076,9 +1251,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/shapes-path--M-H-H-implicit.svg`](svg/resvg/shapes-path--M-H-H-implicit.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1088,9 +1265,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/shapes-path--M-T.svg`](svg/resvg/shapes-path--M-T.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1100,9 +1279,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-style--class-selector.svg`](svg/resvg/structure-style--class-selector.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1112,9 +1293,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-style--iD-selector.svg`](svg/resvg/structure-style--iD-selector.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1124,9 +1307,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-switch--single-child.svg`](svg/resvg/structure-switch--single-child.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1136,9 +1321,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-switch--with-attributes.svg`](svg/resvg/structure-switch--with-attributes.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **differs from the reference**. Red: the switch is ignored and every child draws.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ❌ | WeasyPrint | **differs from the reference** | Red: the switch is ignored and every child draws. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1148,9 +1335,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-symbol--with-transform.svg`](svg/resvg/structure-symbol--with-transform.svg)
 
-- Reference: Chromium. The resvg suite follows SVG 1.1, where a symbol has no transform; SVG 2 and browsers apply it.
-- weasysvg: **matches the reference**. Matches Chromium: skewed as SVG 2 says.
-- WeasyPrint: **matches the reference**. Matches Chromium.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | The resvg suite follows SVG 1.1, where a symbol has no transform; SVG 2 and browsers apply it. |
+| ✅ | weasysvg | **matches the reference** | Matches Chromium: skewed as SVG 2 says. |
+| ✅ | WeasyPrint | **matches the reference** | Matches Chromium. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1160,9 +1349,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-symbol--with-viewBox-and-custom-use-size.svg`](svg/resvg/structure-symbol--with-viewBox-and-custom-use-size.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1172,9 +1363,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-systemLanguage--on-clipPath.svg`](svg/resvg/structure-systemLanguage--on-clipPath.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1184,9 +1377,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-systemLanguage--on-defs.svg`](svg/resvg/structure-systemLanguage--on-defs.svg)
 
-- Reference: resvg. Chromium draws nothing; systemLanguage on defs does not hide what is defined there, so the gradient square shows, as in the resvg suite.
-- weasysvg: **matches the reference**. Matches the resvg suite: the gradient square.
-- WeasyPrint: **matches the reference**. Matches the resvg suite.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | resvg | Chromium draws nothing; systemLanguage on defs does not hide what is defined there, so the gradient square shows, as in the resvg suite. |
+| ✅ | weasysvg | **matches the reference** | Matches the resvg suite: the gradient square. |
+| ✅ | WeasyPrint | **matches the reference** | Matches the resvg suite. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1196,9 +1391,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-transform--scale-without-Y.svg`](svg/resvg/structure-transform--scale-without-Y.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1208,9 +1405,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-transform--skewY.svg`](svg/resvg/structure-transform--skewY.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1220,9 +1419,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-use--with-size.svg`](svg/resvg/structure-use--with-size.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1232,9 +1433,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/structure-use--xlink-to-svg-element-with-rect.svg`](svg/resvg/structure-use--xlink-to-svg-element-with-rect.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1244,9 +1447,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-dominant-baseline--auto.svg`](svg/resvg/text-dominant-baseline--auto.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, in the Noto Sans the test asks for.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, in the Noto Sans the test asks for. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1256,9 +1461,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-dominant-baseline--reset-size.svg`](svg/resvg/text-dominant-baseline--reset-size.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, in the Noto Sans the test asks for.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, in the Noto Sans the test asks for. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1268,9 +1475,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-letter-spacing--0.svg`](svg/resvg/text-letter-spacing--0.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, in the Noto Sans the test asks for.
-- WeasyPrint: **close to the reference**. The word is a little wider.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, in the Noto Sans the test asks for. |
+| 🟡 | WeasyPrint | **close to the reference** | The word is a little wider. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1280,9 +1489,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-letter-spacing--on-Arabic.svg`](svg/resvg/text-letter-spacing--on-Arabic.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: letter-spacing widens the spaces only.
-- WeasyPrint: **differs from the reference**. The letters are not joined and stand apart.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: letter-spacing widens the spaces only. |
+| ❌ | WeasyPrint | **differs from the reference** | The letters are not joined and stand apart. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1292,9 +1503,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-text--nested.svg`](svg/resvg/text-text--nested.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: a text inside a text draws nothing.
-- WeasyPrint: **differs from the reference**. The nested text draws, in red.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: a text inside a text draws nothing. |
+| ❌ | WeasyPrint | **differs from the reference** | The nested text draws, in red. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1304,9 +1517,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-text--x-and-y-with-less-values-than-characters.svg`](svg/resvg/text-text--x-and-y-with-less-values-than-characters.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1316,9 +1531,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-text-decoration--line-through.svg`](svg/resvg/text-text-decoration--line-through.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, the line-through included.
-- WeasyPrint: **differs from the reference**. No line-through.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, the line-through included. |
+| ❌ | WeasyPrint | **differs from the reference** | No line-through. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1328,9 +1545,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-text-decoration--style-resolving-3.svg`](svg/resvg/text-text-decoration--style-resolving-3.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches, the line-through included.
-- WeasyPrint: **differs from the reference**. No line-through.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches, the line-through included. |
+| ❌ | WeasyPrint | **differs from the reference** | No line-through. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1340,9 +1559,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-textPath--with-invalid-path-and-xlink-href.svg`](svg/resvg/text-textPath--with-invalid-path-and-xlink-href.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches: no text.
-- WeasyPrint: **differs from the reference**. Text drawn at the top.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches: no text. |
+| ❌ | WeasyPrint | **differs from the reference** | Text drawn at the top. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1352,9 +1573,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-textPath--with-underline.svg`](svg/resvg/text-textPath--with-underline.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **close to the reference**. The underline runs under the descenders too: Chromium breaks it around them.
-- WeasyPrint: **differs from the reference**. No text on the path.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| 🟡 | weasysvg | **close to the reference** | The underline runs under the descenders too: Chromium breaks it around them. |
+| ❌ | WeasyPrint | **differs from the reference** | No text on the path. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1364,9 +1587,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-tspan--mixed.svg`](svg/resvg/text-tspan--mixed.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1376,9 +1601,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-tspan--only-with-y.svg`](svg/resvg/text-tspan--only-with-y.svg)
 
-- Reference: Chromium and resvg.
-- weasysvg: **matches the reference**. Matches.
-- WeasyPrint: **matches the reference**. Matches.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| ✅ | WeasyPrint | **matches the reference** | Matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1388,9 +1615,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg`](svg/resvg/text-writing-mode--tb-with-negative-dy-and-text-anchor.svg)
 
-- Reference: Chromium. SVG 2 anchors a text chunk by the extent of its glyph positions, dy included, as Chromium does. resvg anchors by the advance.
-- weasysvg: **matches the reference**. Matches: each column is anchored with B moved up.
-- WeasyPrint: **differs from the reference**. Laid out horizontally.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | SVG 2 anchors a text chunk by the extent of its glyph positions, dy included, as Chromium does. resvg anchors by the advance. |
+| ✅ | weasysvg | **matches the reference** | Matches: each column is anchored with B moved up. |
+| ❌ | WeasyPrint | **differs from the reference** | Laid out horizontally. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -1400,9 +1629,11 @@ References: Chromium 26, resvg 2, Chromium and resvg 86, an English browser 1.
 
 [`resvg/text-writing-mode--tb-with-rotate.svg`](svg/resvg/text-writing-mode--tb-with-rotate.svg)
 
-- Reference: resvg. The test is undefined behavior; the resvg suite shows its expected result.
-- weasysvg: **differs from the reference**. The Arabic word is not shaped: its letters stand apart in isolated forms, so the column runs longer.
-- WeasyPrint: **differs from the reference**. Laid out horizontally.
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | resvg | The test is undefined behavior; the resvg suite shows its expected result. |
+| ❌ | weasysvg | **differs from the reference** | The Arabic word is not shaped: its letters stand apart in isolated forms, so the column runs longer. |
+| ❌ | WeasyPrint | **differs from the reference** | Laid out horizontally. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
