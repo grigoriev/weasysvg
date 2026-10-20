@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import math
 import re
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
+from fontTools.ttLib import TTFont
 from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 from weasyprint.text.fonts import get_hb_object_data
@@ -233,6 +235,16 @@ def test_a_glyph_outside_its_font_has_no_ink() -> None:
     path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
     ink._FONTS["test"] = (path.read_bytes(), 0, 1000)
     assert ink._extent("test", 10**6, 0, 1) is None
+
+
+def test_a_font_without_outlines_has_no_ink() -> None:
+    # A color emoji font holds bitmaps only (CBDT, sbix): no glyf, CFF or CFF2 table to read outlines from
+    font = TTFont(Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf")
+    del font["glyf"], font["loca"]
+    data = io.BytesIO()
+    font.save(data)
+    ink._FONTS["bitmaps"] = (data.getvalue(), 0, 1000)
+    assert ink._extent("bitmaps", 10, 0, 1) is None
 
 
 def test_a_character_no_font_has_cuts_nothing() -> None:

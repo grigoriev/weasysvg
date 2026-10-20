@@ -150,6 +150,8 @@ def _extent(key: str, glyph: int, low: float, high: float) -> tuple[float, float
     if key not in _FONTS:
         return None  # dropped from the cache since the run was laid out
     font = _font(key)
+    if not any(table in font for table in ("glyf", "CFF ", "CFF2")):
+        return None  # bitmap glyphs only (CBDT, sbix): no outline to skip
     glyph_set = font.getGlyphSet()
     name = font.getGlyphOrder()[glyph] if glyph < len(font.getGlyphOrder()) else None
     if name is None or name not in glyph_set:
