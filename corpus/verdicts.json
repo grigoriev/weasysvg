@@ -219,8 +219,8 @@
   "name": "diagrams__mermaid-ink-journey",
   "reference": "chromium",
   "reference_why": "The title has fill=\"\", which browsers ignore: it takes #333 from the CSS of the root, as in Chromium. resvg draws it black.",
-  "verdict": "close",
-  "what": "The title, sized 4ex, is about 4 % smaller: WeasyPrint takes 1ex as half an em, Chromium the x-height of the font.",
+  "verdict": "same",
+  "what": "Matches, the title sized 4ex from the x-height of the font, as in Chromium.",
   "native_verdict": "differs",
   "native_what": "The title, with fill=\"\", and the labels of the two sections are missing."
  },

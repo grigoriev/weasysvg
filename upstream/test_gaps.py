@@ -245,6 +245,18 @@ def test_font_size_keyword_gives_zero() -> None:
     still_broken(not sizes or max(sizes) < 1, "font-size keywords", "text.cascade")
 
 
+def test_relative_font_size_applies_twice() -> None:
+    pdf, _ = render(svg('<g font-size="2em"><text x="10" y="50">Text</text></g>'))
+    sizes = [float(value) for value in re.findall(r" ([\d.]+) Tf", content(pdf))]
+    still_broken(sizes == [64], "font-size inherited as computed", "text.cascade")
+
+
+def test_ex_is_half_the_em() -> None:
+    pdf, _ = render(svg('<text x="10" y="50" font-family="Liberation Sans" font-size="4ex">Text</text>'))
+    sizes = [float(value) for value in re.findall(r" ([\d.]+) Tf", content(pdf))]
+    still_broken(sizes == [32], "ex from the x-height of the font", "text.ex_restyle")
+
+
 def test_nested_text_is_drawn() -> None:
     pdf, _ = render(svg('<text x="10" y="40">A<text x="10" y="80">B</text></text>'))
     still_broken(len(text_matrices(pdf)) > 1, "nested <text>", "text.drop_nested_text")

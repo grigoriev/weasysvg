@@ -18,12 +18,15 @@ scripts joined (css-text-3, cursive tracking). Other runs keep the layout of Wea
 
 from __future__ import annotations
 
+import functools
 import math
 import re
 import sys
+import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -33,6 +36,7 @@ from weasyprint.matrix import Matrix
 from weasyprint.svg.bounding_box import EMPTY_BOUNDING_BOX, extend_bounding_box, is_valid_bounding_box
 from weasyprint.svg.utils import normalize, size
 from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
+from weasyprint.text.fonts import FontConfiguration
 from weasyprint.text.line_break import Layout
 
 from . import _core, ink, textpath, vertical
@@ -60,28 +64,121 @@ DECORATION_LINES = ("underline", "overline", "line-through")
 SKIP_INK = frozenset(("underline", "overline"))
 GLYPHS = "_weasysvg_glyphs"
 FEATURES = {"fonts": True, "baseline": True, "decoration": True}
+DEFAULT_FONT_PX = 16.0  # px, the 12pt WeasyPrint draws an SVG with
 
 _ORIGINAL_CASCADE = wp_svg.Node.cascade
 _ORIGINAL_TEXT = wp_svg.TAGS["text"]
 
 
-# ---------------- font-size keywords ----------------
+# ---------------- font sizes ----------------
+
+
+# The font size of a node as computed along the document, in px
+FONT_PX = "_weasysvg_font_px"
+# Drawn where they are used, with the size of the user: their text inherits from their own ancestors
+RESOURCES = frozenset(("clipPath", "mask", "marker", "pattern"))
+
+
+# The fonts of the SVG being drawn, weakly: its lazy definitions cascade while it draws
+_DRAWING_FONTS: ContextVar[Any] = ContextVar("weasysvg_drawing_fonts", default=None)
+
+
+def note_fonts(svg: Any, _node: Any) -> None:
+    """Note the fonts of the SVG that draws, with its @font-face rules, for the cascade to measure ex."""
+    if svg.font_config is not None:
+        _DRAWING_FONTS.set(weakref.ref(svg.font_config))
+
+
+@functools.cache
+def _system_fonts() -> Any:
+    return FontConfiguration()
+
+
+def _fonts() -> Any:
+    """The fonts of the SVG that draws, else, outside a drawing, the fonts of the system."""
+    noted = _DRAWING_FONTS.get()
+    fonts = noted() if noted is not None else None
+    return fonts if fonts is not None else _system_fonts()
+
+
+def _ex_count(value: str) -> float | None:
+    """How many ex value is, or None if it is no size in ex."""
+    word = normalize(value).split(" ", 1)[0]
+    if not word.endswith("ex"):
+        return None
+    try:
+        return float(word[:-2])
+    except ValueError:
+        return None
+
+
+def _resolved_px(parent: Any, value: str, parent_px: float) -> float:
+    """A font size value in px, against the size and font of parent: ex is the x-height of that font."""
+    if normalize(value).split(" ", 1)[0].endswith("ex"):
+        count = _ex_count(value)
+        if count is None:
+            return parent_px  # a word that ends in ex, which WeasyPrint cannot read either
+        x_height = _metrics(SimpleNamespace(font_config=_fonts()), parent, parent_px)[2] or parent_px / 2
+        return count * x_height
+    return float(size(value, parent_px, parent_px))
+
+
+def _font_px(node: Any) -> float:
+    """The computed font size of node: noted by the cascade, or of the root, against the 12pt of WeasyPrint.
+
+    The root has no parent: its own font measures its ex, as ex_restyle draws it.
+    """
+    noted = getattr(node, FONT_PX, None)
+    if noted is None:
+        noted = _resolved_px(node, node.attrib.get("font-size", "1em"), DEFAULT_FONT_PX)
+        setattr(node, FONT_PX, noted)
+    return float(noted)
 
 
 def cascade(self: Any, child: Any) -> None:
-    _ORIGINAL_CASCADE(self, child)
+    """Cascade the attributes to child, with the font size inherited as computed, not as written.
+
+    WeasyPrint copies the font-size of the parent to the child as text: a relative size such as "2em" then
+    applies again to the size it made. Without it the child takes "1em", the computed size of the parent.
+    A resource gets its computed size written out: it draws with the size of the element that uses it,
+    and its text must still inherit from its own ancestors. A size in ex is written out too, from the
+    x-height of the font of the parent as CSS says: code that reads the size before the element draws
+    then reads the same size.
+    """
+    parent = self.attrib.pop("font-size", None) if self is not child else None
+    try:
+        _ORIGINAL_CASCADE(self, child)
+    finally:
+        if parent is not None:
+            self.attrib["font-size"] = parent
     value = child.attrib.get("font-size")
-    if value is None:
-        return
-    keyword = value.strip().lower()
+    keyword = (value or "").strip().lower()
     if keyword in ("unset", "revert", "revert-layer"):
-        parent = self.attrib.get("font-size") if self is not child else None
-        if parent is None:
-            del child.attrib["font-size"]
-        else:
-            child.attrib["font-size"] = parent
+        del child.attrib["font-size"]
     elif keyword in FONT_SIZE_KEYWORDS:
         child.attrib["font-size"] = FONT_SIZE_KEYWORDS[keyword]
+    if self is child:
+        return
+    parent_px = _font_px(self)
+    own = child.attrib.get("font-size", "1em")
+    setattr(child, FONT_PX, _resolved_px(self, own, parent_px))
+    if child.tag in RESOURCES or normalize(own).split(" ", 1)[0].endswith("ex"):
+        child.attrib["font-size"] = f"{getattr(child, FONT_PX)}px"
+
+
+def ex_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:
+    """A font-size in ex becomes px: one ex is the x-height of the font, as in Chromium, not half the em.
+
+    The cascade writes out every size in ex but the one of the root <svg>, which it never reaches.
+    """
+    count = _ex_count(node.attrib.get("font-size", ""))
+    if count is None:
+        return None
+    saved = {"font-size": node.attrib["font-size"]}
+    # A font with no ink for "x" has no x-height: CSS then takes half an em
+    x_height = _metrics(svg, node, font_size)[2] or font_size / 2
+    node.attrib["font-size"] = f"{count * x_height}px"
+    return saved
 
 
 # ---------------- nested text ----------------
@@ -608,6 +705,8 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
+    _core.add_before_draw(note_fonts)
+    _core.add_restyler(ex_restyle)
     _core.add_restyler(anchor_restyle)
     _core.add_before_draw(chunk_started)
     _core.add_after_draw(chunk_boxes)

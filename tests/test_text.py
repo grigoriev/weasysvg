@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextvars
 import io
 import math
 import re
@@ -47,6 +48,125 @@ def test_font_size_unset_takes_the_parent() -> None:
     pdf = render(svg('<g font-size="20px"><text x="10" y="50" font-size="unset">A</text></g><text x="100" y="50" font-size="revert">B</text>'))
     # B has no parent size: it falls back to the 12pt default of WeasyPrint
     assert font_sizes(pdf) == [20, 16]
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ('<g font-size="2em"><text x="10" y="50">A</text></g>', 32),
+        ('<text x="10" y="50" font-size="2em"><tspan>A</tspan></text>', 32),
+        ('<g font-size="20px"><g font-size="150%"><text x="10" y="50">A</text></g></g>', 30),
+        ('<g font-size="2em"><text x="10" y="50" font-size="inherit">A</text></g>', 32),
+        ('<g font-size="20px"><g font-size="larger"><text x="10" y="50">A</text></g></g>', 24),
+    ],
+)
+def test_a_relative_font_size_applies_once(body: str, expected: float) -> None:
+    # A child inherits the computed size: WeasyPrint copied the text "2em", and applied it again
+    assert font_sizes(render(svg(body))) == [pytest.approx(expected, abs=0.01)]
+
+
+@pytest.mark.parametrize("body", ['<text x="10" y="50" font-size="4ex">A</text>', '<text x="10" y="50" font-size="4ex"><tspan>A</tspan></text>'])
+def test_ex_is_the_x_height_of_the_font(body: str) -> None:
+    # As in Chromium: the x-height of Liberation Sans is 1082 of 2048 units, not half the em
+    pdf = render(svg(f'<g font-family="Liberation Sans">{body}</g>'))
+    assert font_sizes(pdf) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
+
+
+def test_ex_without_an_x_height_is_half_an_em(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A font with no ink for "x" has no x-height: CSS then takes half an em, the text must not vanish
+    monkeypatch.setattr(text, "_metrics", lambda *_: (12.0, 4.0, 0.0))
+    node = SimpleNamespace(attrib={"font-size": "4ex"})
+    text.ex_restyle(None, node, 16)
+    assert node.attrib == {"font-size": "32.0px"}
+
+
+def test_text_in_a_clip_path_inherits_from_its_own_ancestors() -> None:
+    # CSS inherits along the document: the clip path lies in an svg of 10 px, whatever uses it
+    body = '<clipPath id="c"><text x="10" y="20">Clip</text></clipPath><g font-size="40"><rect clip-path="url(#c)" width="200" height="50"/></g>'
+    pdf = render(svg(body, extra=' font-size="10"'))
+    assert font_sizes(pdf) == [10]
+
+
+def test_a_resource_under_a_size_in_ex_takes_the_x_height() -> None:
+    body = '<g font-family="Liberation Sans"><g font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g></g>'
+    assert font_sizes(render(svg(body))) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
+
+
+def test_a_resource_measures_ex_with_the_fonts_of_its_svg() -> None:
+    # A font of @font-face lives in the fonts of the SVG: the clip text takes its x-height, as free text does
+    font = (Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "Amiri-Regular.ttf").as_uri()
+    body = (
+        f"<style>@font-face{{font-family:Embedded;src:url({font})}}</style>"
+        '<g font-family="Embedded"><g font-size="4ex"><clipPath id="c"><text x="10" y="40">Clip</text></clipPath><rect clip-path="url(#c)" width="200" height="50"/></g>'
+        '<text x="10" y="90" font-size="4ex">Free</text></g>'
+    )
+    sizes = font_sizes(render(svg(body)))
+    assert len(sizes) == 2
+    assert max(sizes) - min(sizes) < 0.01
+    assert max(sizes) < 30  # the x-height of Amiri, not of the fallback
+
+
+def test_ex_holds_for_an_anchor_measured_before_drawing() -> None:
+    # A textPath measures its tspans for text-anchor before they draw: 4ex anchors as its size in px does
+    def placed(size: str) -> list[str]:
+        body = f'<path id="p" d="M 10 50 H 190" fill="none"/><text font-family="Liberation Sans"><textPath href="#p" startOffset="50%" text-anchor="middle"><tspan font-size="{size}">AVA</tspan></textPath></text>'
+        return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body))))
+
+    assert placed("4ex") == placed(f"{4 * 16 * 1082 / 2048}px")
+
+
+def test_each_foreign_object_in_ex_takes_the_x_height() -> None:
+    # Two objects are laid out in one batch, when the first draws: the second is not drawn yet
+    html = '<div xmlns="http://www.w3.org/1999/xhtml">A</div>'
+    objects = "".join(f'<foreignObject y="{y}" width="100" height="40" font-size="4ex">{html}</foreignObject>' for y in (0, 50))
+    pdf = render(svg(f'<g font-family="Liberation Sans">{objects}</g>'))
+    assert font_sizes(pdf) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)] * 2
+
+
+def test_ex_in_a_font_size_is_the_x_height_of_the_parent_font() -> None:
+    # CSS: font-relative units of font-size refer to the parent, whatever family the element sets
+    body = '<g font-family="Liberation Sans"><text x="10" y="50" font-family="DejaVu Sans" font-size="4ex">A</text></g>'
+    assert font_sizes(render(svg(body))) == [pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)]
+
+
+def test_ex_in_a_use_target_follows_the_use() -> None:
+    # The target draws inside the <use>: 2ex of its 40 px and its font, not of the 16 px around its <defs>
+    body = '<defs><text id="t" x="10" y="50" font-size="2ex">A</text></defs><use href="#t" font-size="40" font-family="Liberation Sans"/>'
+    assert font_sizes(render(svg(body))) == [pytest.approx(2 * 40 * 1082 / 2048, abs=0.05)]
+
+
+def test_ex_holds_where_a_size_is_read_before_drawing() -> None:
+    # A textPath measures its tspans before they draw: 4ex must place the glyphs as its size in px does
+    def placed(size: str) -> list[str]:
+        body = f'<path id="p" d="M 10 50 H 190" fill="none"/><text font-family="Liberation Sans"><textPath href="#p"><tspan font-size="{size}">AVA</tspan></textPath></text>'
+        return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body))))
+
+    assert placed("4ex") == placed(f"{4 * 16 * 1082 / 2048}px")
+
+
+def test_a_resource_under_a_word_ending_in_ex_takes_the_parent_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    # WeasyPrint cannot read "complex" as a size: the clip path takes the size around it instead
+    monkeypatch.setattr(text, "_ORIGINAL_CASCADE", lambda self, child: None)
+    group = SimpleNamespace(tag="g", attrib={"font-size": "complex"})
+    clip = SimpleNamespace(tag="clipPath", attrib={})
+    text.cascade(group, clip)
+    assert clip.attrib == {"font-size": "16.0px"}
+
+
+def test_ex_outside_a_drawing_takes_the_fonts_of_the_system(monkeypatch: pytest.MonkeyPatch) -> None:
+    # In a context where no SVG draws, the cascade measures with the fonts of the system
+    monkeypatch.setattr(text, "_ORIGINAL_CASCADE", lambda self, child: None)
+    attrib = {"font-size": "4ex", "font-family": "Liberation Sans"}
+    group = SimpleNamespace(tag="g", attrib=attrib, get=attrib.get)
+    clip = SimpleNamespace(tag="clipPath", attrib={})
+    contextvars.Context().run(text.cascade, group, clip)
+    assert float(clip.attrib["font-size"][:-2]) == pytest.approx(4 * 16 * 1082 / 2048, abs=0.05)
+
+
+def test_a_word_ending_in_ex_is_no_size() -> None:
+    node = SimpleNamespace(attrib={"font-size": "complex"})
+    assert text.ex_restyle(None, node, 16) is None
+    assert node.attrib == {"font-size": "complex"}
 
 
 def test_cascade_on_itself_is_harmless(monkeypatch: pytest.MonkeyPatch) -> None:

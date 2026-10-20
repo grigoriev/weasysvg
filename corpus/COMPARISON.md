@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 41 | 107 |
-| 🟡 close to the reference | 20 | 6 |
+| ✅ matches the reference | 41 | 108 |
+| 🟡 close to the reference | 20 | 5 |
 | ❌ differs from the reference | 54 | 1 |
 
 References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
@@ -364,7 +364,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | The title has fill=&quot;&quot;, which browsers ignore: it takes #333 from the CSS of the root, as in Chromium. resvg draws it black. |
-| 🟡 | weasysvg | **close to the reference** | The title, sized 4ex, is about 4 % smaller: WeasyPrint takes 1ex as half an em, Chromium the x-height of the font. |
+| ✅ | weasysvg | **matches the reference** | Matches, the title sized 4ex from the x-height of the font, as in Chromium. |
 | ❌ | WeasyPrint | **differs from the reference** | The title, with fill=&quot;&quot;, and the labels of the two sections are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
