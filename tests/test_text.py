@@ -18,6 +18,7 @@ from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 from weasyprint.text.fonts import get_hb_object_data
 
+from weasysvg import glyphs as glyph_layout
 from weasysvg import ink, text
 from weasysvg.text import baseline_shift, drop_nested_text
 
@@ -872,3 +873,104 @@ def test_the_font_caches_are_bounded() -> None:
         ink._remember(ink._FACES, index, (str(index), None))
     assert len(ink._FACES) == ink.MAX_FONTS
     assert 0 not in ink._FACES
+
+
+# ---------------- joining scripts laid out one character at a time ----------------
+
+ZWJ = "\u200d"
+
+
+def test_each_arabic_letter_is_shaped_in_its_joining_context() -> None:
+    # "اليابان": alef and the letters after an alef join nothing on their right side
+    word = "\u0627\u0644\u064a\u0627\u0628\u0627\u0646"
+    expected = ["\u0627", "\u0644" + ZWJ, ZWJ + "\u064a" + ZWJ, ZWJ + "\u0627", "\u0628" + ZWJ, ZWJ + "\u0627", "\u0646"]
+    assert [glyph_layout.in_context(word, index) for index in range(len(word))] == expected
+
+
+def test_marks_and_other_scripts_keep_their_letters_alone() -> None:
+    # A mark between two letters does not break their joining; Latin and spaces join nothing
+    word = "\u0628\u064e\u0628 ab"
+    assert [glyph_layout.in_context(word, index) for index in range(len(word))] == ["\u0628" + ZWJ, "\u064e", ZWJ + "\u0628", " ", "a", "b"]
+
+
+def test_a_tatweel_joins_both_sides() -> None:
+    word = "\u0628\u0640\u0627"
+    assert [glyph_layout.in_context(word, index) for index in range(len(word))] == ["\u0628" + ZWJ, "\u0640", ZWJ + "\u0627"]
+
+
+@pytest.mark.parametrize("body", ['<text x="50" y="20" writing-mode="tb" font-size="20">\u0644\u0644</text>', '<path id="p" d="M 10 50 H 190" fill="none"/><text font-size="20"><textPath href="#p">\u0644\u0644</textPath></text>'])
+def test_arabic_letters_laid_out_alone_still_join(body: str) -> None:
+    # Two lams: an initial and a final form, two glyphs, where isolated forms would repeat one
+    drawn = re.findall(r"\[<([0-9a-f]+)>[^\]]*\] TJ", content(render(svg(body, height=200))))
+    assert len(drawn) == 2
+    assert drawn[0] != drawn[1]
+
+
+def test_a_right_to_left_run_is_reversed() -> None:
+    # Latin stays, the Arabic run with its inner space turns around by clusters: the mark stays after its letter
+    text = "ab \u0627\u064e\u0644 \u062f c"
+    assert glyph_layout.visual_order(text) == [0, 1, 2, 7, 6, 5, 3, 4, 8, 9]
+
+
+def test_a_vertical_arabic_run_keeps_its_place() -> None:
+    # Sideways, the right end of a right-to-left run lies at the top: the dal, then the alef, as in Chromium.
+    # The y of the text belongs to the alef, the first in logical order: the run starts there all the same
+    pdf = render(svg('<text x="50" y="20" writing-mode="tb" font-size="20">\u0627\u062f</text>', height=200))
+    placed = re.findall(r"[-\d.]+ ([-\d.]+) Tm\n(?:[^\n]*Tf\n)?\[<([0-9a-f]+)>", content(pdf))
+    dal = re.findall(r"\[<([0-9a-f]+)>", content(render(svg('<text x="50" y="20" writing-mode="tb" font-size="20">\u062f</text>', height=200))))[0]
+    ys = {glyph: float(y) for y, glyph in placed}
+    assert ys[dal] == pytest.approx(20)
+    assert min(ys.values()) == pytest.approx(20)
+    assert max(ys.values()) > 25
+
+
+def test_a_positioned_letter_keeps_its_place_in_a_vertical_run() -> None:
+    # A y of its own starts a new chunk: the dal stays at 80, below the alef at 20
+    pdf = render(svg('<text x="50" y="20 80" writing-mode="tb" font-size="20">\u0627\u062f</text>', height=200))
+    dal = re.findall(r"\[<([0-9a-f]+)>", content(render(svg('<text x="50" y="20" writing-mode="tb" font-size="20">\u062f</text>', height=200))))[0]
+    ys = {glyph: float(y) for y, glyph in re.findall(r"[-\d.]+ ([-\d.]+) Tm\n(?:[^\n]*Tf\n)?\[<([0-9a-f]+)>", content(pdf))}
+    assert ys[dal] == pytest.approx(80)
+    assert min(ys.values()) == pytest.approx(20)
+
+
+def test_digits_inside_a_right_to_left_run_keep_their_order() -> None:
+    # Alef, space, the digits 1 and 2, space, dal: the words turn around, the number reads left to right
+    assert glyph_layout.visual_order("\u0627 \u0661\u0662 \u062f") == [5, 4, 2, 3, 1, 0]
+    assert glyph_layout.visual_order("\u0627 1.5 \u062f") == [6, 5, 2, 3, 4, 1, 0]
+
+
+def test_a_number_ending_a_right_to_left_run_belongs_to_it() -> None:
+    # A year after a word: the number comes first in visual order, as the bidi algorithm puts it (W2, N1)
+    assert glyph_layout.visual_order("\u0633\u0646\u0629 \u0662\u0660\u0662\u0664") == [4, 5, 6, 7, 3, 2, 1, 0]
+    assert glyph_layout.visual_order("\u0627 12") == [2, 3, 1, 0]
+    assert glyph_layout.visual_order("a 12") == [0, 1, 2, 3]
+
+
+def test_arabic_on_a_path_runs_right_to_left() -> None:
+    # Two lams on a path: the initial form joins the letter after it in reading order, so it lies to the right
+    def placed(body: str) -> dict[str, float]:
+        # The x of the text matrix of each glyph drawn; a joiner draws an empty array
+        out, x = {}, 0.0
+        for line in content(render(svg(body, height=200))).split("\n"):
+            if line.endswith(" Tm"):
+                x = float(line.split()[4])
+            elif glyph := re.match(r"\[<([0-9a-f]+)>", line):
+                out[glyph.group(1)] = x
+        return out
+
+    initial = re.findall(r"\[<([0-9a-f]+)>", content(render(svg('<text x="10" y="50" font-size="20">\u0644\u200d</text>'))))[0]
+    xs = placed('<path id="p" d="M 10 50 H 190" fill="none"/><text font-size="20"><textPath href="#p">\u0644\u0644</textPath></text>')
+    assert len(xs) == 2
+    assert xs[initial] == max(xs.values())
+
+
+@pytest.mark.parametrize(
+    "body",
+    ['<path id="p" d="M 10 50 H 190" fill="none"/><text font-size="20" letter-spacing="{}"><textPath href="#p">\u0644\u0644</textPath></text>', '<text x="50" y="20" writing-mode="tb" font-size="20" letter-spacing="{}">\u0644\u0644</text>'],
+)
+def test_letter_spacing_leaves_arabic_joined_one_character_at_a_time(body: str) -> None:
+    # As in a run laid out whole: letter-spacing skips cursive scripts, the joined letters keep touching
+    def matrices(spacing: int) -> list[str]:
+        return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body.format(spacing), height=200))))
+
+    assert matrices(10) == matrices(0)

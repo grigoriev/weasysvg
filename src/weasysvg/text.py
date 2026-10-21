@@ -39,7 +39,7 @@ from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.text.line_break import Layout
 
-from . import _core, ink, textpath, vertical
+from . import _core, glyphs, ink, textpath, vertical
 from .conditional import local_name
 from .fonts import FALLBACK, resolve_families
 
@@ -453,14 +453,6 @@ def _draw_lines(svg: Any, node: Any, font_size: float, rects: list[tuple[float, 
 
 POSITIONS = ("x", "y", "dx", "dy")
 PANGO_RECTANGLE = "PangoRectangle *"
-# Cursive scripts take no letter-spacing (css-text-3): Arabic, Syriac, N'Ko, Mandaic, Mongolian,
-# Hanifi Rohingya, Adlam and the Arabic presentation forms
-CURSIVE = ((0x0600, 0x08FF), (0x1800, 0x18AF), (0x10D00, 0x10D3F), (0x1E900, 0x1E95F), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
-
-
-def _cursive(character: str) -> bool:
-    code = ord(character)
-    return any(low <= code <= high for low, high in CURSIVE)
 
 
 def _track(layout: Any, spacing: float) -> float:
@@ -473,7 +465,7 @@ def _track(layout: Any, spacing: float) -> float:
     start = 0
     for character in layout.text:
         end = start + len(character.encode())
-        if not _cursive(character):
+        if not glyphs.cursive(character):
             attribute = pango.pango_attr_letter_spacing_new(int(spacing * TO_UNITS))
             attribute.start_index, attribute.end_index = start, end
             pango.pango_attr_list_change(attributes, attribute)
@@ -508,7 +500,7 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
     if node.get("direction") in ("ltr", "rtl"):
         style["direction"] = node.get("direction")
     letter_spacing = svg.length(node.get("letter-spacing"), font_size)
-    tracked = bool(letter_spacing) and any(_cursive(character) for character in node.text)
+    tracked = bool(letter_spacing) and any(glyphs.cursive(character) for character in node.text)
     if letter_spacing and not tracked:
         style["letter_spacing"] = letter_spacing
     layout, _, _, width, height, baseline = split_first_line(node.text, style, svg.context, float("inf"), 0)
@@ -582,7 +574,9 @@ def _advances(svg: Any, node: Any, font_size: float) -> list[tuple[str, float]]:
     style = _style(svg, node, font_size)
     # A <tspan> measured ahead of its drawing has its family not resolved yet
     style["font_family"] = [family.strip() for family in _family(svg, node).split(",")]
-    return [(character, split_first_line(character, style, svg.context, float("inf"), 0)[3]) for character in node.text]
+    # Each character in the joining context of its word: laid out alone, Arabic still joins
+    shaped = [glyphs.in_context(node.text, index) for index in range(len(node.text))]
+    return [(string, split_first_line(string, style, svg.context, float("inf"), 0)[3]) for string in shaped]
 
 
 def _character_ink(svg: Any, node: Any, font_size: float) -> dict[str, list[ink.Glyph]]:
@@ -592,7 +586,7 @@ def _character_ink(svg: Any, node: Any, font_size: float) -> dict[str, list[ink.
     style = _style(svg, node, font_size)
     style["font_family"] = [family.strip() for family in _family(svg, node).split(",")]
     out = {}
-    for character in set(node.text or ""):
+    for character in {glyphs.in_context(node.text, index) for index in range(len(node.text or ""))}:
         layout = split_first_line(character, style, svg.context, float("inf"), 0)[0]
         # split_first_line hands the layout back deactivated
         layout.reactivate(style)
