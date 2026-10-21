@@ -125,6 +125,7 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 - On a `textPath` and in vertical text, joining and right-to-left order stop at the edge of a `<tspan>`: an
   Arabic word split by one falls apart there.
 - An underline or overline skips no ink under a turned character (`rotate`) or on vertical text.
+- Text with several `y` or `dy` values draws no decoration line.
 - A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
   edge, which knows nothing of the far edge: a filled shape thinner than about two deviations comes out
   darker and sharper than in Chromium, and corners come out mitered inside the shape.
