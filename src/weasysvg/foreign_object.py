@@ -304,7 +304,7 @@ def _table_layout(*args: Any, **kwargs: Any) -> Any:
 # ---------------- empty inline boxes ----------------
 
 _ORIGINAL_ELEMENT_TO_BOX = wp_build.element_to_box
-SIDES_OF_INLINE = ("left", "right")
+SIDES = ("top", "right", "bottom", "left")
 # What an empty inline box brings to the height and baseline of its line. Not its font style or weight:
 # the faces of a family share their line metrics, and <i> and <b> would never go
 LINE_SHAPING = ("font_family", "font_size", "line_height", "vertical_align")
@@ -319,8 +319,8 @@ def _plain_empty(box: Any, parent: Any) -> bool:
     if type(box) is not wp_boxes.InlineBox or box.children:
         return False
     style = box.style
-    drawn = style["outline_width"] or style["box_shadow"] or any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES_OF_INLINE)
-    spaced = any(style[f"margin_{side}"] != "auto" and style[f"margin_{side}"].value for side in SIDES_OF_INLINE)
+    drawn = style["outline_width"] or style["box_shadow"] or any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES)
+    spaced = any(style[f"margin_{side}"] != "auto" and style[f"margin_{side}"].value for side in SIDES)
     shaping = any(style[key] != parent.style[key] for key in LINE_SHAPING)
     return not (drawn or spaced or shaping)
 
@@ -344,7 +344,6 @@ def _element_to_box(*args: Any, **kwargs: Any) -> Any:
 _ORIGINAL_MARKER_TO_BOX = wp_build.marker_to_box
 SYMBOL_MARKERS = frozenset(("disc", "circle", "square"))
 CORNERS = ("top_left", "top_right", "bottom_right", "bottom_left")
-SIDES = ("top", "right", "bottom", "left")
 MARKER_PADDING = 7  # px, kCMarkerPaddingPx of Blink
 
 
