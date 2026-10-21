@@ -175,6 +175,9 @@ def test_marker_on_a_polyline_and_without_markers() -> None:
         # One that ends where it starts is omitted, as SVG says: a marker sees no vertex there
         ("M 335 97 A 0 0 0 1 0 335 97 Z", "M335 97 Z"),
         ("M10 10 L20 10 a0 5 0 0 1 0 0 L30 10", "M10 10 L20 10 L30 10"),
+        # Before a smooth curve it stays, as a line of no length: S and T reflect no control point past it
+        ("M0 0 C10 0 20 10 20 20 A0 0 0 0 1 20 20 S40 40 50 50", "M0 0 C10 0 20 10 20 20 L20 20 S40 40 50 50"),
+        ("M0 0 Q10 0 20 20 a0 0 0 0 1 0 0 t30 30", "M0 0 Q10 0 20 20 l0 0 t30 30"),
         # The other numbers are written exactly
         ("M 1000000000001 0.1 A 0 0 0 0 1 1000000000002 0.30000000000000004", "M1000000000001 0.1 L1000000000002 0.30000000000000004"),
         ("M10 10 a0 5 0 0 1 3 4", "M10 10 l3 4"),

@@ -344,10 +344,13 @@ def _zero_radius(name: str, values: list[float]) -> bool:
     return name in "Aa" and (not values[0] or not values[1])
 
 
-def _as_line(name: str, values: list[float], current: Point) -> str | None:
-    """The line an arc of a zero radius draws, None where it ends at the current point."""
+def _as_line(name: str, values: list[float], current: Point, smooth_next: bool) -> str | None:
+    """The line an arc of a zero radius draws, None where it ends at the current point.
+
+    Before a smooth curve it stays, as a line of no length: S and T reflect no control point past it.
+    """
     origin = current if name == "a" else (0.0, 0.0)
-    if (values[5] + origin[0], values[6] + origin[1]) == current:
+    if (values[5] + origin[0], values[6] + origin[1]) == current and not smooth_next:
         return None
     return f"{'L' if name == 'A' else 'l'}{_number(values[5])} {_number(values[6])}"
 
@@ -373,9 +376,10 @@ def without_zero_radius_arcs(data: str | None) -> str | None:
         return None
     builder = _Builder()
     written: list[str] = []
-    for name, values in commands:
+    for index, (name, values) in enumerate(commands):
         if _zero_radius(name, values):
-            line = _as_line(name, values, builder.current)
+            smooth_next = index + 1 < len(commands) and commands[index + 1][0] in "SsTt"
+            line = _as_line(name, values, builder.current, smooth_next)
             written.extend([line] if line else [])
         else:
             written.append(name + " ".join(_number(value) for value in values))
