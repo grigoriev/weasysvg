@@ -97,6 +97,7 @@ change between releases.
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
+| Path data | An arc of a zero radius draws a straight line to its end, as SVG says: Highcharts closes each slice of a pie with one. |
 
 ## How it compares to Chromium
 

@@ -319,6 +319,51 @@ def parse(data: str | None) -> list[Segment]:
     return builder.segments
 
 
+def _number(value: float) -> str:
+    return f"{value:.12g}"
+
+
+def without_zero_radius_arcs(data: str | None) -> str | None:
+    """The path data with each arc of a zero radius written as the line to its end, None when it has none.
+
+    SVG draws such an arc as a straight line. WeasyPrint 70 writes it as a relative line to the absolute end
+    point, so the line runs off by the current point: Highcharts closes every slice of a pie with one.
+    The commands are written out one by one; data past an error stays as it is, for WeasyPrint to stop at.
+    """
+    scanner = _Scanner(data or "")
+    commands: list[str] = []
+    command = None
+    changed = False
+    mark = 0
+    try:
+        while True:
+            mark = scanner.position
+            if command is None or command in "Zz" or not scanner.at_number():
+                token = scanner.command()
+                if token is None or (command is None and token not in "Mm"):
+                    break
+                command = token
+                if command in "Zz":
+                    commands.append(command)
+                    continue
+            values = _arguments(scanner, command)
+            if command in "Aa" and (not values[0] or not values[1]):
+                commands.append(f"{'L' if command == 'A' else 'l'}{_number(values[5])} {_number(values[6])}")
+                changed = True
+            else:
+                commands.append(command + " ".join(_number(value) for value in values))
+            command = {"M": "L", "m": "l"}.get(command, command)
+        mark = scanner.position
+    except ValueError:
+        pass
+    if not changed:
+        return None
+    tail = (data or "")[mark:].strip()
+    if tail and command and tail[0] not in COMMANDS:
+        tail = command + tail  # the numbers went on the command before them
+    return " ".join([*commands, tail] if tail else commands)
+
+
 class Polyline:
     """A path flattened to chords, for points and tangents at a distance along it."""
 

@@ -704,3 +704,12 @@ def test_a_gradient_transform_through_href_applies_once() -> None:
         return max(row)[1] / 70
 
     assert [round(center(left, top), 2) for left, top in ((20, 20), (110, 20), (20, 110), (110, 110))] == [0.76, 0.76, 0.76, 0.5]
+
+
+@pytest.mark.parametrize("arc", ["A 0 0 0 0 1 60 60", "a 0 0 0 0 1 0 40", "A 0 9 0 0 1 60 60"])
+def test_an_arc_of_no_radius_is_a_line_to_its_end(arc: str) -> None:
+    # WeasyPrint wrote it as a relative line to the absolute end: the triangle ran out to (120, 80).
+    # Highcharts closes every slice of a pie with such an arc.
+    pdf = render(svg(f'<path d="M 20 20 L 60 20 {arc} Z" fill="black"/>'))
+    assert pixel(pdf, 50 * 3 // 4, 30 * 3 // 4) == (0, 0, 0)
+    assert pixel(pdf, 100 * 3 // 4, 64 * 3 // 4) == (255, 255, 255)

@@ -165,3 +165,27 @@ def test_marker_on_a_polyline_and_without_markers() -> None:
     body = f'<defs>{MARKER}</defs><polyline points="20 20 60 20" fill="none" stroke="black" marker-end="url(#m)"/><polyline points="20 60 60 60" fill="none" stroke="black"/>'
     pdf = render(svg(body, height=120))
     assert pixel(pdf, 49, 15) == BLUE
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        # An arc of no radius is a line to its end; uppercase stays absolute, lowercase relative
+        ("M 335 97 A 0 0 0 1 0 335 97 Z", "M335 97 L335 97 Z"),
+        ("M10 10 a0 5 0 0 1 3 4", "M10 10 l3 4"),
+        ("M10 10 A 5 0 0 0 1 3 4", "M10 10 L3 4"),
+        # A repeated arc keeps its radii, each written out
+        ("M0 0 A 0 0 0 0 1 5 5 6 6 0 0 1 7 7", "M0 0 L5 5 A6 6 0 0 1 7 7"),
+        # Data past an error is kept as it is, for WeasyPrint to read up to the same error
+        ("M0 0 A0 0 0 0 1 5 5 L x", "M0 0 L5 5 L x"),
+        # Numbers cut short keep the command they belong to
+        ("M0 0 A0 0 0 0 1 5 5 6", "M0 0 L5 5 A6"),
+    ],
+)
+def test_arcs_of_no_radius_become_lines(data: str, expected: str) -> None:
+    assert pathdata.without_zero_radius_arcs(data) == expected
+
+
+@pytest.mark.parametrize("data", ["M0 0 A 5 5 0 0 1 10 0", "M0 0 L10 10", "", "A 0 0 0 0 1 5 5"])
+def test_path_data_without_arcs_of_no_radius_stays(data: str) -> None:
+    assert pathdata.without_zero_radius_arcs(data) is None

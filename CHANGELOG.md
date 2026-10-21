@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opacity groups, marker orientation, text baselines from font metrics, text-anchor per text chunk, filters, masks and clips on text, circles of the right length, dots of zero-length dashes in place in PDFium, negative dash offsets of odd dash arrays, decorations placed as in Chromium with underlines that skip the ink of the glyphs (laid out whole or character by character), font-size
   keywords, relative font sizes inherited as computed, `ex` from the x-height of the font, and Chromium font selection. No SVG content is rasterized: the PDF stays vector.
 - `feTurbulence`, drawn as an image of the noise, and `feComposite` arithmetic.
+- An arc of a zero radius in path data draws the straight line SVG asks for: WeasyPrint sent it off by the
+  current point, which broke every slice of a Highcharts pie.
 - `systemLanguage` reads the `lang` of the document where the image sits, else `install(language=...)`,
   `en` by default: a German document shows the German branch of a `<switch>`.
 - Arabic laid out one character at a time, on a path or down a column, takes its joining forms and runs
