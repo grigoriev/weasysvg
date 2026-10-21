@@ -313,13 +313,13 @@ LINE_SHAPING = ("font_family", "font_size", "line_height", "vertical_align")
 def _plain_empty(box: Any, parent: Any) -> bool:
     """Whether box is an inline box with nothing in it, nothing drawn, and the line box of its parent.
 
-    White space ignores such a box. An auto margin of an inline box is 0. A box with an outline is drawn, and
+    White space ignores such a box. An auto margin of an inline box is 0. A box with an outline or a shadow is drawn, and
     a box of another font or line height, or another vertical alignment, still shapes the line: both stay.
     """
     if type(box) is not wp_boxes.InlineBox or box.children:
         return False
     style = box.style
-    drawn = style["outline_width"] or any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES_OF_INLINE)
+    drawn = style["outline_width"] or style["box_shadow"] or any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES_OF_INLINE)
     spaced = any(style[f"margin_{side}"] != "auto" and style[f"margin_{side}"].value for side in SIDES_OF_INLINE)
     shaping = any(style[key] != parent.style[key] for key in LINE_SHAPING)
     return not (drawn or spaced or shaping)
