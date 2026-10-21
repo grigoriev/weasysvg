@@ -225,3 +225,10 @@ def test_the_markers_of_a_rewritten_arc_see_the_arc() -> None:
     pdf = render(svg(marker + '<path d="M 20 50 A 40 40 0 0 1 100 50 L 140 50" fill="none" stroke="black" marker-mid="url(#m)"/>', height=100))
     assert pixel(pdf, 100 * 3 // 4, 50 * 3 // 4)[0] > 200
     assert pixel(pdf, 60 * 3 // 4, 10 * 3 // 4) != (255, 0, 0)
+
+
+def test_an_arc_that_ends_where_it_starts_after_a_wide_arc_draws_nothing() -> None:
+    # The second arc adds no segment: the curves of the first must not be written again
+    data = pathdata.rewritten_arcs("M0 0 A 50 50 0 0 1 100 0 A 50 50 0 0 1 100 0 Z")
+    assert data is not None
+    assert data.count("C") == 2

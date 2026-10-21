@@ -432,8 +432,10 @@ def rewritten_arcs(data: str | None) -> str | None:
             written.extend([line] if line else [])
             builder.add(name, values)
             continue
+        count = len(builder.segments)
         builder.add(name, values)
-        if name in "Aa" and _wide_arc(builder.segments[-1]):
+        # An arc that ends where it starts adds no segment: the last one is still the one before
+        if name in "Aa" and len(builder.segments) > count and _wide_arc(builder.segments[-1]):
             changed = True
             written.extend(_as_curves(builder.segments[-1], smooth_next))
         else:
