@@ -15,6 +15,7 @@ import pytest
 import weasyprint
 from helpers import RecordingStream, content, page_html, pixel, rasterize, render, svg
 from PIL import ImageStat
+from weasyprint import svg as wp_svg
 
 from weasysvg import filters, shapeblur, turbulence
 from weasysvg.filters import HIDDEN, Layer, Restyle, Unsupported
@@ -1159,3 +1160,45 @@ def test_the_drop_shadow_of_a_stroked_shape_keeps_the_levels() -> None:
     image = blurred_shape('<circle cx="100" cy="100" r="20" fill="none" stroke="red" stroke-width="4"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
     # The shadow inside the ring, faint
     assert 0.02 < darkness(image, 100, 100 - 12) < 0.6
+
+
+def test_painting_a_box_in_two_threads_leaves_every_shape_drawn_as_itself(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Two blurs of the same tag at once: the one that started first ends first. The shape table must not
+    # keep the box of either, or the source of a drop shadow is painted as its whole region.
+    import threading
+
+    drawn: list[Any] = []
+    monkeypatch.setitem(wp_svg.TAGS, "rect", lambda _svg, node, _size: drawn.append(node))
+    first_inside, second_inside, first_done = threading.Event(), threading.Event(), threading.Event()
+    nodes = [SimpleNamespace(tag="rect"), SimpleNamespace(tag="rect")]
+
+    def draw_into(svg: Any, _original: Any, node: Any, *_args: Any) -> None:
+        if node is nodes[0]:
+            first_inside.set()
+            second_inside.wait(5)
+        else:
+            second_inside.set()
+            first_done.wait(5)
+        wp_svg.TAGS["rect"](svg, node, 0)
+
+    monkeypatch.setattr(filters, "_draw_into", draw_into)
+    svg_ = SimpleNamespace(stream=SimpleNamespace(rectangle=lambda *_box: None))
+
+    def paint(node: Any) -> None:
+        filters._paint_box(svg_, lambda *_args: None, node, 0, None, None, (0, 0, 1, 1), ())
+
+    first = threading.Thread(target=paint, args=(nodes[0],))
+
+    def paint_second() -> None:
+        first_inside.wait(5)
+        paint(nodes[1])
+
+    second = threading.Thread(target=paint_second)
+    first.start()
+    second.start()
+    first.join(5)
+    first_done.set()
+    second.join(5)
+    drawn.clear()
+    wp_svg.TAGS["rect"](svg_, nodes[0], 0)
+    assert drawn == [nodes[0]]

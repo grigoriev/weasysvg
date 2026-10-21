@@ -29,6 +29,7 @@ import hashlib
 import logging
 import math
 import re
+import threading
 import zlib
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -1203,20 +1204,35 @@ def _paint_box(svg: Any, original: Callable[..., None], node: Any, font_size: fl
     had holes: PDFium leaves the inside of a stroke unpainted where its half width passes the radius of a
     curve, a white glint in the shadow of a small drop.
     """
-    shape = wp_svg.TAGS[node.tag]
-
-    def boxed(svg_: Any, node_: Any, font_size_: float) -> Any:
-        if node_ is not node:
-            return shape(svg_, node_, font_size_)
-        svg_.stream.rectangle(*box)
-        return None
-
-    wp_svg.TAGS[node.tag] = boxed
+    with _BOXING_LOCK:
+        if not getattr(wp_svg.TAGS[node.tag], "_weasysvg_boxing", False):
+            wp_svg.TAGS[node.tag] = _boxing(wp_svg.TAGS[node.tag])
+    token = _BOXED.set((node, box))
     try:
         # Grown by nothing: no stroke, the fill in its own paint
         _draw_into(svg, original, node, font_size, context, target, Restyle("grow", 0.0), recolor)
     finally:
-        wp_svg.TAGS[node.tag] = shape
+        _BOXED.reset(token)
+
+
+# The node _paint_box draws as a box, and the box. The shape table is shared by every thread: it gets a
+# wrapper once per tag that reads this, and is never swapped back.
+_BOXED: ContextVar[tuple[Any, Region] | None] = ContextVar("weasysvg_boxed", default=None)
+_BOXING_LOCK = threading.Lock()
+
+
+def _boxing(shape: Callable[[Any, Any, float], Any]) -> Callable[[Any, Any, float], Any]:
+    """shape, drawing the node of _BOXED as its box."""
+
+    def boxing(svg: Any, node: Any, font_size: float) -> Any:
+        boxed = _BOXED.get()
+        if boxed is None or boxed[0] is not node:
+            return shape(svg, node, font_size)
+        svg.stream.rectangle(*boxed[1])
+        return None
+
+    boxing._weasysvg_boxing = True  # type: ignore[attr-defined]
+    return boxing
 
 
 def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
