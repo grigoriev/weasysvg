@@ -199,6 +199,34 @@ def drop_nested_text(root: ET.Element) -> None:
                     parent.remove(child)
 
 
+def _drawn_text(element: ET.Element, outer: ET.Element, parents: dict[ET.Element, ET.Element]) -> bool:
+    """Whether element and every element between it and the <text> outer hold text that is drawn."""
+    while element is not outer:
+        if local_name(element.tag) not in TEXT_TAGS:
+            return False
+        element = parents[element]
+    return True
+
+
+def keep_nested_tails(root: ET.Element) -> None:
+    """The text after a child of a <tspan> becomes a <tspan> of its own.
+
+    WeasyPrint makes such an anonymous <tspan> for the children of a <text> and drops the text after the
+    children of a <tspan>: Polarion writes <wbr/> into the labels of its charts, "Don<wbr/>e".
+    """
+    for outer in [element for element in root.iter() if local_name(element.tag) == "text"]:
+        parents = {child: parent for parent in outer.iter() for child in parent}
+        # Only where the text is drawn: the text of a <desc> or an unknown element stays hidden
+        for parent in [element for element in outer.iter() if element is not outer and _drawn_text(element, outer, parents)]:
+            namespace = parent.tag.rpartition("}")[0] + "}" if "}" in parent.tag else ""
+            # From the end, so an insertion moves no child still to come
+            for index, child in reversed(list(enumerate(parent))):
+                if child.tail:
+                    tspan = ET.Element(namespace + "tspan")
+                    tspan.text, child.tail = child.tail, None
+                    parent.insert(index + 1, tspan)
+
+
 def drop_invalid_rotate(root: ET.Element) -> None:
     for element in root.iter():
         value = element.get("rotate")
@@ -727,6 +755,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
+    _core.add_tree_pass(17, "nested_tails", keep_nested_tails)
     _core.add_before_draw(note_fonts)
     _core.add_restyler(ex_restyle)
     _core.add_restyler(anchor_restyle)

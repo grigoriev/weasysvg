@@ -1040,3 +1040,20 @@ def test_letter_spacing_leaves_arabic_joined_one_character_at_a_time(body: str) 
         return re.findall(r"([-\d.]+ [-\d.]+) Tm", content(render(svg(body.format(spacing), height=200))))
 
     assert matrices(10) == matrices(0)
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        # WeasyPrint dropped the text after a child of a <tspan>: Polarion writes <wbr/> into chart labels
+        ('<text x="10" y="40"><tspan>Don<wbr/>e</tspan></text>', "Done"),
+        ('<text x="10" y="40"><tspan>A<tspan>B</tspan>C</tspan></text>', "ABC"),
+        ('<text x="10" y="40"><tspan>A <tspan>B</tspan> C</tspan></text>', "A B C"),
+        ('<text x="10" y="40"><tspan>A<tspan>B<tspan>C</tspan>D</tspan>E</tspan></text>', "ABCDE"),
+        # An element that draws nothing keeps its own text out, as in Chromium
+        ('<text x="10" y="40"><tspan>A<desc>D</desc>C</tspan></text>', "AC"),
+        ('<text x="10" y="40"><tspan>A<desc><title>T</title> hidden</desc>C</tspan></text>', "AC"),
+    ],
+)
+def test_the_text_after_a_child_of_a_tspan_is_drawn(body: str, expected: str) -> None:
+    assert text_of(render(svg(body))).strip() == expected
