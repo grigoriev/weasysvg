@@ -305,10 +305,15 @@ def test_decoration_lines_follow_the_scale_of_the_svg(decoration: str) -> None:
     assert scaled == [pytest.approx(value / 10, abs=1e-3) for value in plain]
 
 
+def line_rects(pdf: bytes) -> list[tuple[float, float, float, float]]:
+    """The left end, top, right end and height of each thin rectangle: the pieces of the decoration lines."""
+    found = re.findall(r"([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) re", content(pdf))
+    return sorted((float(x), float(y), float(x) + float(width), float(height)) for x, y, width, height in found if 0 < float(height) < 10)
+
+
 def line_pieces(pdf: bytes) -> list[tuple[float, float]]:
     """The left and right end of each thin rectangle: the pieces of the decoration lines."""
-    found = re.findall(r"([-\d.]+) [-\d.]+ ([-\d.]+) ([-\d.]+) re", content(pdf))
-    return sorted((float(x), float(x) + float(width)) for x, width, height in found if 0 < float(height) < 10)
+    return [(left, right) for left, _, right, _ in line_rects(pdf)]
 
 
 @pytest.mark.parametrize(("decoration", "pieces"), [("underline", 2), ("overline", 1), ("line-through", 1)])
@@ -327,12 +332,23 @@ def test_a_line_all_under_ink_paints_no_empty_path(body: str) -> None:
     assert all(line.endswith((" re", " l", " c", " m", "h")) for line in painted)
 
 
-@pytest.mark.parametrize("attributes", ['x="10" textLength="140"', 'x="10 35 60 85"', 'x="10" textLength="60" lengthAdjust="spacingAndGlyphs"'])
+@pytest.mark.parametrize("attributes", ['x="10" textLength="60" lengthAdjust="spacingAndGlyphs"', 'x="10" rotate="0 0 0 0.1"'])
 def test_text_laid_out_by_character_skips_ink_too(attributes: str) -> None:
-    # WeasyPrint lays out such text one character at a time: its glyphs still cut the underline, in two
-    # places when the letters are spread far enough apart
-    pdf = render(svg(f'<text y="60" font-size="40" text-decoration="underline" {attributes}>agya</text>', height=100))
-    assert len(line_pieces(pdf)) in (2, 3)
+    # WeasyPrint lays out such text one character at a time: its glyphs still cut the underline. Squeezed
+    # or turned, the pieces of the characters meet, and the descenders of g and y cut one gap
+    pdf = render(svg(f'<text y="60" font-size="40" font-family="DejaVu Sans" text-decoration="underline" {attributes}>agya</text>', height=100))
+    assert len(line_pieces(pdf)) == 2
+
+
+def test_spread_characters_skip_their_own_ink() -> None:
+    # Each character carries its own piece, which its own descender cuts, as in Chromium: the pieces of the
+    # a stay whole, nothing runs between the characters
+    pdf = render(svg('<text y="60" font-size="40" font-family="DejaVu Sans" text-decoration="underline" x="10 50 90 130">agya</text>', height=100))
+    pieces = line_pieces(pdf)
+    assert pieces[0] == pytest.approx((10, 34.51), abs=0.01)
+    assert pieces[-1] == pytest.approx((130, 154.51), abs=0.01)
+    assert len(pieces) > 3
+    assert all(any(start <= left < right <= start + 30 for start in (10, 50, 90, 130)) for left, right in pieces)
 
 
 def test_text_of_a_pattern_fill_cuts_no_underline() -> None:
@@ -341,7 +357,9 @@ def test_text_of_a_pattern_fill_cuts_no_underline() -> None:
     pattern = '<pattern id="p" width="200" height="100" patternUnits="userSpaceOnUse"><text x="70" y="30" font-size="30">g</text></pattern>'
     plain = render(svg('<text x="10" y="60" font-size="40" textLength="140" text-decoration="underline">aaaa</text>', height=100))
     filled = render(svg(f'<defs>{pattern}</defs><text x="10" y="60" font-size="40" textLength="140" text-decoration="underline" fill="url(#p)">aaaa</text>', height=100))
-    assert len(line_pieces(filled)) == len(line_pieces(plain)) == 1
+    # One whole piece under each a
+    assert line_pieces(filled) == line_pieces(plain)
+    assert len(line_pieces(plain)) == 4
 
 
 def test_rotated_characters_skip_no_ink() -> None:
@@ -415,9 +433,70 @@ def test_a_character_no_font_has_cuts_nothing() -> None:
     assert len(line_pieces(pdf)) == 1
 
 
-def test_decoration_skips_positioned_glyphs_and_blank_runs() -> None:
-    pdf = render(svg('<text x="10" y="50 60" text-decoration="underline">AB</text><text x="10" y="80" dy="1 2" text-decoration="underline">CD</text><text x="10" y="90" text-decoration="underline"> </text>'))
+def test_decoration_skips_blank_runs() -> None:
+    pdf = render(svg('<text x="10" y="90" text-decoration="underline"> </text>'))
     assert rectangles(pdf) == 0
+
+
+# Measured in Chromium, which Safari and Firefox match: text laid out one character at a time draws its
+# decoration lines character by character. Each character carries them over its own advance and the
+# letter-spacing after it; the room textLength, x, and dx add between characters stays bare. DejaVu Sans at
+# 20 px: n and u advance by 12.69, a space by 6.36.
+NUN = 'font-family="DejaVu Sans" font-size="20"'
+ADVANCE = 12.69
+
+
+@pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
+def test_text_length_spacing_leaves_the_added_room_bare(decoration: str) -> None:
+    pdf = render(svg(f'<text x="10" y="50" {NUN} textLength="180" text-decoration="{decoration}">nun</text>'))
+    pieces = line_pieces(pdf)
+    assert len(pieces) == 3
+    # Chromium: 10 to 22.69, 93.66 to 106.34, 177.31 to 190
+    assert [round(value, 1) for piece in pieces for value in piece] == [10.0, 22.7, 93.7, 106.3, 177.3, 190.0]
+
+
+def test_text_length_spacing_gives_a_space_its_own_piece() -> None:
+    pdf = render(svg(f'<text x="10" y="50" {NUN} textLength="180" text-decoration="underline">n n</text>'))
+    widths = [round(right - left, 1) for left, right in line_pieces(pdf)]
+    assert widths == [round(ADVANCE, 1), 6.4, round(ADVANCE, 1)]
+
+
+@pytest.mark.parametrize(("attributes", "starts"), [('x="10 60 110"', [10, 60, 110]), ('x="10" dx="0 30 30"', [10, 52.69, 95.38]), ('x="10 60"', [10, 60])])
+def test_positioned_characters_leave_the_room_between_them_bare(attributes: str, starts: list[float]) -> None:
+    pdf = render(svg(f'<text y="50" {NUN} {attributes} text-decoration="underline">nun</text>'))
+    pieces = line_pieces(pdf)
+    assert [round(left, 1) for left, _ in pieces] == [round(start, 1) for start in starts]
+    # The u and n after x="60" share one chunk: their pieces meet and merge
+    assert round(pieces[-1][1] - pieces[-1][0], 1) == round(ADVANCE * (4 - len(starts)), 1)
+
+
+def test_positioned_characters_carry_the_line_under_their_letter_spacing() -> None:
+    pdf = render(svg(f'<text x="10 60 110" y="50" {NUN} letter-spacing="10" text-decoration="underline">nun</text>'))
+    # Chromium: 10 to 32.69, 60 to 82.69, 110 to 132.69
+    assert [round(right - left, 1) for left, right in line_pieces(pdf)] == [round(ADVANCE + 10, 1)] * 3
+
+
+@pytest.mark.parametrize("spacing", ["0", "4"])
+def test_spacing_and_glyphs_draws_one_line(spacing: str) -> None:
+    # The glyphs stretch to fill textLength: no room is left between them, and the line ends where textLength does
+    pdf = render(svg(f'<text x="10" y="50" {NUN} textLength="180" lengthAdjust="spacingAndGlyphs" letter-spacing="{spacing}" text-decoration="underline">nun</text>'))
+    ((left, right),) = line_pieces(pdf)
+    assert (left, right) == pytest.approx((10, 190))
+
+
+def test_turned_characters_draw_one_line() -> None:
+    # rotate lays the text out one character at a time, but adds no room: the pieces meet
+    pdf = render(svg(f'<text x="10" y="50" {NUN} rotate="0 10 0" text-decoration="underline">nun</text>'))
+    ((left, right),) = line_pieces(pdf)
+    assert (left, right) == pytest.approx((10, 10 + 3 * ADVANCE), abs=0.05)
+
+
+@pytest.mark.parametrize("attributes", ['y="50" dy="0 5 5"', 'y="50 55 60"'])
+def test_each_character_draws_its_line_on_its_own_baseline(attributes: str) -> None:
+    pdf = render(svg(f'<text x="10" {attributes} {NUN} text-decoration="underline">nun</text>'))
+    rects = line_rects(pdf)
+    # Chromium: each piece 1 px below the baseline of its character, 2 px thick
+    assert [(round(left, 1), round(top, 1)) for left, top, _, _ in rects] == [(10.0, 51.0), (round(10 + ADVANCE, 1), 56.0), (round(10 + 2 * ADVANCE, 1), 61.0)]
 
 
 def test_font_weight_values() -> None:
@@ -570,6 +649,13 @@ def test_text_path_decorations(decoration: str) -> None:
     pdf = render(svg(body))
     # One rectangle per character, the space included, each a closed path of four corners
     assert len(re.findall(r" l\n[-\d. ]+ l\n[-\d. ]+ l\nh", content(pdf))) == 3
+
+
+def test_the_last_character_on_a_path_carries_its_letter_spacing() -> None:
+    # Chromium: each n and u carries the line over its advance and the letter-spacing after it, the last too
+    body = f'<text {NUN} letter-spacing="10" text-decoration="underline"><textPath path="M 10 50 H 190">nun</textPath></text>'
+    corners = re.findall(r"([-\d.]+) [-\d.]+ m\n([-\d.]+) [-\d.]+ l\n", content(render(svg(body))))
+    assert [round(float(right) - float(left), 1) for left, right in corners] == [round(ADVANCE + 10, 1)] * 3
 
 
 def test_anchor_restyle_skips_plain_text() -> None:

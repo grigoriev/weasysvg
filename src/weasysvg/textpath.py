@@ -133,9 +133,9 @@ Decoration = tuple[float, float, float | None]  # top, thickness, how far it ski
 def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> bool:
     """Add the pieces of the decoration lines to the path; return whether there was any."""
     drawn = False
-    for index, (character, width, origin, cos, sin) in enumerate(placed):
-        # The line runs on under the letter-spacing, up to the next character
-        length = width + (glyphs.spacing_after(character, letter_spacing) if index + 1 < len(placed) else 0)
+    for character, width, origin, cos, sin in placed:
+        # The line runs on under the letter-spacing after each character, the last one too, as in Chromium
+        length = width + glyphs.spacing_after(character, letter_spacing)
         for top, thickness, dilation in decorations:
             # Each character skips its own ink, in its own frame
             cuts = ink.intercepts(characters.get(character, []), top, top + thickness) if dilation is not None else []

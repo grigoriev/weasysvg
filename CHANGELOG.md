@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Text laid out one character at a time draws its decoration lines character by character, as Chromium,
+  Safari and Firefox do: each character carries them over its advance and its letter-spacing, and the room
+  `textLength`, `x` and `dx` add between characters stays bare. Text with several `y` or `dy` values gets its
+  lines too, under each character on its own baseline. On a `textPath` the last character carries its
+  letter-spacing as well.
 - An arc of a zero radius in path data draws the straight line SVG asks for: WeasyPrint sent it off by the
   current point, which broke every slice of a Highcharts pie.
 - The text after a child of a `<tspan>` is drawn: WeasyPrint dropped it, so `Don<wbr/>e` in a Polarion chart
