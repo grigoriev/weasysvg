@@ -1,6 +1,7 @@
 """The two hooks that several features share, each installed once.
 
-- ``images.SVGImage.__init__``: runs the tree passes on the parsed XML, then wraps the URL fetcher.
+- ``images.SVGImage.__init__``: runs the tree passes on the parsed XML, then wraps the URL fetcher, then
+  calls the image hooks with the built image.
 - ``svg.SVG.draw_node``: one replacement that combines blend mode, early mask and complex clip
   (paint.py) with vector filters (filters.py), in the compositing order of CSS: filter, then clip and
   mask, then blend. It also draws the opacity group, unbounded: the bounding box of WeasyPrint clips
@@ -36,6 +37,9 @@ Restyler = Callable[[Any, Any, float], "dict[str, str | None] | None"]
 # Tree passes run in the order of their rank: conditional (10), paint (20), foreign_object (30)
 _TREE_PASSES: list[tuple[int, str, TreePass]] = []
 _FETCHER_WRAPPERS: list[FetcherWrapper] = []
+# Called with each SVGImage once it is built
+ImageHook = Callable[[Any], None]
+_IMAGE_HOOKS: list[ImageHook] = []
 _RESTYLERS: list[Restyler] = []
 # Called with the SVG and the node once the node and its children are drawn
 AfterDraw = Callable[[Any, Any], None]
@@ -74,6 +78,12 @@ def add_fetcher_wrapper(function: FetcherWrapper) -> None:
     _install_svgimage_hook()
 
 
+def add_image_hook(function: ImageHook) -> None:
+    if function not in _IMAGE_HOOKS:
+        _IMAGE_HOOKS.append(function)
+    _install_svgimage_hook()
+
+
 def _svgimage_init(self: Any, tree: Any, base_url: Any, url_fetcher: Any, context: Any) -> None:
     for _, _, function in _TREE_PASSES:
         function(tree)
@@ -81,6 +91,8 @@ def _svgimage_init(self: Any, tree: Any, base_url: Any, url_fetcher: Any, contex
         for wrap in _FETCHER_WRAPPERS:
             url_fetcher = wrap(url_fetcher)
     _ORIGINAL_SVGIMAGE_INIT(self, tree, base_url, url_fetcher, context)
+    for hook in _IMAGE_HOOKS:
+        hook(self)
 
 
 def _install_svgimage_hook() -> None:

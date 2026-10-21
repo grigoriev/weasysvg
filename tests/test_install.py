@@ -75,8 +75,21 @@ def test_svgimage_hook_without_fetcher(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[object] = []
     monkeypatch.setattr(_core, "_ORIGINAL_SVGIMAGE_INIT", lambda self, tree, base_url, url_fetcher, context: seen.append(url_fetcher))
     monkeypatch.setattr(_core, "_TREE_PASSES", [])
+    monkeypatch.setattr(_core, "_IMAGE_HOOKS", [])
     _core._svgimage_init(object(), object(), None, None, None)
     assert seen == [None]
+
+
+def test_an_image_hook_is_added_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(_core, "_IMAGE_HOOKS", [])
+
+    def hook(_image: object) -> None:
+        pass
+
+    _core.add_image_hook(hook)
+    _core.add_image_hook(hook)
+    hooks = _core._IMAGE_HOOKS
+    assert hooks == [hook]
 
 
 def test_a_later_install_turns_on_fonts_for_svg_text(monkeypatch: pytest.MonkeyPatch) -> None:

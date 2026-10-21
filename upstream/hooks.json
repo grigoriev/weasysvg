@@ -13,6 +13,10 @@
    "fingerprint": "04e1a2763f1f9818",
    "used_by": "conditional.handle_element: the lang of the element an image belongs to"
   },
+  "weasyprint.images:SVGImage.draw": {
+   "fingerprint": "16c489bb134cdeb8",
+   "used_by": "conditional.svgimage_draw: nested SVGs are built while it draws"
+  },
   "weasyprint.images:get_image_from_uri": {
    "fingerprint": "92a9810c10716ca3",
    "used_by": "conditional.get_image_from_uri: a cache read by key alone, keyed by URL"

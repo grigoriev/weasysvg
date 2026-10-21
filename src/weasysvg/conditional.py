@@ -18,6 +18,7 @@ from xml.etree import ElementTree as ET
 
 from weasyprint import document as wp_document
 from weasyprint import html as wp_html
+from weasyprint import images as wp_images
 
 from . import _core
 
@@ -31,6 +32,7 @@ DEFAULT_LANGUAGE = "en"
 LANGUAGE: ContextVar[str | None] = ContextVar("weasysvg_language", default=None)
 _ORIGINAL_HANDLE_ELEMENT = wp_html.handle_element
 _ORIGINAL_GET_IMAGE_FROM_URI = wp_document.original_get_image_from_uri
+_ORIGINAL_SVGIMAGE_DRAW = wp_images.SVGImage.draw
 
 
 def local_name(tag: object) -> str | None:
@@ -99,8 +101,11 @@ def apply_conditionals(root: ET.Element) -> None:
 
 
 def handle_element(element: Any, box: Any, get_image_from_uri: Callable[..., Any], base_url: str | None) -> Any:
-    """handle_element of WeasyPrint, the image of the element built in the language of the element."""
-    token = LANGUAGE.set(box.style["lang"])
+    """handle_element of WeasyPrint, the image of the element built in the language of the element.
+
+    An element without a lang inside a foreignObject keeps the language of the SVG around it.
+    """
+    token = LANGUAGE.set(box.style["lang"] or LANGUAGE.get())
     try:
         return _ORIGINAL_HANDLE_ELEMENT(element, box, get_image_from_uri, base_url)
     finally:
@@ -131,8 +136,26 @@ def get_image_from_uri(cache: Any, *args: Any, **kwargs: Any) -> Any:
     return _ORIGINAL_GET_IMAGE_FROM_URI(_ByLanguage(cache, reader_language()), *args, **kwargs)
 
 
+def _note_language(image: Any) -> None:
+    image.weasysvg_language = LANGUAGE.get()
+
+
+def svgimage_draw(self: Any, *args: Any, **kwargs: Any) -> Any:
+    """SVGImage.draw of WeasyPrint in the language the image was built in.
+
+    An SVG it draws, an <image> or the content of a foreignObject, is built while it draws.
+    """
+    token = LANGUAGE.set(getattr(self, "weasysvg_language", None))
+    try:
+        return _ORIGINAL_SVGIMAGE_DRAW(self, *args, **kwargs)
+    finally:
+        LANGUAGE.reset(token)
+
+
 def install() -> None:
     _core.add_tree_pass(10, "conditional", apply_conditionals)
+    _core.add_image_hook(_note_language)
+    wp_images.SVGImage.draw = svgimage_draw
     wp_html.handle_element = handle_element
     # document.py builds its partial from this name on each rendering
     wp_document.original_get_image_from_uri = get_image_from_uri

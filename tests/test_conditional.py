@@ -194,3 +194,16 @@ def test_a_background_reads_the_language_of_install(monkeypatch: pytest.MonkeyPa
     body = f'<div lang="de" style="width:200px;height:100px;background:url(data:image/svg+xml;base64,{data}) no-repeat"></div>'
     weasysvg.install(language="ru")
     assert text_of(page(body)).strip() == "Privet"
+
+
+def test_a_nested_svg_takes_the_language_of_the_document() -> None:
+    # An <image> of an SVG is built while the outer SVG draws, after handle_element is done
+    inner = base64.b64encode(GREETING.encode()).decode()
+    outer = svg(f'<image width="200" height="100" href="data:image/svg+xml;base64,{inner}"/>')
+    assert text_of(page(image(outer), lang="de")).strip() == "Hallo"
+
+
+def test_an_svg_inside_a_foreign_object_takes_the_language_of_the_document() -> None:
+    inner = base64.b64encode(GREETING.encode()).decode()
+    outer = svg(f'<foreignObject width="200" height="100"><div xmlns="{XHTML_NS}"><img src="data:image/svg+xml;base64,{inner}"/></div></foreignObject>')
+    assert text_of(page(image(outer), lang="ru")).strip() == "Privet"

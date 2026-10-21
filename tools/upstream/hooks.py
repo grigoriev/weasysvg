@@ -30,6 +30,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.images:RasterImage": "filters._draw_image draws the pixels of feTurbulence through it",
     "weasyprint.images:SVGImage.__init__": "_core: tree passes and fetcher wrappers run before it",
     "weasyprint.html:handle_element": "conditional.handle_element: the lang of the element an image belongs to",
+    "weasyprint.images:SVGImage.draw": "conditional.svgimage_draw: nested SVGs are built while it draws",
     "weasyprint.images:get_image_from_uri": "conditional.get_image_from_uri: a cache read by key alone, keyed by URL",
     "weasyprint.document:Document._build_layout_context": "conditional.install: the partial of original_get_image_from_uri",
     "weasyprint.svg:SVG.__init__": "_core, paint: svg.paths, svg.masks, svg.filters, cursor state",
