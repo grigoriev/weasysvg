@@ -55,7 +55,7 @@ REFERENCES = {"chromium": "Chromium", "resvg": "resvg", "both": "Chromium and re
 COLUMNS = (("Chromium", "render/chromium"), ("resvg", "render/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
 # The PDFs of each rendering: make references prints Chromium, make comparison runs the bench
 VISUAL = ROOT / "tools" / "visual" / "out"
-PDFS = {"render/chromium": VISUAL / "chromium", "render/weasyprint": VISUAL / "native" / "pdf", "render/weasysvg": VISUAL / "weasysvg" / "pdf"}
+PDFS = {"chromium": VISUAL / "chromium", "weasyprint": VISUAL / "native" / "pdf", "weasysvg": VISUAL / "weasysvg" / "pdf"}
 Box = tuple[int, int, int, int]
 
 
@@ -123,7 +123,7 @@ def save(image: Image.Image, folder: str, name: str) -> None:
 def panels(item: dict[str, Any]) -> tuple[str | None, list[str]]:
     """Write the four panels of item, each cropped to the ink of the Chromium reference.
 
-    Returns a resvg failure and the folders whose PDF is missing.
+    Returns a resvg failure and the renderings whose PDF is missing.
     """
     name, box = item["name"], item.get("reference_box")
     inside(CORPUS / "render" / f"{name}.webp")  # a name with a path in it would write elsewhere
@@ -136,12 +136,12 @@ def panels(item: dict[str, Any]) -> tuple[str | None, list[str]]:
     # The box of the Chromium panel on the page, at SCALE
     absolute = (SCALE * (box[0] + ink[0]), SCALE * (box[1] + ink[1]), SCALE * (box[0] + ink[2]), SCALE * (box[1] + ink[3]))
     missing = []
-    for folder, pdfs in PDFS.items():
+    for key, pdfs in PDFS.items():
         rendered = raster(pdfs / f"{name}.pdf", METRIC_DPI * SCALE)
         if rendered is None:
-            missing.append(folder)
+            missing.append(key)
         else:
-            save(rendered.crop(absolute), folder, name)
+            save(rendered.crop(absolute), f"render/{key}", name)
     page = render_resvg(item)
     if isinstance(page, str):
         return page, missing
@@ -314,7 +314,7 @@ def main() -> int:
     for _, folder in COLUMNS:
         (CORPUS / folder).mkdir(parents=True, exist_ok=True)
     index = json.loads((INDEX).read_text())
-    unprinted = [item for item in index if item.get("reference_box") and not (PDFS["render/chromium"] / f"{item['name']}.pdf").exists()]
+    unprinted = [item for item in index if item.get("reference_box") and not (PDFS["chromium"] / f"{item['name']}.pdf").exists()]
     if unprinted:
         from make_references import print_pdfs
 
