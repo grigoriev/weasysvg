@@ -13,8 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the boxes in the OSI model from Wikimedia (`paint-order: stroke`) shows its outer half only. The
   `paint_order` argument of `install()` turns it off.
 
+### Changed
+
+- Text decoration lines take their thickness and place from the font tables, as WeasyPrint draws
+  `text-decoration` on HTML text, so SVG text and HTML text in one PDF get the same lines. The underline and
+  the overline run straight through the glyphs: WeasyPrint skips no ink. This departs from Chromium on
+  purpose (a tenth of the font size, ink skipped) and matches resvg; `text-decoration-thickness: auto`
+  allows both.
+
 ### Fixed
 
+- A dash that runs through the start point of a closed shape is one dash, with its line join, as in
+  Chromium. PDFium drew two dashes that met there: a light seam across the stroke and a notch on its
+  outer edge, and no miter at the corner of a rectangle. Every dash keeps its place.
 - A translucent stroke over a fill shows the fill under it, as in Chromium. WeasyPrint filled and stroked
   in one operator, a knockout object in PDF, so the stroke showed the white behind the shape.
 - Text laid out one character at a time draws its decoration lines character by character, as Chromium,
@@ -43,6 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Tux) and left white glints where the grown paint had holes (the Inkscape logo).
 - The blurred edge of a plain rect follows the Gaussian to about one level of 255, its tail included:
   one shading over 8 deviations showed bands in PDFium, and the paint stopped at 2.15 deviations.
+- Any blurred content made of paths fades as in Chromium: a group, a stroke, several shapes and colors.
+  Its coverage per color is read back from the PDF operators, blurred and drawn as a mesh of shaded
+  triangles, each color mixed in by its share. The levels of the nearest edge drew a mitered corner on a
+  blurred square (resvg `filters-filter--on-the-root-svg`) and a stroke in steps with a hard inner edge.
+  Text, images, gradients, patterns, masks, blend modes and dashes keep the levels.
+- The gradient of a blurred shape pads past the box of the shape: the pattern WeasyPrint makes of it
+  repeated there, which cut the shadow of the map in the OpenStreetMap logo with hard straight edges.
 
 ## [0.1.0] - 2026-10-21
 

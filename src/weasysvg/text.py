@@ -3,7 +3,7 @@
 Touches:
 - ``svg.TAGS`` text entries and the global ``svg.text``, with one replacement ``draw_text``:
   font family resolved as Chromium does (fonts.py), dominant-baseline from real font metrics,
-  text-decoration placed as in Chromium. ``draw_node`` recognizes text nodes by that global, so both change together.
+  text-decoration placed and sized from the font, as WeasyPrint draws it on HTML text. ``draw_node`` recognizes text nodes by that global, so both change together.
 - ``svg.Node.cascade``: font-size keywords. ``size()`` knows none, so "initial" or "medium" gave 0.
   The cascade rewrites the attribute once, so every reader of font-size sees a length.
 - a tree pass: a <text> inside a <text> is not rendered, as in browsers.
@@ -26,7 +26,7 @@ import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
@@ -41,7 +41,7 @@ from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.text.line_break import Layout
 
-from . import _core, glyphs, ink, paint_order, textpath, vertical
+from . import _core, glyphs, paint_order, textpath, vertical
 from .conditional import local_name
 from .fonts import FALLBACK, resolve_families
 
@@ -66,9 +66,7 @@ FONT_SIZE_KEYWORDS = {
 }
 SHIFTED = frozenset(("central", "middle", "hanging", "text-before-edge", "text-after-edge", "ideographic", "mathematical"))
 DECORATION_LINES = ("underline", "overline", "line-through")
-# The lines that skip the ink of the glyphs they cross, as in Chromium (text-decoration-skip-ink: auto)
-SKIP_INK = frozenset(("underline", "overline"))
-GLYPHS = "_weasysvg_glyphs"
+DRAWN = "_weasysvg_drawn"
 FEATURES = {"fonts": True, "baseline": True, "decoration": True}
 DEFAULT_FONT_PX = 16.0  # px, the 12pt WeasyPrint draws an SVG with
 
@@ -79,13 +77,11 @@ _ORIGINAL_DRAW_FIRST_LINE = wp_draw_text.draw_first_line
 
 @dataclass
 class Drawn:
-    """What a decorated node drew: the pieces its lines run over, and the glyphs that cut them."""
+    """What a decorated node drew: the pieces its lines run over."""
 
     stream: Any  # a pattern fill draws its own text meanwhile, into a stream of its own
-    reads_ink: bool  # whether the glyphs are read: only a line that skips ink needs them
     by_character: bool  # laid out one character at a time, by text() of WeasyPrint
     letters: list[tuple[float, float, float]] = field(default_factory=list)  # left end, advance and baseline of each run
-    glyphs: list[tuple[float, ink.Glyph]] = field(default_factory=list)  # each glyph with its baseline
 
 
 # What draw_first_line places while text() of WeasyPrint draws a decorated node
@@ -700,33 +696,23 @@ def carried_shifts(stream: Any) -> Iterator[None]:
 # ---------------- text-decoration ----------------
 
 
-def chromium_lines(lines: list[str], font_size: float, ascent: float) -> list[tuple[float, float]]:
-    """Top, below the baseline, and thickness of each decoration line, as Chromium places them.
+def font_lines(lines: list[str], layout: Any) -> list[tuple[float, float]]:
+    """Top, below the baseline, and thickness of each decoration line, as WeasyPrint draws them on HTML text.
 
-    Read from the PDF Chromium prints, for five fonts at sizes from 8 to 60 px: every line is font-size / 10
-    thick, one px at least. The places follow font-size / 10 itself, below the minimum too. The underline
-    starts below the baseline by half of it, rounded up, whatever underline the font declares. The
-    overline ends above the rounded ascent by it, truncated. The line-through is centered a third of the
-    rounded ascent up.
+    draw_text of WeasyPrint reads them from the metrics Pango gives for the font (post and OS/2 tables):
+    the underline from its position and thickness, the overline from the ascent down, as thick as the
+    underline, the line-through centered on its position with its own thickness. SVG text and HTML text of
+    one PDF so get the same lines. Chromium draws font-size / 10 instead; resvg and Firefox read the font
+    too, and text-decoration-thickness: auto allows both.
     """
-    tenth = font_size / 10
-    thickness = max(1.0, tenth)
-    rounded = math.floor(ascent + 0.5)
     out = []
     if "underline" in lines:
-        out.append((float(math.ceil(tenth / 2)), thickness))
+        out.append((-layout.underline_position, layout.underline_thickness))
     if "overline" in lines:
-        out.append((-float(rounded + math.trunc(tenth)), thickness))
+        out.append((-layout.ascent, layout.underline_thickness))
     if "line-through" in lines:
-        out.append((-rounded / 3 - tenth / 2, thickness))
+        out.append((-layout.strikethrough_position - layout.strikethrough_thickness / 2, layout.strikethrough_thickness))
     return out
-
-
-def _lines_of(svg: Any, lines: list[str], font_size: float, layout: Any) -> list[tuple[float, float]]:
-    """chromium_lines in user units: Chromium applies its minimum and its rounding to the scaled font."""
-    scale = _core.text_scale(svg)
-    found = chromium_lines(lines, font_size * scale, layout.ascent * scale)
-    return [(top / scale, thickness / scale) for top, thickness in found]
 
 
 def _lines(node: Any) -> list[str]:
@@ -782,39 +768,26 @@ def _pieces(svg: Any, node: Any, font_size: float, drawn: Drawn, width: float) -
 def _decorate(svg: Any, node: Any, font_size: float) -> None:
     """Draw the lines over the runs text() just laid out, with the position and thickness of the font.
 
+    The lines run straight through the glyphs: WeasyPrint skips no ink on HTML text, nor does resvg.
     Limits: the paint of the node itself, not of the element that declares the lines.
     """
-    drawn: Drawn | None = node.__dict__.pop(GLYPHS, None)
+    drawn: Drawn | None = node.__dict__.pop(DRAWN, None)
     lines = _lines(node)
-    if drawn is None or not lines or not node.text or not node.text.strip() or not is_valid_bounding_box(node.text_bounding_box):
+    if drawn is None or not drawn.letters or not lines or not node.text or not node.text.strip() or not is_valid_bounding_box(node.text_bounding_box):
         return
     style = _style(svg, node, font_size)
     style["text_decoration_line"] = set(lines)
     layout = Layout(style)
     layout.set_text(node.text)
-    found = _lines_of(svg, lines, font_size, layout)
+    found = font_lines(lines, layout)
     width = _line_width(layout)
     layout.deactivate()
-    dilation_limit = ink.MAX_DILATION / _core.text_scale(svg)
     pieces = _pieces(svg, node, font_size, drawn, width)
-    # A glyph cuts the line of its own baseline only
-    on_baseline: dict[float, list[ink.Glyph]] = {}
-    for baseline, glyph in drawn.glyphs:
-        on_baseline.setdefault(baseline, []).append(glyph)
-    rects = []
-    for kind, (top, thickness) in zip(lines, found, strict=True):
-        dilation = min(thickness, dilation_limit)
-        cuts = {baseline: ink.intercepts(glyphs, top, top + thickness) for baseline, glyphs in on_baseline.items()} if kind in SKIP_INK else {}
-        for start, end, baseline in pieces:
-            near = [(low, high) for low, high in cuts.get(baseline, []) if high + dilation > start and low - dilation < end]
-            rects += [(left, baseline + top, right - left, thickness) for left, right in ink.skipped(start, end, near, dilation)]
-    _draw_lines(svg, node, font_size, rects)
+    _draw_lines(svg, node, font_size, [(start, baseline + top, end - start, thickness) for top, thickness in found for start, end, baseline in pieces])
 
 
 def _draw_lines(svg: Any, node: Any, font_size: float, rects: list[tuple[float, float, float, float]]) -> None:
     """Fill the rectangles of the lines in the paint of the node."""
-    if not rects:
-        return  # every piece lies under ink: a paint operator needs a path before it
     svg.stream.push_state()
     try:
         fill, stroke = svg.set_graphical_state(node, font_size)
@@ -916,11 +889,9 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
         text_box.baseline = baseline
         with carried_shifts(svg.stream):
             emojis = draw_first_line(svg.stream, text_box, "none", "none", Matrix(d=-1, e=x_position, f=y_position))
-        # Where the run lies, for its decoration lines, and its glyphs for a line that skips their ink
-        if FEATURES["decoration"] and (lines := _lines(node)):
-            reads = bool(SKIP_INK.intersection(lines))
-            glyphs_of = ink.run_glyphs(layout.get_first_line()[0], x_position) if reads else []
-            node.__dict__[GLYPHS] = Drawn(svg.stream, reads, False, [(x_position, width, y_position)], [(y_position, glyph) for glyph in glyphs_of])
+        # Where the run lies, for its decoration lines
+        if FEATURES["decoration"] and _lines(node):
+            node.__dict__[DRAWN] = Drawn(svg.stream, False, [(x_position, width, y_position)])
         svg.stream.end_text()
     finally:
         svg.stream.pop_state()
@@ -931,7 +902,7 @@ def recorded_draw_first_line(stream: Any, textbox: Any, text_overflow: Any, bloc
     """draw_first_line of WeasyPrint, noting each character it places while a decorated node draws.
 
     The decoration lines run under each character on its own baseline. A turned character keeps its piece
-    level, as in Chromium; its glyph crosses a line at a slant, so it is left out and cuts nothing.
+    level, as in Chromium.
     """
     drawing = _DRAWING.get()
     if drawing is not None and drawing.stream is not stream:
@@ -946,10 +917,6 @@ def recorded_draw_first_line(stream: Any, textbox: Any, text_overflow: Any, bloc
         x, baseline = matrix[2][0], matrix[2][1]
         # The first column holds the scale of textLength, turned or not
         recording.letters.append((x, _line_width(textbox.pango_layout) * math.hypot(matrix[0][0], matrix[1][0]), baseline))
-        if recording.reads_ink and matrix[0][1] == 0 and matrix[1][0] == 0:
-            scale_x = matrix[0][0]
-            line = textbox.pango_layout.get_first_line()[0]
-            recording.glyphs.extend((baseline, replace(glyph, x=x + scale_x * glyph.x, stretch=scale_x)) for glyph in ink.run_glyphs(line, 0))
     return emojis
 
 
@@ -957,13 +924,13 @@ def _draw_decorated(svg: Any, node: Any, font_size: float) -> Any:
     if _whole_run(node):
         _draw_run(svg, node, font_size)
         result = None
-    elif FEATURES["decoration"] and (lines := _lines(node)):
+    elif FEATURES["decoration"] and _lines(node):
         # WeasyPrint lays the text out one character at a time: its characters are noted as they are drawn
-        drawn = Drawn(svg.stream, bool(SKIP_INK.intersection(lines)), True)
+        drawn = Drawn(svg.stream, True)
         token = _RECORDED.set(drawn)
         try:
             result = _ORIGINAL_TEXT(svg, node, font_size)
-            node.__dict__[GLYPHS] = drawn
+            node.__dict__[DRAWN] = drawn
         finally:
             _RECORDED.reset(token)
     else:
@@ -995,27 +962,8 @@ def _advances(svg: Any, node: Any, font_size: float) -> list[tuple[str, float]]:
     return [(string, split_first_line(string, style, svg.context, float("inf"), 0)[3]) for string in shaped]
 
 
-def _character_ink(svg: Any, node: Any, font_size: float) -> dict[str, list[ink.Glyph]]:
-    """The glyphs of each character of node laid out alone, as textpath.py draws them, its baseline at 0."""
-    from weasyprint.text.line_break import split_first_line
-
-    style = _style(svg, node, font_size)
-    style["font_family"] = [family.strip() for family in _family(svg, node).split(",")]
-    out = {}
-    for character in {glyphs.in_context(node.text, index) for index in range(len(node.text or ""))}:
-        layout = split_first_line(character, style, svg.context, float("inf"), 0)[0]
-        # split_first_line hands the layout back deactivated
-        layout.reactivate(style)
-        out[character] = ink.run_glyphs(layout.get_first_line()[0], 0)
-        layout.deactivate()
-    return out
-
-
-def _path_decorations(svg: Any, node: Any, font_size: float) -> list[tuple[float, float, float | None]]:
-    """Top and thickness of each decoration line, below the baseline positive, and how far it skips ink.
-
-    None for a line-through, which skips no ink.
-    """
+def _path_decorations(svg: Any, node: Any, font_size: float) -> list[tuple[float, float]]:
+    """Top and thickness of each decoration line, below the baseline positive."""
     lines = _lines(node)
     if not lines:
         return []
@@ -1024,10 +972,9 @@ def _path_decorations(svg: Any, node: Any, font_size: float) -> list[tuple[float
     style["text_decoration_line"] = set(lines)
     layout = Layout(style)
     layout.set_text(node.text or "x")
-    found = _lines_of(svg, lines, font_size, layout)
+    found = font_lines(lines, layout)
     layout.deactivate()
-    limit = ink.MAX_DILATION / _core.text_scale(svg)
-    return [(top, thickness, min(thickness, limit) if kind in SKIP_INK else None) for kind, (top, thickness) in zip(lines, found, strict=True)]
+    return found
 
 
 def _laid_out(node: Any) -> bool:
@@ -1079,10 +1026,7 @@ def _draw_on_path(svg: Any, node: Any, font_size: float) -> bool:
         if found is None:
             return False
         state = found
-    decorations = _path_decorations(svg, node, font_size)
-    skipping = any(dilation is not None for _, _, dilation in decorations)
-    characters = _character_ink(svg, node, font_size) if skipping else {}
-    textpath.draw(svg, node, font_size, state, _style(svg, node, font_size), _advances(svg, node, font_size), decorations, characters)
+    textpath.draw(svg, node, font_size, state, _style(svg, node, font_size), _advances(svg, node, font_size), _path_decorations(svg, node, font_size))
     return True
 
 

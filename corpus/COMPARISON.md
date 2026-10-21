@@ -7,11 +7,11 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 108 |
-| 🟡 close to the reference | 22 | 6 |
+| ✅ matches the reference | 39 | 109 |
+| 🟡 close to the reference | 22 | 5 |
 | ❌ differs from the reference | 54 | 0 |
 
-References: Chromium 39, resvg 7, Chromium and resvg 69.
+References: Chromium 36, resvg 10, Chromium and resvg 69.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
@@ -960,7 +960,7 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium and resvg |  |
-| 🟡 | weasysvg | **close to the reference** | The blurred square has mitered corners, not round ones: a blur of anything but a plain rect is drawn in levels. |
+| ✅ | weasysvg | **matches the reference** | Matches: the square and the frame blur with round corners. |
 | ❌ | WeasyPrint | **differs from the reference** | Not blurred. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -1533,8 +1533,8 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium | resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium. |
-| ✅ | weasysvg | **matches the reference** | Matches, the line-through included. |
+| 📌 | Reference | resvg | Chromium draws the line a tenth of the font size thick; resvg and the resvg suite take its thickness and place from the font, as WeasyPrint does for HTML text. text-decoration-thickness auto allows both; weasysvg follows the font. |
+| ✅ | weasysvg | **matches the reference** | Matches resvg, the line-through included. |
 | ❌ | WeasyPrint | **differs from the reference** | No line-through. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -1547,8 +1547,8 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium | resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium. |
-| ✅ | weasysvg | **matches the reference** | Matches, the line-through included. |
+| 📌 | Reference | resvg | Chromium draws the line a tenth of the font size thick; resvg and the resvg suite take its thickness and place from the font, as WeasyPrint does for HTML text. text-decoration-thickness auto allows both; weasysvg follows the font. |
+| ✅ | weasysvg | **matches the reference** | Matches resvg: a yellow line-through with a green stroke. |
 | ❌ | WeasyPrint | **differs from the reference** | No line-through. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -1575,8 +1575,8 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium | resvg and the resvg suite draw a thinner underline, from the font, through the descenders; Chromium a tenth of the font size, skipping the ink. |
-| ✅ | weasysvg | **matches the reference** | Matches: the underline breaks around the descenders, as in Chromium. |
+| 📌 | Reference | resvg | Chromium draws a thicker underline that skips the ink of the descenders; resvg and the resvg suite take it from the font and run it through them, as WeasyPrint does for HTML text. |
+| ✅ | weasysvg | **matches the reference** | Matches resvg: the underline runs through the descenders. |
 | ❌ | WeasyPrint | **differs from the reference** | No text on the path. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

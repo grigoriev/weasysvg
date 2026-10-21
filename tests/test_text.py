@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import base64
 import contextvars
-import io
 import math
 import re
 from collections import OrderedDict
@@ -13,6 +13,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
+import weasyprint
 from fontTools.ttLib import TTFont, newTable
 from helpers import SVG_NS, RecordingStream, content, rasterize, render, svg, text_of
 from weasyprint import svg as wp_svg
@@ -253,48 +254,49 @@ def test_decoration_lines(value: str, lines: int) -> None:
     assert rectangles(pdf) == lines
 
 
-@pytest.mark.parametrize(
-    ("font_size", "ascent", "expected"),
-    [
-        # Measured in Chromium: Liberation Serif at 24 px, Liberation Sans at 37 px, and a small font
-        (24, 21.39, [(2.0, 2.4), (-23.0, 2.4), (-8.2, 2.4)]),
-        (37, 33.495, [(2.0, 3.7), (-36.0, 3.7), (-12.85, 3.7)]),
-        # At 8 px the line is drawn 1 px thick, but placed by its 0.8
-        (8, 7.0, [(1.0, 1.0), (-7.0, 1.0), (-2.733, 1.0)]),
-    ],
-)
-def test_decoration_lines_sit_where_chromium_puts_them(font_size: float, ascent: float, expected: list[tuple[float, float]]) -> None:
-    lines = text.chromium_lines(["underline", "overline", "line-through"], font_size, ascent)
-    assert lines == [pytest.approx(line, abs=1e-3) for line in expected]
+def html_and_svg_lines(decoration: str, family: str) -> tuple[list[tuple[float, float]], list[tuple[float, float]]]:
+    """Offset of the middle below the baseline and thickness of each line, for an HTML paragraph and an SVG text.
+
+    The SVG fills the top of the page in CSS px, so its user units and the page share one space. The HTML
+    line is a stroke along its middle, the SVG line a filled rectangle.
+    """
+    style = f"margin:0;font:40px '{family}';text-decoration:{decoration}"
+    body = svg(f'<text x="10" y="50" font-family="{family}" font-size="40" text-decoration="{decoration}">x</text>')
+    data = base64.b64encode(body.encode()).decode()
+    page = f'<!DOCTYPE html><style>@page{{size:600px 600px;margin:0}} body{{margin:0}} img{{display:block}}</style><img src="data:image/svg+xml;base64,{data}"><p style="{style}">x</p>'
+    stream = content(weasyprint.HTML(string=page).write_pdf(uncompressed_pdf=True))
+    baselines = {float(x): float(y) for x, y in re.findall(r"1 0 0 -1 ([-\d.]+) ([-\d.]+) Tm", stream)}
+    html = [(float(y) - baselines[0], float(width)) for width, y in re.findall(r"([\d.]+) w\n0 ([-\d.]+) m\n", stream)]
+    svg_lines = [(float(y) + float(height) / 2 - baselines[10], float(height)) for y, height in re.findall(r"10 ([-\d.]+) [\d.]+ ([\d.]+) re\nf", stream)]
+    return html, svg_lines
 
 
-@pytest.mark.parametrize(
-    ("font_size", "gap"),
-    [
-        # Read from the PDF Chromium prints, for Liberation Sans, Liberation Sans Bold, Liberation Serif,
-        # Noto Sans and DejaVu Sans alike: the gap follows the thickness of the line, not the font
-        (8, 1.0),
-        (12, 1.0),
-        (18, 1.0),
-        (24, 2.0),
-        (37, 2.0),
-        (60, 3.0),
-    ],
-)
-def test_the_underline_gap_follows_the_line_not_the_font(font_size: float, gap: float) -> None:
-    assert text.chromium_lines(["underline"], font_size, font_size * 0.9)[0][0] == gap
+@pytest.mark.parametrize("family", ["DejaVu Sans", "Liberation Serif"])
+@pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
+def test_decoration_lines_match_html_text(decoration: str, family: str) -> None:
+    # The user decision: SVG text and HTML text of one PDF get the same lines, from the tables of the font,
+    # as WeasyPrint draws text-decoration for HTML (and as resvg and Firefox do)
+    html, svg_lines = html_and_svg_lines(decoration, family)
+    assert len(html) == 1
+    assert svg_lines == [pytest.approx(html[0], abs=1e-3)]
 
 
-def test_decoration_lines_are_a_tenth_of_the_font_size() -> None:
-    pdf = render(svg('<text x="10" y="50" font-size="30" text-decoration="underline">Decor</text>'))
-    heights = [float(height) for height in re.findall(r"[-\d.]+ [-\d.]+ [-\d.]+ ([-\d.]+) re", content(pdf))]
-    # The decoration is the one thin rectangle: the others are backgrounds
-    assert [height for height in heights if height < 10] == [pytest.approx(3.0)]
+@pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
+def test_text_path_decorations_match_plain_text(decoration: str) -> None:
+    # A horizontal path places its lines as a plain text does
+    def top_and_bottom(body: str) -> tuple[float, float]:
+        ys = [float(y) for y in re.findall(r"[-\d.]+ ([-\d.]+) [ml]\n", content(render(svg(body))))]
+        return min(ys), max(ys)
+
+    plain = render(svg(f'<text x="10" y="50" font-size="30" text-decoration="{decoration}">a</text>'))
+    ((_, top, _, height),) = line_rects(plain)
+    on_path = top_and_bottom(f'<text font-size="30" text-decoration="{decoration}"><textPath path="M 10 50 H 190">a</textPath></text>')
+    assert on_path == pytest.approx((top, top + height), abs=1e-3)
 
 
 @pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
 def test_decoration_lines_follow_the_scale_of_the_svg(decoration: str) -> None:
-    # Chromium applies its rules in CSS px: font-size 3 at ten px per unit draws as font-size 30 at one
+    # The metrics of the font scale with it: font-size 3 at ten px per unit draws as font-size 30 at one
     def lines(body: str, extra: str = "") -> list[float]:
         found = re.findall(r"([-\d.]+) ([-\d.]+) [-\d.]+ ([-\d.]+) re", content(render(svg(body, extra=extra))))
         return [float(value) for line in found for value in (line[1], line[2]) if abs(float(line[2])) < 10]
@@ -316,106 +318,42 @@ def line_pieces(pdf: bytes) -> list[tuple[float, float]]:
     return [(left, right) for left, _, right, _ in line_rects(pdf)]
 
 
-@pytest.mark.parametrize(("decoration", "pieces"), [("underline", 2), ("overline", 1), ("line-through", 1)])
-def test_an_underline_skips_the_ink_of_descenders(decoration: str, pieces: int) -> None:
-    # "agya": the descenders of g and y cut one gap in the underline, their gaps merged; nothing crosses the
-    # overline, and a line-through skips no ink
-    pdf = render(svg(f'<text x="10" y="60" font-size="40" text-decoration="{decoration}">agya</text>', height=100))
-    assert len(line_pieces(pdf)) == pieces
+@pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
+@pytest.mark.parametrize("attributes", ['x="10"', 'x="10" textLength="140" lengthAdjust="spacingAndGlyphs"', 'x="10" rotate="0 0 0 0.1"'])
+def test_a_line_runs_straight_through_descenders(decoration: str, attributes: str) -> None:
+    # "agya": the descenders of g and y cross the underline, which stays whole, as WeasyPrint draws it on
+    # HTML text (it has no text-decoration-skip-ink) and as resvg does. Chromium skips their ink.
+    # Laid out one character at a time, squeezed or turned, the pieces of the characters meet
+    pdf = render(svg(f'<text y="60" font-size="40" font-family="DejaVu Sans" text-decoration="{decoration}" {attributes}>agya</text>', height=100))
+    assert len(line_pieces(pdf)) == 1
 
 
 @pytest.mark.parametrize("body", ['<text x="10" y="50" text-decoration="underline">_</text>', '<path id="p" d="M 10 50 H 200" fill="none"/><text text-decoration="underline"><textPath href="#p">_</textPath></text>'])
-def test_a_line_all_under_ink_paints_no_empty_path(body: str) -> None:
-    # The underscore crosses the whole underline: nothing is left to fill, and a paint operator needs a path
+def test_a_line_under_ink_is_drawn_whole(body: str) -> None:
+    # The underscore covers the underline: the line is drawn all the same, one rectangle or one turned piece
     lines = content(render(svg(body))).split("\n")
-    painted = [lines[index - 1] for index, line in enumerate(lines) if line in ("f", "S", "B")]
-    assert all(line.endswith((" re", " l", " c", " m", "h")) for line in painted)
+    painted = [lines[index - 1] for index, line in enumerate(lines) if line == "f"]
+    assert any(line.endswith((" re", "h")) for line in painted)
 
 
-@pytest.mark.parametrize("attributes", ['x="10" textLength="60" lengthAdjust="spacingAndGlyphs"', 'x="10" rotate="0 0 0 0.1"'])
-def test_text_laid_out_by_character_skips_ink_too(attributes: str) -> None:
-    # WeasyPrint lays out such text one character at a time: its glyphs still cut the underline. Squeezed
-    # or turned, the pieces of the characters meet, and the descenders of g and y cut one gap
-    pdf = render(svg(f'<text y="60" font-size="40" font-family="DejaVu Sans" text-decoration="underline" {attributes}>agya</text>', height=100))
-    assert len(line_pieces(pdf)) == 2
-
-
-def test_spread_characters_skip_their_own_ink() -> None:
-    # Each character carries its own piece, which its own descender cuts, as in Chromium: the pieces of the
-    # a stay whole, nothing runs between the characters
+def test_spread_characters_carry_their_own_pieces() -> None:
+    # Each character carries its own whole piece, as in Chromium: nothing runs between the characters
     pdf = render(svg('<text y="60" font-size="40" font-family="DejaVu Sans" text-decoration="underline" x="10 50 90 130">agya</text>', height=100))
     pieces = line_pieces(pdf)
+    assert len(pieces) == 4
     assert pieces[0] == pytest.approx((10, 34.51), abs=0.01)
     assert pieces[-1] == pytest.approx((130, 154.51), abs=0.01)
-    assert len(pieces) > 3
-    assert all(any(start <= left < right <= start + 30 for start in (10, 50, 90, 130)) for left, right in pieces)
 
 
-def test_text_of_a_pattern_fill_cuts_no_underline() -> None:
+def test_text_of_a_pattern_fill_adds_no_pieces() -> None:
     # The pattern draws its own text while the underlined text sets its fill: only the letters of the
-    # underlined text cut the line
+    # underlined text carry pieces
     pattern = '<pattern id="p" width="200" height="100" patternUnits="userSpaceOnUse"><text x="70" y="30" font-size="30">g</text></pattern>'
     plain = render(svg('<text x="10" y="60" font-size="40" textLength="140" text-decoration="underline">aaaa</text>', height=100))
     filled = render(svg(f'<defs>{pattern}</defs><text x="10" y="60" font-size="40" textLength="140" text-decoration="underline" fill="url(#p)">aaaa</text>', height=100))
     # One whole piece under each a
     assert line_pieces(filled) == line_pieces(plain)
     assert len(line_pieces(plain)) == 4
-
-
-def test_rotated_characters_skip_no_ink() -> None:
-    # A turned glyph crosses the line at a slant: the line stays whole under it, as before
-    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline" rotate="20">agya</text>', height=100))
-    assert len(line_pieces(pdf)) == 1
-
-
-def test_a_line_without_descenders_is_whole() -> None:
-    assert len(line_pieces(render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">Decor</text>', height=100)))) == 1
-
-
-def test_a_gap_clears_the_ink_by_the_thickness_of_the_line() -> None:
-    # The gap around the g: its ink in the band of the line, 4 units wider on each side, within its advance
-    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">ogo</text>', height=100))
-    (_, gap_start), (gap_end, _) = line_pieces(pdf)
-    assert 8 < gap_end - gap_start < 8 + 0.7 * 40
-
-
-@pytest.mark.parametrize(
-    ("cuts", "expected"),
-    [
-        ([(40, 50)], [(0, 36), (54, 100)]),
-        # Gaps that meet merge; a gap past an end leaves no piece there
-        ([(40, 50), (55, 60), (98, 120)], [(0, 36), (64, 94)]),
-        ([(-10, 120)], []),
-        ([], [(0, 100)]),
-    ],
-)
-def test_skipped_pieces(cuts: list[tuple[float, float]], expected: list[tuple[float, float]]) -> None:
-    assert ink.skipped(0, 100, cuts, 4) == expected
-
-
-def test_the_band_of_a_cubic_curve() -> None:
-    # A CFF font draws cubic curves: the curve and the closing line cross y = 0 near x = 50
-    pen = ink._BandPen(None, -10, 10)
-    pen.moveTo((0, -50))
-    pen.curveTo((0, 0), (100, 0), (100, 50))
-    pen.closePath()
-    assert 30 < pen.left < pen.right < 70
-
-
-def test_a_glyph_outside_its_font_has_no_ink() -> None:
-    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
-    ink._FONTS["test"] = (path.read_bytes(), 0, 1000)
-    assert ink._extent("test", 10**6, 0, 1) is None
-
-
-def test_a_font_without_outlines_has_no_ink() -> None:
-    # A color emoji font holds bitmaps only (CBDT, sbix): no glyf, CFF or CFF2 table to read outlines from
-    font = TTFont(Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf")
-    del font["glyf"], font["loca"]
-    data = io.BytesIO()
-    font.save(data)
-    ink._FONTS["bitmaps"] = (data.getvalue(), 0, 1000)
-    assert ink._extent("bitmaps", 10, 0, 1) is None
 
 
 def test_a_broken_font_has_no_vertical_origin() -> None:
@@ -425,12 +363,6 @@ def test_a_broken_font_has_no_vertical_origin() -> None:
     path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "MPLUS1p-Regular.ttf"
     ink._FONTS["mplus"] = (path.read_bytes(), 0, 1000)
     assert ink._vertical_origin("mplus", 10**6) is None
-
-
-def test_a_character_no_font_has_cuts_nothing() -> None:
-    # The .notdef box of an unknown character is no glyph of the run: the underline stays whole
-    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">\U0010fffd</text>', height=100))
-    assert len(line_pieces(pdf)) == 1
 
 
 def test_decoration_skips_blank_runs() -> None:
@@ -495,8 +427,8 @@ def test_turned_characters_draw_one_line() -> None:
 def test_each_character_draws_its_line_on_its_own_baseline(attributes: str) -> None:
     pdf = render(svg(f'<text x="10" {attributes} {NUN} text-decoration="underline">nun</text>'))
     rects = line_rects(pdf)
-    # Chromium: each piece 1 px below the baseline of its character, 2 px thick
-    assert [(round(left, 1), round(top, 1)) for left, top, _, _ in rects] == [(10.0, 51.0), (round(10 + ADVANCE, 1), 56.0), (round(10 + 2 * ADVANCE, 1), 61.0)]
+    # Each piece below the baseline of its character by the underline position of DejaVu Sans, 0.39 px at 20 px
+    assert [(round(left, 1), round(top, 1)) for left, top, _, _ in rects] == [(10.0, 50.4), (round(10 + ADVANCE, 1), 55.4), (round(10 + 2 * ADVANCE, 1), 60.4)]
 
 
 def test_font_weight_values() -> None:
@@ -1029,22 +961,8 @@ def test_arabic_letter_spacing_needs_no_leading_shift() -> None:
     assert not any(re.match(r"(<>)?-?[\d.]", array) for array in arrays[1:])
 
 
-def test_text_without_underline_or_overline_reads_no_glyphs(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Only a line that skips ink needs the glyphs: other text pays nothing for it
-    calls: list[Any] = []
-
-    def recording(*args: Any) -> list[ink.Glyph]:
-        calls.append(args)
-        return []
-
-    monkeypatch.setattr(ink, "run_glyphs", recording)
-    pdf = render(svg('<text x="10" y="50">plain</text><text x="10" y="80" text-decoration="line-through">struck</text>'))
-    assert "plain" in text_of(pdf)
-    assert calls == []
-
-
 def test_a_font_file_is_read_once(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Each run of each text reads the same font, at five sizes: its file is read and hashed once
+    # Each upright character of each vertical text reads the same font, at five sizes: its file is read and hashed once
     reads: list[Any] = []
 
     def recording(face: Any) -> Any:
@@ -1053,21 +971,9 @@ def test_a_font_file_is_read_once(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(ink, "get_hb_object_data", recording)
     ink._FACES.clear()
-    lines = "".join(f'<text x="10" y="{20 + 15 * index}" font-size="{12 + index}" text-decoration="underline">line {index}</text>' for index in range(5))
-    render(svg(lines, height=100))
+    lines = "".join(f'<text x="{20 + 30 * index}" y="20" writing-mode="tb" font-family="Mplus" font-size="{12 + index}">日本</text>' for index in range(5))
+    render(svg(MPLUS + lines, height=100))
     assert len(reads) == 1
-
-
-def test_a_glyph_of_a_dropped_font_has_no_ink_until_it_comes_back() -> None:
-    # The run was laid out, then its font left the bounded cache: the line keeps its piece. Once the font
-    # is read again, its glyphs cut the line again
-    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "NotoSans-Regular.ttf"
-    font = TTFont(path)
-    glyph = ink.Glyph("dropped", font.getGlyphID("p"), 0, 0, 0.01)
-    ink._FONTS.pop("dropped", None)
-    assert ink.intercepts([glyph], 0, 1) == []
-    ink._FONTS["dropped"] = (path.read_bytes(), 0, 1000)
-    assert len(ink.intercepts([glyph], 0, 1)) == 1
 
 
 @pytest.fixture
@@ -1075,12 +981,6 @@ def fresh_caches(monkeypatch: pytest.MonkeyPatch) -> None:
     """Caches of this test alone: fake faces must not stay under addresses a real face can take later."""
     monkeypatch.setattr(ink, "_FACES", OrderedDict())
     monkeypatch.setattr(ink, "_FONTS", OrderedDict())
-
-
-def test_an_unreadable_font_has_no_ink(fresh_caches: None) -> None:
-    # HarfBuzz may take a font fontTools rejects: the line stays whole, the render goes on
-    ink._FONTS["unreadable"] = (b"no font at all", 0, 1000)
-    assert ink.intercepts([ink.Glyph("unreadable", 1, 0, 0, 0.01)], 0, 1) == []
 
 
 @pytest.mark.usefixtures("fresh_caches")

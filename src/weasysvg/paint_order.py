@@ -10,6 +10,9 @@ Touches:
   (``2 Tr``) becomes two copies: stroke only (``1 Tr``) and fill only (``0 Tr``), in the order to paint.
 - a tree pass: an invalid paint-order, attribute or declaration in ``style``, is dropped. The value of
   the parent then inherits, as in Chromium.
+- a dashed stroke, through ``svg.SVG.fill_stroke`` (installed by the paint feature too): the patches of
+  ``dashes.closing_patches`` join the dashes at the start point of a closed subpath. They go into the
+  stroke pass only, so a shape that has them paints its fill and its stroke apart, f and S.
 
 WeasyPrint ignores paint-order: B paints the fill and then the stroke, the markers come after. Chromium
 (measured, 156) paints in the given order, the missing keywords after it in the default order: "stroke"
@@ -28,7 +31,7 @@ from weasyprint import svg as wp_svg
 from weasyprint.svg.css import parse_declarations
 from weasyprint.svg.utils import alpha_value, color, size
 
-from . import _core
+from . import _core, dashes
 from .markers import MARKER_ATTRIBUTES
 
 PROPERTY = "paint-order"
@@ -40,7 +43,7 @@ STATE_OPERATORS = frozenset((b"q", b"Q"))
 FILL_AND_STROKE, STROKE_ONLY, FILL_ONLY = b"2 Tr", b"1 Tr", b"0 Tr"
 
 _ORIGINAL_FILL_STROKE = wp_svg.SVG.fill_stroke
-_ENABLED = {"text": False}
+_ENABLED = {"text": False, "order": False, "dashes": False}
 
 
 def parse(value: str | None) -> tuple[str, ...] | None:
@@ -119,14 +122,24 @@ def _path_span(items: list[Any]) -> tuple[int, int]:
 
 def fill_stroke(self: Any, fill: Any, stroke: Any, even_odd: bool = False, text: bool = False) -> None:
     current = None if text else _core.drawing()
-    items = self.stream.stream
-    if current is None or (passes := _passes(current[0], fill, stroke)) is None or (span := _path_span(items))[0] == span[1]:
+    stream = self.stream
+    items = stream.stream
+    start, end = _path_span(items)
+    if current is None or start == end:
         _ORIGINAL_FILL_STROKE(self, fill, stroke, even_odd, text)
         return
     node, font_size = current
-    stream, (start, end) = self.stream, span
-    # Each paint gets the path again, all of them in the graphics state set_graphical_state left
     path = items[start:end]
+    # draw_node passes the font size of the parent: lengths in em take the one of the node
+    patches = dashes.closing_patches(self, node, size(node.get("font-size", "1em"), font_size, font_size), path) if stroke and _ENABLED["dashes"] else []
+    passes = _passes(node, fill, stroke) if _ENABLED["order"] else None
+    if passes is None:
+        if not patches:
+            _ORIGINAL_FILL_STROKE(self, fill, stroke, even_odd, text)
+            return
+        # The default order: B would fill the patches too
+        passes = [name for name, paint in (("fill", fill), ("stroke", stroke)) if paint]
+    # Each paint gets the path again, all of them in the graphics state set_graphical_state left
     del items[start:end]
     for name in passes:
         if name == "markers":
@@ -136,6 +149,7 @@ def fill_stroke(self: Any, fill: Any, stroke: Any, even_odd: bool = False, text:
         if name == "fill":
             stream.fill(even_odd)
         else:
+            dashes.emit(stream, patches)
             stream.stroke()
 
 
@@ -168,9 +182,19 @@ def _find(items: list[Any], operator: bytes, start: int) -> int | None:
     return next((index for index in range(start, len(items)) if items[index] == operator), None)
 
 
-def install() -> None:
-    _core.add_tree_pass(20, "paint_order", drop_invalid)
+def _install_fill_stroke() -> None:
     wp_svg.SVG.fill_stroke = fill_stroke
-    _ENABLED["text"] = True
     # fill_stroke reads the node from draw_node
     _core.enable_draw_feature("paint_order")
+
+
+def install() -> None:
+    _core.add_tree_pass(20, "paint_order", drop_invalid)
+    _install_fill_stroke()
+    _ENABLED["text"] = _ENABLED["order"] = True
+
+
+def install_dashes() -> None:
+    """Join the dashes at the start point of closed subpaths (dashes.py), for the paint feature."""
+    _install_fill_stroke()
+    _ENABLED["dashes"] = True

@@ -46,7 +46,8 @@ from weasyprint.svg import utils as wp_utils
 from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, color, parse_url, size
 
-from . import _core, shapeblur, turbulence
+from . import _core, coverage, shapeblur, turbulence
+from .paint import BOXED
 
 LOGGER = logging.getLogger("weasysvg")
 Region = tuple[float, float, float, float]
@@ -588,7 +589,7 @@ def _evaluate(svg: Any, filter_node: Any, region: tuple[float, float, float, flo
 # The most layers one chain may have: feMerge and feComposite can double them at each primitive
 MAX_LAYERS = 64
 # The draws of the element that the filters being drawn cost, multiplied along the nesting. A blurred
-# layer costs up to 3 * MAX_STEPS + 2 draws, any other one 1.
+# layer costs up to 3 * MAX_STEPS + 3 draws (the levels, and the draw coverage.py reads), any other one 1.
 FAN_OUT: ContextVar[int] = ContextVar("weasysvg_fan_out", default=1)
 MAX_DRAWS = 256
 # The largest filter region coordinate, in user units
@@ -721,7 +722,8 @@ class Restyle:
     level: the set where the blurred alpha reaches threshold. A filled shape grows by radius, or hides
     above 0.5, where the bands take over. A stroke widens or narrows to the level of a blurred line.
     fills: the filled shapes as they are. band: what lies within radius of the edge of a filled shape.
-    grow: the colored source, grown to the widest level.
+    grow: the colored source, grown to the widest level. shape: the element as it is, read back for its
+    coverage (coverage.py).
     """
 
     kind: str
@@ -786,7 +788,7 @@ def _coverage(attributes: dict[str, str], fill: str, stroked: bool) -> dict[str,
 def restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:
     """Restyle a shape for the blur mask being built; return the attributes to put back, or None."""
     mode = RESTYLE.get()
-    if mode is None or node.tag not in RESTYLED:
+    if mode is None or mode.kind == "shape" or node.tag not in RESTYLED:
         return None
     # The children cascade the original style first: they keep their own copy of it
     list(node)
@@ -935,7 +937,7 @@ def _blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: fl
 def _cost(layer: Layer) -> int:
     """The draws of the element one layer makes."""
     blurred = layer.kind not in ("flood", "image") and not BLURRING.get() and _sigma(layer)
-    return 3 * MAX_STEPS + 2 if blurred else 1
+    return 3 * MAX_STEPS + 3 if blurred else 1
 
 
 def _draw_layers(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, plan_: Plan) -> None:
@@ -1180,12 +1182,84 @@ def _shape_blur_mask(svg: Any, node: Any, font_size: float, blur: tuple[float, f
     return True
 
 
-def _blurred_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, sigma: float, box: Region) -> Restyle | None:
+@dataclass(frozen=True)
+class _Flat:
+    """The paint under the blurred coverage of drawn content: each color over all of the box, in order.
+
+    The first color is flat, each next one through the soft mask of its ratio (coverage.ratios).
+    """
+
+    paints: list[tuple[coverage.RGB, Image.Image | None]]
+    grid: shapeblur.Field
+
+
+def _recorded(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, flatness: float) -> coverage.Group | None:
+    """What node draws, read back from a scratch group; None when the coverage cannot take it."""
+    outer = svg.stream
+    scratch = outer.add_group(0, 0, 0, 0)
+    try:
+        # Drawn as it is, recolored as the layer says: a blur inside draws sharp
+        _draw_into(svg, original, node, font_size, context, scratch, Restyle("shape", 0.0), layer.recolor)
+        return coverage.read(scratch, flatness)
+    except coverage.Unsupported as error:
+        LOGGER.debug("SVG blur takes the levels of the nearest edge: %s", error)
+        return None
+    finally:
+        outer._resources["XObject"].pop(scratch.id, None)
+
+
+def _content_blur_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, box: Region) -> _Flat | None:
+    """Set the blurred coverage of whatever node draws as the soft mask of svg.stream; None when it cannot.
+
+    A group, a stroke, several shapes: Chromium blurs their pixels, so a corner comes out round and a
+    stroke fades without steps, where the levels of _blur_mask grow each shape by its nearest edge.
+    """
+    blur = layer.blur
+    if min(blur) <= 0:
+        return None
+    content = _recorded(svg, original, node, font_size, context, layer, min(blur) / shapeblur.CELLS_PER_SIGMA / 4)
+    if content is None or len(content.colors()) > coverage.MAX_COLORS:
+        return None
+    rings = [ring for shape in content.shapes() for ring in shape.rings]
+    if not rings:
+        return None
+    grid = shapeblur.Field(rings, False, blur)
+    if grid.cells > shapeblur.MAX_CELLS or max(grid.width, grid.height) > shapeblur.MAX_SIDE:
+        return None
+    raster = coverage.Raster(content, grid)
+    colors = content.colors()
+    if not _charge(svg, grid.cells * len(colors) + raster.work):
+        return None
+    total, shares = raster.coverage()
+    blurred = [shares[rgb].filter(ImageFilter.GaussianBlur(shapeblur.CELLS_PER_SIGMA)) for rgb in colors]
+    mask = svg.stream.set_alpha_state(*box, mode="luminosity")
+    mask.paint_shading(_mesh_shading(mask, grid, total.filter(ImageFilter.GaussianBlur(shapeblur.CELLS_PER_SIGMA))).id)
+    ratios = coverage.ratios(blurred)
+    return _Flat([(rgb, ratio if k else None) for k, (rgb, ratio) in enumerate(zip(colors, ratios, strict=True))], grid)
+
+
+def _paint_flat(target: Any, flat: _Flat, box: Region) -> None:
+    """The colors of flat over box on target, each through its ratio."""
+    for rgb, ratio in flat.paints:
+        target.push_state()
+        try:
+            if ratio is not None:
+                mask = target.set_alpha_state(*box, mode="luminosity")
+                mask.paint_shading(_mesh_shading(mask, flat.grid, ratio).id)
+            target.set_color(color("rgb({:.4f}%,{:.4f}%,{:.4f}%)".format(*(100 * channel for channel in rgb))))
+            target.rectangle(*box)
+            target.fill()
+        finally:
+            target.pop_state()
+
+
+def _blurred_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, sigma: float, box: Region) -> Restyle | _Flat | None:
     """Set the blur mask of node; return how far its paint must grow under it, None for all of box.
 
     The mask is exact for a plain rect and the blurred coverage of any other filled shape: the paint
-    covers box, the mask alone shapes it. The levels of _blur_mask for anything else take the element
-    grown to the lowest level.
+    covers box, the mask alone shapes it. Other content gets its blurred coverage too, and flat colors
+    over box (_Flat). The levels of _blur_mask for anything else take the element grown to the lowest
+    level.
     """
     rect = _plain_rect(svg, node, font_size)
     if rect is not None:
@@ -1193,6 +1267,9 @@ def _blurred_mask(svg: Any, original: Callable[..., None], node: Any, font_size:
         return None
     if _shape_blur_mask(svg, node, font_size, layer.blur, box):
         return None
+    flat = _content_blur_mask(svg, original, node, font_size, context, layer, box)
+    if flat is not None:
+        return flat
     _blur_mask(svg, original, node, font_size, context, sigma, box)
     return _widest(max(sigma, *layer.blur))
 
@@ -1216,8 +1293,9 @@ def _paint_box(svg: Any, original: Callable[..., None], node: Any, font_size: fl
 
 
 # The node _paint_box draws as a box, and the box. The shape table is shared by every thread: it gets a
-# wrapper once per tag that reads this, and is never swapped back.
-_BOXED: ContextVar[tuple[Any, Region] | None] = ContextVar("weasysvg_boxed", default=None)
+# wrapper once per tag that reads this, and is never swapped back. A gradient of the node covers the box
+# (paint.py).
+_BOXED = BOXED
 _BOXING_LOCK = threading.Lock()
 
 
@@ -1241,10 +1319,11 @@ def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_si
         # The silhouette of the grown element, in one color, under the blurred edge
         grow = _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
         group = stream.add_group(*big)
-        mask = group.set_alpha_state(*big, mode="alpha")
+        # The coverage of drawn content is its alpha already: the color covers all of the box
+        mask = None if isinstance(grow, _Flat) else group.set_alpha_state(*big, mode="alpha")
         if grow is None:
             _paint_box(svg, original, node, font_size, context, mask, big, ())
-        else:
+        elif isinstance(grow, Restyle):
             _draw_into(svg, original, node, font_size, context, mask, grow)
         group.set_color(_with_alpha(layer.rgba, layer.opacity))
         group.rectangle(*big)
@@ -1261,7 +1340,7 @@ def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_si
 def _draw_source(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
     """The element in its own paint, faded, recolored or blurred."""
     # A blurred source keeps its colors and spreads them to the widest level of the mask
-    grow = None
+    grow: Restyle | _Flat | None = None
     if sigma:
         # The paint reaches as far as the wider deviation: the mask cuts it to the blur
         grow = _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
@@ -1270,6 +1349,8 @@ def _draw_source(svg: Any, original: Callable[..., None], node: Any, font_size: 
     target = stream.add_group(*big) if layer.opacity < 1 or sigma else stream
     if sigma and grow is None:
         _paint_box(svg, original, node, font_size, context, target, big, layer.recolor)
+    elif isinstance(grow, _Flat):
+        _paint_flat(target, grow, big)
     else:
         _draw_into(svg, original, node, font_size, context, target, grow, layer.recolor)
     if target is not stream:

@@ -99,6 +99,20 @@ def test_gradient_cell_needs_a_box() -> None:
     assert paint._gradient_cell(fake, object(), gradient, 12, False) is None
 
 
+@pytest.mark.parametrize("box", [(0.0, 50.0, 200.0, 0.0), (50.0, 0.0, 0.0, 200.0)])
+def test_a_blurred_flat_box_leaves_the_cell_to_weasyprint(box: tuple[float, float, float, float]) -> None:
+    # The region a blur paints, in units of a box of no height or width, divided by zero. WeasyPrint 70
+    # gives a fill no such box, but a box from elsewhere must not stop the render
+    gradient = SimpleNamespace(attrib={}, get={}.get)
+    node = object()
+    fake = SimpleNamespace(calculate_bounding_box=lambda *_args: box)
+    token = paint.BOXED.set((node, (0.0, 0.0, 200.0, 200.0)))
+    try:
+        assert paint._gradient_cell(fake, node, gradient, 12, False) is None
+    finally:
+        paint.BOXED.reset(token)
+
+
 def test_gradient_interpolates_unpremultiplied() -> None:
     # Chromium mixes transparent white and black into half transparent gray: 0.75 over white, not 0.5
     gradient = '<linearGradient id="g"><stop stop-color="white" stop-opacity="0"/><stop offset="1" stop-color="black"/></linearGradient>'

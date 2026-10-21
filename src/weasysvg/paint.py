@@ -2,8 +2,9 @@
 
 Touches:
 - ``svg.defs.draw_gradient``: a gradient cell of about 1000 units, since Splash and Quartz drop a 1 x 1
-  cell, that covers the box under any gradientTransform; r and fr percentages of a radial gradient
-  refer to the normalized diagonal; colors interpolate unpremultiplied, as Chromium does for SVG.
+  cell, that covers the box under any gradientTransform, or the whole box a blur paints (``BOXED``); r
+  and fr percentages of a radial gradient refer to the normalized diagonal; colors interpolate
+  unpremultiplied, as Chromium does for SVG.
 - ``svg.SVG.set_graphical_state``: a gradient or pattern stroke gets its stroke-width, not 1.
 - ``svg.defs.draw_pattern``: the tile origin in pattern space, x and y included; attributes and tag are
   restored after each use.
@@ -20,6 +21,8 @@ Touches:
 - a tree pass: an arc of a zero radius in path data becomes the line SVG draws for it, and an arc wider
   than 90 degrees curves of 90 degrees. WeasyPrint wrote a relative line to the end of the first, which
   broke every slice of a Highcharts pie, and drew the second as one curve, which bulged.
+- ``svg.SVG.fill_stroke``, through ``paint_order``: a dash through the start point of a closed subpath
+  is joined into one dash (``dashes.py``).
 - ``svg.TAGS['circle']`` and ``svg.TAGS['ellipse']``: each quarter is a Bezier with the arc constant
   4 (sqrt(2) - 1) / 3. WeasyPrint uses 1 / sqrt(pi), a longer outline that moves the dashes along it.
 """
@@ -85,6 +88,9 @@ PRESENTATION = frozenset(
         "dominant-baseline",
     )
 )
+
+# The node a blur paints over a whole box instead of its shape, and that box (filters._paint_box)
+BOXED: ContextVar[tuple[Any, tuple[float, float, float, float]] | None] = ContextVar("weasysvg_boxed", default=None)
 
 _ORIGINAL_DRAW_GRADIENT = wp_defs.draw_gradient
 _ORIGINAL_DRAW_PATTERN = wp_defs.draw_pattern
@@ -156,16 +162,31 @@ def _scaled_add_pattern(stream: Any, cell: tuple[float, float, float, float] | N
 
 
 def _gradient_cell(svg: Any, node: Any, gradient: Any, font_size: float, stroke: bool) -> tuple[float, float, float, float] | None:
-    """The cell of a transformed gradient: the box of all four corners, mapped back by gradientTransform.
+    """The cell of a gradient, None for the one WeasyPrint makes: all four corners mapped back by gradientTransform.
 
     WeasyPrint maps two corners only: rotated by 45 degrees, its cell is a sliver and the shape stays empty.
+    A blur paints a fill over its whole region: the cell is the shape box, and the pattern repeated the
+    gradient past it, a hard edge in the shadow. The cell covers that region, where the gradient pads.
     """
-    if "gradientTransform" not in gradient.attrib:
+    boxed = BOXED.get()
+    cover = boxed[1] if boxed is not None and boxed[0] is node and not stroke else None
+    if "gradientTransform" not in gradient.attrib and cover is None:
         return None
     box = svg.calculate_bounding_box(node, font_size, stroke)
     if not wp_defs.is_valid_bounding_box(box):
         return None
-    x, y, width, height = box if gradient.get("gradientUnits") == "userSpaceOnUse" else (0, 0, 1, 1)
+    if gradient.get("gradientUnits") == "userSpaceOnUse":
+        x, y, width, height = cover or box
+    elif cover is not None:
+        # The region in units of the box of the shape, where an objectBoundingBox gradient lives
+        bx, by, bwidth, bheight = box
+        if not bwidth or not bheight:
+            return None  # a box of no width or height has no units: WeasyPrint paints nothing
+        x, y, width, height = (cover[0] - bx) / bwidth, (cover[1] - by) / bheight, cover[2] / bwidth, cover[3] / bheight
+    else:
+        x, y, width, height = 0, 0, 1, 1
+    if "gradientTransform" not in gradient.attrib:
+        return x, y, width, height
     matrix = wp_utils.transform(gradient.get("gradientTransform"), "0 0", font_size, svg.normalized_diagonal)
     if not matrix.determinant:
         return None
@@ -298,11 +319,11 @@ def _reset_dashes(svg: Any, node: Any, font_size: float) -> None:
     cap a tiny dash would show as a sliver. An odd array repeats, so its period is twice its sum, and a
     negative offset counts back from that period: WeasyPrint counts back from the sum alone.
     """
-    dashes = tuple(svg.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
-    if not any(dashes) or min(dashes) < 0:
+    values = dash_values(svg, node, font_size)
+    if values is None:
         return
-    offset = svg.length(node.get("stroke-dashoffset"), font_size)
-    zero = 0 in dashes and node.get("stroke-linecap", "butt") in ("round", "square")
+    dashes, offset = values
+    zero = zero_dashes_painted(node, dashes)
     if not zero and not (offset < 0 and len(dashes) % 2):
         return
     # Without a dash of length 0 only an odd array with a negative offset is here: repeated, it has its period
@@ -310,6 +331,19 @@ def _reset_dashes(svg: Any, node: Any, font_size: float) -> None:
     if offset < 0:
         offset = sum(fixed) - abs(offset) % sum(fixed)
     svg.stream.set_dash(fixed, offset)
+
+
+def dash_values(svg: Any, node: Any, font_size: float) -> tuple[tuple[float, ...], float] | None:
+    """The stroke-dasharray and stroke-dashoffset of node in user units; None for a solid stroke, as WeasyPrint reads them."""
+    dashes = tuple(svg.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
+    if not any(dashes) or min(dashes) < 0:
+        return None
+    return dashes, svg.length(node.get("stroke-dashoffset"), font_size)
+
+
+def zero_dashes_painted(node: Any, dashes: tuple[float, ...]) -> bool:
+    """Whether a dash of length 0 paints: only under a round or a square cap."""
+    return 0 in dashes and node.get("stroke-linecap", "butt") in ("round", "square")
 
 
 def no_zero_dashes(dashes: tuple[float, ...], stroke_width: float = math.inf) -> tuple[float, ...]:
@@ -560,7 +594,10 @@ def fix_arcs(root: ET.Element) -> None:
 
 
 def install(*, blend: bool = True) -> None:
+    from . import paint_order
+
     wp_svg.TAGS["circle"] = wp_svg.TAGS["ellipse"] = ellipse
+    paint_order.install_dashes()
     _core.add_tree_pass(20, "empty_presentation", drop_empty_presentation)
     _core.add_tree_pass(20, "arcs", fix_arcs)
     wp_defs.draw_gradient = wp_svg.draw_gradient = draw_gradient

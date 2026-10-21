@@ -21,7 +21,7 @@ from typing import Any
 
 from weasyprint.svg import utils as wp_utils
 
-from . import glyphs, ink, pathdata
+from . import glyphs, pathdata
 from .pathdata import Polyline
 
 XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
@@ -127,25 +127,19 @@ def _place(svg: Any, node: Any, font_size: float, state: _State, advances: list[
     return placed
 
 
-Decoration = tuple[float, float, float | None]  # top, thickness, how far it skips ink or None
+Decoration = tuple[float, float]  # top below the baseline, thickness
 
 
-def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> bool:
-    """Add the pieces of the decoration lines to the path; return whether there was any."""
-    drawn = False
+def _decorate(svg: Any, placed: list[Placed], letter_spacing: float, decorations: list[Decoration]) -> None:
+    """Add the pieces of the decoration lines to the path, straight through the glyphs."""
     for character, width, origin, cos, sin in placed:
         # The line runs on under the letter-spacing after each character, the last one too, as in Chromium
         length = width + glyphs.spacing_after(character, letter_spacing)
-        for top, thickness, dilation in decorations:
-            # Each character skips its own ink, in its own frame
-            cuts = ink.intercepts(characters.get(character, []), top, top + thickness) if dilation is not None else []
-            for left, right in ink.skipped(0, length, cuts, dilation or 0):
-                _turned_rectangle(svg.stream, origin, cos, sin, (left, top, right - left, thickness))
-                drawn = True
-    return drawn
+        for top, thickness in decorations:
+            _turned_rectangle(svg.stream, origin, cos, sin, (0, top, length, thickness))
 
 
-def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advances: list[tuple[str, float]], decorations: list[Decoration], characters: dict[str, list[ink.Glyph]]) -> None:
+def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advances: list[tuple[str, float]], decorations: list[Decoration]) -> None:
     """Draw each character of node on the path, with its decoration lines."""
     placed = _place(svg, node, font_size, state, advances)
     if not placed:
@@ -156,8 +150,8 @@ def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advan
     try:
         fill, stroke = svg.set_graphical_state(node, font_size)
         glyphs.show(svg, style, fill, stroke, items)
-        # Every piece may lie under ink: a paint operator needs a path before it
-        if decorations and _decorate(svg, placed, svg.length(node.get("letter-spacing"), font_size), decorations, characters):
+        if decorations:
+            _decorate(svg, placed, svg.length(node.get("letter-spacing"), font_size), decorations)
             svg.fill_stroke(fill, stroke)
     finally:
         svg.stream.pop_state()

@@ -539,13 +539,14 @@ def test_a_failing_layer_restores_the_stream(layer: Layer, opacity: float) -> No
 def test_nested_blurs_draw_their_inner_blur_once(monkeypatch: pytest.MonkeyPatch) -> None:
     # A blur inside a blurred element is drawn sharp in the passes of the outer one: no 50 ** depth draws
     calls = []
-    original = filters._blur_mask
+    for name in ("_blur_mask", "_content_blur_mask"):
+        original = getattr(filters, name)
 
-    def counted(*args: Any) -> None:
-        calls.append(1)
-        original(*args)
+        def counted(*args: Any, original: Any = original) -> Any:
+            calls.append(1)
+            return original(*args)
 
-    monkeypatch.setattr(filters, "_blur_mask", counted)
+        monkeypatch.setattr(filters, name, counted)
     blur = '<filter id="b"><feGaussianBlur stdDeviation="2"/></filter>'
     body = f'<defs>{blur}</defs><g filter="url(#b)"><g filter="url(#b)"><g filter="url(#b)"><rect x="20" y="20" width="60" height="40" fill="red"/></g></g></g>'
     pdf = render(svg(body, height=120))
@@ -1093,6 +1094,40 @@ def test_a_blurred_shape_keeps_its_gradient() -> None:
     assert right[2] > 200 > right[0], right
 
 
+@pytest.mark.parametrize(
+    ("gradient", "transform"),
+    [
+        ('gradientUnits="userSpaceOnUse" x1="0" y1="140" x2="0" y2="60"', ""),
+        ('x1="0" y1="1" x2="0" y2="0"', ""),
+        ('x1="1" y1="0" x2="0" y2="0" gradientTransform="rotate(90 .5 .5)"', ""),
+        # The shadow of the map in the OpenStreetMap logo: scaled, so a deviation of 4 spans 3.39 units down
+        ('gradientUnits="userSpaceOnUse" x1="0" y1="140" x2="0" y2="60"', "matrix(1 0 0 .84657 0 27.66)"),
+    ],
+)
+def test_the_gradient_of_a_blurred_shape_pads_past_its_box(gradient: str, transform: str) -> None:
+    # The gradient is a pattern whose cell is the box of the shape. Painted over the whole filter region it
+    # repeated past that box: the opaque bottom showed above the shape and the clear top below it, a hard
+    # edge at each side of the shadow of the map in the OpenStreetMap logo
+    stops = f'<linearGradient id="g" {gradient}><stop offset="0"/><stop offset="1" stop-opacity="0"/></linearGradient>'
+    image = blurred_shape(f'<path d="M60 60h80v80h-80z" fill="url(#g)" transform="{transform or "translate(0 0)"}"/>', defs=stops)
+    scale, shift = (0.84657, 27.66) if transform else (1.0, 0.0)
+    top, bottom, deviation = 60 * scale + shift, 140 * scale + shift, 4 * scale
+    # One deviation below the shape: the tail of the opaque bottom, 1 - Phi(1) of black
+    assert darkness(image, 100, bottom + deviation) == pytest.approx(0.159, abs=0.03)
+    assert darkness(image, 100, bottom + 2 * deviation) == pytest.approx(0.023, abs=0.015)
+    # One deviation above it, the tail of the clear top: nothing
+    assert darkness(image, 100, top - deviation) < 0.01
+
+
+@pytest.mark.parametrize("points", ["0,50 100,50 200,50", "50,0 50,100 50,200"])
+def test_the_gradient_of_a_blurred_flat_shape_paints_nothing(points: str) -> None:
+    # An objectBoundingBox gradient on a box of no height or width has no units: WeasyPrint paints nothing
+    # for such a fill, and neither does the blur over its region
+    stops = '<linearGradient id="g"><stop offset="0"/><stop offset="1" stop-color="red"/></linearGradient>'
+    image = blurred_shape(f'<polyline points="{points}" fill="url(#g)"/>', defs=stops).convert("L")
+    assert image.getextrema() == (255, 255)
+
+
 def test_the_drop_shadow_of_a_shape_is_its_blurred_coverage() -> None:
     image = blurred_shape('<circle cx="100" cy="100" r="2" fill="red"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
     # Beside the dot only its shadow: a dot of radius 2 blurred by 4, seen 4 from its center
@@ -1111,8 +1146,6 @@ def test_a_compressed_mesh_draws_the_same() -> None:
 @pytest.mark.parametrize(
     ("shape", "deviation", "limits"),
     [
-        ('<circle cx="100" cy="100" r="20" fill="black" stroke="red"/>', "2", {}),
-        ('<path d="M80 80h40v40z" fill="black" marker-start="url(#m)"/>', "2", {}),
         ('<circle cx="100" cy="100" r="20" fill="black"/>', "2 0", {}),
         ('<path d="M80 80L120 120" fill="black"/>', "2", {}),
         ('<circle cx="100" cy="100" r="20" fill="black"/>', "2", {"MAX_CELLS": 10}),
@@ -1120,8 +1153,8 @@ def test_a_compressed_mesh_draws_the_same() -> None:
     ],
 )
 def test_a_shape_the_coverage_cannot_take_keeps_the_levels(shape: str, deviation: str, limits: dict[str, int], monkeypatch: pytest.MonkeyPatch) -> None:
-    # A stroke or markers paint more than the outline, a deviation along one axis only has no grid, a path
-    # without area has no outline: those, and a grid past its limits, keep the levels of the nearest edge
+    # A deviation along one axis only has no grid, a path without area has no outline: those, and a grid
+    # past its limits, keep the levels of the nearest edge
     for name, value in limits.items():
         monkeypatch.setattr(shapeblur if name == "MAX_CELLS" else filters, name, value)
     calls: list[int] = []
@@ -1156,8 +1189,8 @@ def test_a_rect_with_a_stroke_of_no_width_is_blurred_from_its_coverage() -> None
     assert darkness(image, 100, 100) == pytest.approx(0.197, abs=0.02)
 
 
-def test_the_drop_shadow_of_a_stroked_shape_keeps_the_levels() -> None:
-    image = blurred_shape('<circle cx="100" cy="100" r="20" fill="none" stroke="red" stroke-width="4"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
+def test_the_drop_shadow_of_a_dashed_stroke_keeps_the_levels() -> None:
+    image = blurred_shape('<circle cx="100" cy="100" r="20" fill="none" stroke="red" stroke-width="4" stroke-dasharray="8 1"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
     # The shadow inside the ring, faint
     assert 0.02 < darkness(image, 100, 100 - 12) < 0.6
 
@@ -1202,3 +1235,110 @@ def test_painting_a_box_in_two_threads_leaves_every_shape_drawn_as_itself(monkey
     drawn.clear()
     wp_svg.TAGS["rect"](svg_, nodes[0], 0)
     assert drawn == [nodes[0]]
+
+
+# ---------------- any content blurred from its coverage ----------------
+
+
+def blurred_content(body: str, deviation: str = "4", defs: str = "", primitive: str = "feGaussianBlur", root: bool = False) -> Any:
+    """body in a filtered group, or in a filtered root, rasterized at 2 device pixels per unit."""
+    filter_ = f'<filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="200" height="200"><{primitive} stdDeviation="{deviation}"/></filter>'
+    document = svg(f"<defs>{defs}{filter_}</defs>{body}", height=200, extra=' filter="url(#f)"') if root else svg(f'<defs>{defs}{filter_}</defs><g filter="url(#f)">{body}</g>', height=200)
+    return rasterize(render(document), 8 / 3)
+
+
+@pytest.mark.parametrize("root", [False, True])
+def test_a_blurred_group_has_round_corners(root: bool) -> None:
+    # Chromium blurs the pixels of the group: outside a corner the alpha is the product of the two edges,
+    # Phi(-d / s) squared. The levels grew the square by its nearest edge, which left a diagonal corner
+    # (resvg filters-filter--on-the-root-svg)
+    image = blurred_content('<rect x="60" y="60" width="80" height="80" fill="black"/>', root=root)
+    gauss = NormalDist()
+    for distance in (0, 1, 2, 3, 4, 6):
+        # The pixel darkness reads is centered a quarter unit right of and below the point
+        expected = gauss.cdf((0.25 - distance) / 4) ** 2
+        assert darkness(image, 60 - distance, 60 - distance) == pytest.approx(expected, abs=0.012), distance
+
+
+def test_a_blurred_stroke_fades_without_steps() -> None:
+    # A stroke 2 wide under a deviation of 4: Phi((1 - d) / 4) + Phi((1 + d) / 4) - 1 at d from its middle.
+    # The levels widened the stroke in flat steps, with a hard edge where the grown stroke ended inside
+    image = blurred_shape('<rect x="60" y="60" width="80" height="80" fill="none" stroke="black" stroke-width="2"/>').convert("L")
+    gauss = NormalDist()
+    row = [1 - cast(int, image.getpixel((column, 200))) / 255 for column in range(80, 200)]
+    # Each pixel is centered a quarter unit right of its column
+    expected = [gauss.cdf((1 - abs(column / 2 + 0.25 - 60)) / 4) + gauss.cdf((1 + abs(column / 2 + 0.25 - 60)) / 4) - 1 for column in range(80, 200)]
+    assert max(abs(a - e) for a, e in zip(row, expected, strict=True)) <= 0.025
+    steps = [b - a for a, b in zip(row, row[1:], strict=False)]
+    assert max(abs(b - a) for a, b in zip(steps, steps[1:], strict=False)) <= 4.5 / 255
+
+
+def test_a_blurred_group_mixes_its_colors() -> None:
+    # Each color spreads by its own share: red outside the left edge, blue outside the right one, half and
+    # half where they meet, and no seam in the alpha between them
+    image = blurred_content('<rect x="60" y="60" width="40" height="80" fill="red"/><rect x="100" y="60" width="40" height="80" fill="blue"/>')
+    left, right, middle = image.getpixel((112, 200)), image.getpixel((288, 200)), image.getpixel((200, 200))
+    assert left[0] == 255, left
+    assert abs(left[1] - left[2]) <= 2, left
+    assert 200 < left[1] < 230, left
+    assert right[2] == 255, right
+    assert abs(right[0] - right[1]) <= 2, right
+    assert 200 < right[0] < 230, right
+    assert near(middle, (128, 0, 128), 12), middle
+    assert all(sum(image.getpixel((x, 200))[:2]) <= 260 for x in range(190, 211))
+
+
+def test_a_blurred_group_keeps_its_opacities_and_clips() -> None:
+    # fill-opacity, an opacity group and a clip take their part of the coverage
+    defs = '<clipPath id="c"><rect x="0" y="0" width="100" height="200"/></clipPath>'
+    body = (
+        '<rect x="20" y="20" width="160" height="40" fill="black" fill-opacity="0.5"/>'
+        '<g opacity="0.5"><rect x="20" y="80" width="160" height="40" fill="black"/></g>'
+        '<rect x="20" y="140" width="160" height="40" fill="black" clip-path="url(#c)"/>'
+    )
+    image = blurred_content(body, "2", defs=defs)
+    assert darkness(image, 100, 40) == pytest.approx(0.5, abs=0.02)
+    assert darkness(image, 100, 100) == pytest.approx(0.5, abs=0.02)
+    assert darkness(image, 60, 160) > 0.97
+    assert darkness(image, 104, 160) < 0.03
+
+
+def test_the_drop_shadow_of_a_group_is_its_blurred_coverage() -> None:
+    body = '<rect x="98" y="60" width="4" height="80" fill="red"/><rect x="60" y="98" width="80" height="4" fill="blue"/>'
+    image = blurred_content(body, "2", primitive='feDropShadow dx="0" dy="0" flood-color="black"')
+    # A bar 4 wide under a deviation of 2, 4.25 from its middle: Phi(-1.125) + Phi(3.125) - 1 of black,
+    # nothing of its colors
+    shadow = image.getpixel((2 * 104, 2 * 80))
+    assert abs(shadow[0] - shadow[2]) <= 2
+    assert 1 - shadow[1] / 255 == pytest.approx(NormalDist().cdf(-1.125) + NormalDist().cdf(3.125) - 1, abs=0.015)
+
+
+@pytest.mark.parametrize(
+    ("body", "limits"),
+    [
+        ('<text x="60" y="100">Text</text>', {}),
+        ('<path d="M60 100h80" stroke="black" stroke-width="4" stroke-dasharray="4 4"/>', {}),
+        ('<rect x="60" y="60" width="80" height="80" fill="url(#g)"/><rect x="0" y="0" width="1" height="1"/>', {}),
+        ('<rect x="60" y="60" width="80" height="80" fill="red" mask="url(#m)"/>', {}),
+        ('<rect x="60" y="60" width="80" height="80" fill="red" style="mix-blend-mode: multiply"/>', {}),
+        ("".join(f'<rect x="{10 * k}" y="60" width="10" height="80" fill="rgb({k * 20},0,0)"/>' for k in range(5)), {}),
+        ('<rect x="60" y="60" width="80" height="80" fill="red"/>', {"MAX_CELLS": 10}),
+        ('<rect x="60" y="60" width="80" height="80" fill="red"/>', {"MAX_PIXEL_WORK": 10}),
+        ('<rect x="60" y="60" width="80" height="80" fill="none"/>', {}),
+    ],
+)
+def test_content_the_coverage_cannot_take_keeps_the_levels(body: str, limits: dict[str, int], monkeypatch: pytest.MonkeyPatch) -> None:
+    # Text, dashes, gradients, masks, blend modes, too many colors and too large a grid keep the levels
+    for name, value in limits.items():
+        monkeypatch.setattr(shapeblur if name == "MAX_CELLS" else filters, name, value)
+    calls: list[int] = []
+    original = filters._blur_mask
+
+    def counted(*args: Any) -> None:
+        calls.append(1)
+        original(*args)
+
+    monkeypatch.setattr(filters, "_blur_mask", counted)
+    defs = '<linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><mask id="m"><rect width="200" height="200" fill="white"/></mask>'
+    blurred_content(body, defs=defs)
+    assert calls == [1]

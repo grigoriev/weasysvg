@@ -232,6 +232,14 @@ def test_circle_outline_is_too_long() -> None:
     still_broken(bool(curves) and abs(float(curves[0].split()[1]) - 72.57) < 0.01, "the arc constant of circles", "paint.ellipse")
 
 
+def test_a_dash_through_the_start_point_is_cut_in_two() -> None:
+    # The outline of 480 ends 90 into a dash of 100: one dash runs around the corner at 40 40, where
+    # Chromium draws its miter. PDFium draws two dashes with butt ends there: the corner stays white
+    rect = '<rect x="40" y="40" width="120" height="120" fill="none" stroke="black" stroke-width="20" stroke-dasharray="100 30"/>'
+    pdf, _ = render(svg(rect, height=200))
+    still_broken(near(pixel(pdf, 24, 24), WHITE), "the dash through the start point of a closed subpath", "dashes.closing_patches")
+
+
 # ---------------- opacity group ----------------
 
 

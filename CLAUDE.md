@@ -50,18 +50,25 @@ once.
   `layout.block.table_layout` inside a foreignObject, and `layout.inline.strut` and `split_text_box`: lines take
   the font metrics rounded to whole px as Blink does, and each baseline lands on a whole px of the HTML.
 - `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask: axial
-  shadings for a plain rect, the mesh of `shapeblur.py` for another filled shape, else built in levels:
+  shadings for a plain rect, the mesh of `shapeblur.py` for another filled shape, the mesh of the coverage
+  `coverage.py` reads back for other content, else built in levels:
   the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
   and transfer functions recolor every parsed color (`RECOLOR`). feComposite arithmetic with a constant
   input is a recolor too. `turbulence.py` computes the noise of feTurbulence as an image layer.
 - `shapeblur.py`: the blur of one filled shape from its coverage, sampled on a grid and blurred with Pillow;
   `filters.py` draws the grid as a lattice mesh shading (type 5) in the mask and paints the whole region.
+- `coverage.py`: the coverage of any drawn content per color, read back from the PDF operators of a scratch
+  group: paths, strokes outlined with their joins and caps, clips, constant opacities, transparency groups.
+  Text, images, shadings, patterns, soft masks, blend modes and dashes raise `Unsupported`: the levels draw them.
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
 - `pathdata.py`: path data as segments with tangents and points along them.
+- `dashes.py`: the dash through the start point of a closed subpath, as one dash: `paint_order.fill_stroke` strokes a
+  short patch across that point with the path, after the fill.
 - `paint_order.py`: `paint-order` and translucent strokes. `fill_stroke` paints the path left in the stream once
   per paint, markers in between; `text.draw_text` splits each mode 2 text object into two passes.
 - `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.
-- `text.py`, `fonts.py`: SVG text, Chromium font selection. A text with more than one chunk is laid out
+- `text.py`, `fonts.py`: SVG text, Chromium font selection. Decoration lines follow WeasyPrint on HTML text, not
+  Chromium: thickness and place from the font tables (`text.font_lines`), no skipped ink. A text with more than one chunk is laid out
   once into a scratch group (`ChunkPlan`), then each chunk draws moved by its own `text-anchor`.
 - `textpath.py`: characters placed along a `pathdata.Polyline`, for `<textPath>` and its `<tspan>`.
 - `vertical.py`: vertical `writing-mode`, characters placed down the y axis.
@@ -113,7 +120,7 @@ run in a process of their own: `tests/helpers.py` installs weasysvg on import.
   (`try`/`finally`). A leak shows as wrong output on the second `<use>` of the same element.
 - No graphics state (`gs`) between path construction and its paint operator: viewers ignore it.
 - Untrusted SVG: `foreignObject` content must not reach files or URLs outside the URL fetcher of the
-  caller. A blur draws its element up to 3 * MAX_STEPS + 2 times: keep the step count capped. Pixels
+  caller. A blur draws its element up to 3 * MAX_STEPS + 3 times: keep the step count capped. Pixels
   computed in Python (turbulence, recolored images) count against MAX_PIXEL_WORK per SVG.
 - WeasyPrint internals change between majors: a new hook needs a test that fails when the hooked
   function changes shape.
