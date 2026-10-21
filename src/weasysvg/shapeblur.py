@@ -120,7 +120,8 @@ def _inside(rings: list[list[Point]], signs: list[int], even_odd: bool, big: tup
         box = (left, top, right, bottom)
         counts[sign].paste(ImageChops.add(counts[sign].crop(box), layer), box)
     winding = ImageChops.difference(counts[1], counts[-1])
-    return winding.point(lambda value: 255 if (value % 2 if even_odd else value) else 0)
+    inside: Callable[[int], int] = (lambda value: value % 2) if even_odd else (lambda value: value)
+    return winding.point(lambda value: 255 if inside(value) else 0)
 
 
 def _coverage(rings: list[Ring], even_odd: bool, size: tuple[int, int], to_grid: Callable[[Point], Point]) -> Image.Image:

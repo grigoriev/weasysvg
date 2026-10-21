@@ -863,6 +863,21 @@ def _position(node: Any, name: str, font_size: float, reference: float) -> float
     return size(values[0], font_size, reference) if values else None
 
 
+def _advance(svg: Any, node: Any, font_size: float, width: float) -> tuple[float, float]:
+    """Where a run of width starts, from x, y, dx and dy of node and the cursor, which moves past it."""
+    x, y = _position(node, "x", font_size, svg.inner_width), _position(node, "y", font_size, svg.inner_height)
+    if x is not None:
+        svg.cursor_d_position[0] = 0
+    if y is not None:
+        svg.cursor_d_position[1] = 0
+    svg.cursor_d_position[0] += _position(node, "dx", font_size, svg.inner_width) or 0
+    svg.cursor_d_position[1] += _position(node, "dy", font_size, svg.inner_height) or 0
+    x = svg.cursor_position[0] if x is None else x
+    y = svg.cursor_position[1] if y is None else y
+    svg.cursor_position = x + width, y
+    return x, y
+
+
 def _draw_run(svg: Any, node: Any, font_size: float) -> None:
     """The text of the node laid out and drawn as one run, positioned as text() of WeasyPrint does."""
     from weasyprint.draw.text import draw_emojis, draw_first_line
@@ -882,16 +897,7 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
         width = _track(layout, letter_spacing)
         layout.deactivate()
 
-    x, y = _position(node, "x", font_size, svg.inner_width), _position(node, "y", font_size, svg.inner_height)
-    if x is not None:
-        svg.cursor_d_position[0] = 0
-    if y is not None:
-        svg.cursor_d_position[1] = 0
-    svg.cursor_d_position[0] += _position(node, "dx", font_size, svg.inner_width) or 0
-    svg.cursor_d_position[1] += _position(node, "dy", font_size, svg.inner_height) or 0
-    x = svg.cursor_position[0] if x is None else x
-    y = svg.cursor_position[1] if y is None else y
-    svg.cursor_position = x + width, y
+    x, y = _advance(svg, node, font_size, width)
     x_position, y_position = x + svg.cursor_d_position[0], y + svg.cursor_d_position[1]
     points = ((x_position, y_position - baseline), (x_position + width, y_position - baseline + height))
     node.text_bounding_box = extend_bounding_box(node.text_bounding_box, points)

@@ -108,9 +108,11 @@ def test_stroke_last(body: str) -> None:
 def test_stroke_opacity_shows_through_the_outer_half_only() -> None:
     body = '<rect x="40" y="40" width="120" height="120" fill="red" stroke="#000" stroke-opacity=".4" stroke-width="40" {}/>'
     outer, inner = halves(square(body.format('paint-order="stroke"')))
-    assert near(outer, (153, 153, 153)) and inner == RED
+    assert near(outer, (153, 153, 153))
+    assert inner == RED
     outer, inner = halves(square(body.format("")))
-    assert near(outer, (153, 153, 153)) and near(inner, (153, 0, 0))
+    assert near(outer, (153, 153, 153))
+    assert near(inner, (153, 0, 0))
 
 
 @pytest.mark.parametrize(
@@ -130,12 +132,14 @@ def test_translucent_stroke_shows_the_fill_under_it(stroke: str, inner: tuple[in
 
 def test_group_opacity_applies_once_to_both_paints() -> None:
     outer, inner = halves(square(RECT.format('opacity=".5" paint-order="stroke"')))
-    assert near(outer, (127, 127, 255)) and near(inner, (127, 191, 127))
+    assert near(outer, (127, 127, 255))
+    assert near(inner, (127, 191, 127))
 
 
 def test_fill_opacity_shows_the_stroke_under_the_fill() -> None:
     outer, inner = halves(square(RECT.format('fill-opacity=".5" paint-order="stroke"')))
-    assert outer == BLUE and near(inner, (0, 64, 127))
+    assert outer == BLUE
+    assert near(inner, (0, 64, 127))
 
 
 def test_clip_is_not_part_of_the_path() -> None:
@@ -148,8 +152,10 @@ def test_clip_is_not_part_of_the_path() -> None:
 def test_dashed_stroke_under_the_fill() -> None:
     pdf = square(RECT.format('stroke-dasharray="20 20" paint-order="stroke"'))
     # Up the left edge, the last of the outline: a gap at y 50, a dash at y 70
-    assert pixel(pdf, OUTER, 37) == WHITE and pixel(pdf, OUTER, 52) == BLUE
-    assert pixel(pdf, INNER, 37) == GREEN and pixel(pdf, INNER, 52) == GREEN
+    assert pixel(pdf, OUTER, 37) == WHITE
+    assert pixel(pdf, OUTER, 52) == BLUE
+    assert pixel(pdf, INNER, 37) == GREEN
+    assert pixel(pdf, INNER, 52) == GREEN
 
 
 def test_gradient_stroke_under_the_fill() -> None:
@@ -157,8 +163,10 @@ def test_gradient_stroke_under_the_fill() -> None:
     body = gradient + RECT.format("{}").replace('stroke="blue"', 'stroke="url(#g)"')
     pdf, normal = square(body.format('paint-order="stroke"')), square(body.format(""))
     # The gradient runs over the same box: the outer half keeps its colors
-    assert pixel(pdf, OUTER, MIDDLE) == pixel(normal, OUTER, MIDDLE) and pixel(pdf, INNER, MIDDLE) == GREEN
-    assert pixel(pdf, 150 - OUTER, MIDDLE) == pixel(normal, 150 - OUTER, MIDDLE) and pixel(pdf, 150 - INNER, MIDDLE) == GREEN
+    assert pixel(pdf, OUTER, MIDDLE) == pixel(normal, OUTER, MIDDLE)
+    assert pixel(pdf, INNER, MIDDLE) == GREEN
+    assert pixel(pdf, 150 - OUTER, MIDDLE) == pixel(normal, 150 - OUTER, MIDDLE)
+    assert pixel(pdf, 150 - INNER, MIDDLE) == GREEN
 
 
 def test_pattern_fill_over_the_stroke() -> None:
@@ -211,7 +219,8 @@ def test_text_stroke_first_fills_over_its_stroke(attributes: str, text: str) -> 
     pdf = square(GLYPH.format(attributes, text))
     assert pixel(pdf, *STEM) == GREEN
     page = content(pdf)
-    assert "2 Tr" not in page and page.index("1 Tr") < page.index("0 Tr")
+    assert "2 Tr" not in page
+    assert page.index("1 Tr") < page.index("0 Tr")
 
 
 def test_text_normal_strokes_over_its_fill() -> None:
@@ -224,7 +233,8 @@ def test_text_translucent_stroke_shows_the_fill_under_it() -> None:
     pdf = square(GLYPH.format('stroke-opacity=".4"', "I"))
     assert near(pixel(pdf, *STEM), (0, 77, 102))
     page = content(pdf)
-    assert "2 Tr" not in page and page.index("0 Tr") < page.index("1 Tr")
+    assert "2 Tr" not in page
+    assert page.index("0 Tr") < page.index("1 Tr")
 
 
 def test_text_on_a_path_stroke_first() -> None:
@@ -242,7 +252,8 @@ def test_text_decoration_stroke_first() -> None:
 
 def test_text_with_one_paint_keeps_its_mode() -> None:
     pdf = square(GLYPH.replace('stroke="blue"', 'stroke="none"').format('paint-order="stroke"', "I"))
-    assert "0 Tr" in content(pdf) and "1 Tr" not in content(pdf)
+    assert "0 Tr" in content(pdf)
+    assert "1 Tr" not in content(pdf)
 
 
 def test_split_text_waits_for_install(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -264,4 +275,5 @@ def test_fill_stroke_without_a_path_keeps_the_operator() -> None:
         paint_order.fill_stroke(SimpleNamespace(stream=stream), "green", "blue")
     finally:
         _core._DRAWING.reset(token)
-    assert painted == [False] and stream.stream == [b"q", b"Q"]
+    assert painted == [False]
+    assert stream.stream == [b"q", b"Q"]
