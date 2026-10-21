@@ -9,6 +9,22 @@
    "fingerprint": "3b9638a1dd917a25",
    "used_by": "_core: tree passes and fetcher wrappers run before it"
   },
+  "weasyprint.html:handle_element": {
+   "fingerprint": "04e1a2763f1f9818",
+   "used_by": "conditional.handle_element: the lang of the element an image belongs to"
+  },
+  "weasyprint.images:SVGImage.draw": {
+   "fingerprint": "16c489bb134cdeb8",
+   "used_by": "conditional.svgimage_draw: nested SVGs are built while it draws"
+  },
+  "weasyprint.images:get_image_from_uri": {
+   "fingerprint": "92a9810c10716ca3",
+   "used_by": "conditional.get_image_from_uri: a cache read by key alone, keyed by URL"
+  },
+  "weasyprint.document:Document._build_layout_context": {
+   "fingerprint": "0e5aa8b24512a1c7",
+   "used_by": "conditional.install: the partial of original_get_image_from_uri"
+  },
   "weasyprint.svg:SVG.__init__": {
    "fingerprint": "1c2ceb4060c97583",
    "used_by": "_core, paint: svg.paths, svg.masks, svg.filters, cursor state"

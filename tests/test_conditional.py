@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import base64
+from pathlib import Path
+from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
+import weasyprint
 from helpers import SVG_NS, XHTML_NS, render, svg, text_of
 
+import weasysvg
 from weasysvg import conditional
 from weasysvg.conditional import apply_conditionals, local_name, passes
 
@@ -105,3 +110,109 @@ def test_without_foreign_object_the_fallback_wins(monkeypatch: pytest.MonkeyPatc
     root = tree(f'<switch><foreignObject id="fo" requiredExtensions="{XHTML_NS}"/><text id="fallback">x</text></switch>')
     apply_conditionals(root)
     assert ids(root) == ["fallback"]
+
+
+# ---------------- the language of the reader ----------------
+
+GREETING = svg('<switch><text x="10" y="40" systemLanguage="de">Hallo</text><text x="10" y="40" systemLanguage="ru">Privet</text><text x="10" y="40" systemLanguage="en">Hello</text></switch>')
+
+
+def page(body: str, lang: str = "", **options: Any) -> bytes:
+    attribute = f' lang="{lang}"' if lang else ""
+    html = f"<!DOCTYPE html><html{attribute}><head><style>@page{{size:400px 600px;margin:0}} body{{margin:0}} img{{display:block}}</style></head><body>{body}</body></html>"
+    pdf: bytes = weasyprint.HTML(string=html).write_pdf(**options)
+    return pdf
+
+
+def image(document: str, lang: str = "") -> str:
+    attribute = f' lang="{lang}"' if lang else ""
+    return f'<p{attribute}><img src="data:image/svg+xml;base64,{base64.b64encode(document.encode()).decode()}"></p>'
+
+
+@pytest.mark.parametrize(
+    ("language", "codes", "expected"),
+    [
+        ("de", "de", True),
+        ("de", "de-AT", True),
+        ("de-CH", "de", True),
+        ("de-CH", "de-ch", True),
+        ("de-CH", "en", False),
+        ("RU", "ru", True),
+        ("ru", "rus", False),
+    ],
+)
+def test_the_language_of_the_reader(language: str, codes: str, expected: bool) -> None:
+    # As Blink with the Accept-Language list a browser sends for the language: "de-CH" sends "de-CH,de"
+    token = conditional.LANGUAGE.set(language)
+    try:
+        assert passes(ET.Element("text", {"systemLanguage": codes})) is expected
+    finally:
+        conditional.LANGUAGE.reset(token)
+
+
+def test_an_image_takes_the_language_of_its_document() -> None:
+    assert text_of(page(image(GREETING))).strip() == "Hello"
+    assert text_of(page(image(GREETING), lang="de")).strip() == "Hallo"
+
+
+def test_one_image_in_two_languages() -> None:
+    # The same URL in two languages: each takes its own, the cache of images keeps them apart
+    text = text_of(page(image(GREETING, "ru") + image(GREETING, "de"))).split()
+    assert text == ["Privet", "Hallo"]
+
+
+def test_an_inline_svg_takes_the_language_of_its_document() -> None:
+    assert text_of(page(GREETING, lang="ru")).strip() == "Privet"
+
+
+def test_install_sets_the_language_without_one_in_the_document(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(conditional, "DEFAULT_LANGUAGE", conditional.DEFAULT_LANGUAGE)
+    weasysvg.install(language="ru")
+    assert text_of(page(image(GREETING))).strip() == "Privet"
+    # The document wins
+    assert text_of(page(image(GREETING), lang="de")).strip() == "Hallo"
+
+
+def test_one_image_in_two_languages_in_a_cache_on_disk(tmp_path: Path) -> None:
+    text = text_of(page(image(GREETING, "ru") + image(GREETING, "de"), cache=tmp_path)).split()
+    assert text == ["Privet", "Hallo"]
+
+
+def test_a_shared_cache_follows_the_language_of_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A cache kept across documents: an image built under one language is not reused under another
+    monkeypatch.setattr(conditional, "DEFAULT_LANGUAGE", conditional.DEFAULT_LANGUAGE)
+    cache: dict[Any, Any] = {}
+    weasysvg.install(language="ru")
+    assert text_of(page(image(GREETING), cache=cache)).strip() == "Privet"
+    weasysvg.install(language="de")
+    assert text_of(page(image(GREETING), cache=cache)).strip() == "Hallo"
+
+
+def test_a_background_reads_the_language_of_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(conditional, "DEFAULT_LANGUAGE", conditional.DEFAULT_LANGUAGE)
+    data = base64.b64encode(GREETING.encode()).decode()
+    body = f'<div lang="de" style="width:200px;height:100px;background:url(data:image/svg+xml;base64,{data}) no-repeat"></div>'
+    weasysvg.install(language="ru")
+    assert text_of(page(body)).strip() == "Privet"
+
+
+def test_a_nested_svg_takes_the_language_of_the_document() -> None:
+    # An <image> of an SVG is built while the outer SVG draws, after handle_element is done
+    inner = base64.b64encode(GREETING.encode()).decode()
+    outer = svg(f'<image width="200" height="100" href="data:image/svg+xml;base64,{inner}"/>')
+    assert text_of(page(image(outer), lang="de")).strip() == "Hallo"
+
+
+def test_an_svg_inside_a_foreign_object_takes_the_language_of_the_document() -> None:
+    inner = base64.b64encode(GREETING.encode()).decode()
+    outer = svg(f'<foreignObject width="200" height="100"><div xmlns="{XHTML_NS}"><img src="data:image/svg+xml;base64,{inner}"/></div></foreignObject>')
+    assert text_of(page(image(outer), lang="ru")).strip() == "Privet"
+
+
+@pytest.mark.parametrize("language", ["", "  "])
+def test_an_empty_language_is_refused(monkeypatch: pytest.MonkeyPatch, language: str) -> None:
+    # An empty language would match no systemLanguage at all
+    monkeypatch.setattr(conditional, "DEFAULT_LANGUAGE", conditional.DEFAULT_LANGUAGE)
+    with pytest.raises(ValueError, match="language"):
+        weasysvg.install(language=language)
+    assert conditional.DEFAULT_LANGUAGE == "en"

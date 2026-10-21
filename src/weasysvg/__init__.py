@@ -48,13 +48,18 @@ def install(
     fonts: bool = True,
     fetch_cache: bool = True,
     markers: bool = True,
+    language: str | None = None,
 ) -> frozenset[str]:
     """Install the selected features and return all features installed so far.
 
     Idempotent: a feature installed before is skipped. A later call can add features, never remove them.
     ``fonts`` resolves font families as Chromium does, in SVG text and inside foreignObject.
+    ``language`` is the language systemLanguage reads where the document gives none ("en" by default);
+    any call can change it.
     """
     _check_version()
+    if language is not None:
+        _conditional.set_language(language)
     wanted = {
         "conditional": conditional_processing,
         "paint": paint,

@@ -67,7 +67,7 @@ weasysvg.install(filters=False, fonts=False)
 
 | Argument | Default | Effect |
 |---|---|---|
-| `conditional_processing` | `True` | `<switch>`, `requiredExtensions`, `systemLanguage` (as Chromium in `en-US`) |
+| `conditional_processing` | `True` | `<switch>`, `requiredExtensions`, `systemLanguage` |
 | `foreign_object` | `True` | `<foreignObject>` content laid out by WeasyPrint |
 | `filters` | `True` | filter chains, `drop-shadow()` and `blur()` |
 | `paint` | `True` | gradients, patterns and masks |
@@ -76,6 +76,7 @@ weasysvg.install(filters=False, fonts=False)
 | `fonts` | `True` | font family selection as Chromium does it |
 | `fetch_cache` | `True` | one fetch per URL and SVG |
 | `markers` | `True` | marker orientation as in Chromium |
+| `language` | `"en"` | the language `systemLanguage` reads where the document has no `lang` |
 
 weasysvg targets WeasyPrint 70.x and warns on any other major version: it patches internals that
 change between releases.
@@ -85,7 +86,7 @@ change between releases.
 | Area | What weasysvg adds |
 |---|---|
 | `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. Disc, circle and square list markers are the shapes Chromium paints, placed from the ascent of the font. |
-| Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. |
+| Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. `systemLanguage` reads the `lang` of the element that holds the image (`<html lang="de">`), else the `language` of `install()`, and matches as Chromium does with the Accept-Language list of that language (`de-CH` reads `de-CH,de`). An SVG from CSS (`background-image`, `list-style-image`, `content: url()`) reads `language`. |
 | Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, and in steps through the profile for other shapes. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
