@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The text after a child of a `<tspan>` is drawn: WeasyPrint dropped it, so `Don<wbr/>e` in a Polarion chart
+  label read "Don".
+
 ## [0.1.0] - 2026-10-21
 
 ### Added
