@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The space that ends a text moves no anchor: `text-anchor="end"` put the text a space too far left.
 - A wide arc in path data is drawn as curves of at most 90 degrees: WeasyPrint drew a half circle as one
   curve, which bulged the band of the flag of Brazil.
+- `text-anchor` places each text chunk of SVG 2 as one: a chunk starts only at a character with an absolute
+  `x` or `y`, and the text after a positioned `<tspan>` belongs to it. WeasyPrint anchored that text with the
+  `<text>`, so the second line of a label in a Wikimedia OSI model diagram sat off its center.
 
 ## [0.1.0] - 2026-10-21
 

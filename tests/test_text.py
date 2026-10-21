@@ -829,10 +829,10 @@ class TextNode(list[Any]):
 @pytest.mark.parametrize("extra", ["", '<tspan x="150" font-size="10pt" dy="16">and more</tspan>'])
 def test_the_space_after_a_chunk_belongs_to_that_chunk(extra: str) -> None:
     # The white space between the tspans of a chunk, after it, must not widen the chunk before it: the
-    # title is anchored alike with one line under it or two
+    # title, drawn first, is anchored alike with one line under it or two
     def title_shift(lines: tuple[str, ...]) -> str:
         body = '<text y="40" x="150" text-anchor="middle">\n  ' + "\n  ".join(lines) + "\n</text>"
-        return str(re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))[-1])
+        return str(re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))[0])
 
     two = ("<tspan>Transport</tspan>", '<tspan x="150" font-size="10pt" dy="16">End-to-End</tspan>')
     assert title_shift((*two, extra) if extra else two) == title_shift(two[:1] + ('<tspan x="150" font-size="10pt" dy="16">End</tspan>',))
@@ -885,6 +885,86 @@ def test_the_box_of_a_text_lies_where_its_anchor_puts_it(anchor: str, direction:
     node = TextNode("text", (50, 20, 20, 25), attrib={"text-anchor": anchor, "direction": direction})
     text.chunk_boxes(None, node)
     assert node.text_bounding_box == (x, 20, 20, 25)
+
+
+INK_SCALE = 4  # px per CSS px
+
+
+def ink_lines(pdf: bytes) -> list[list[tuple[float, float]]]:
+    """The ink of each line of text, top down, as runs along x in CSS px: a gap wider than 12 px splits a run."""
+    image = rasterize(pdf, INK_SCALE / 0.75).convert("L")
+    pixels = image.tobytes()
+    width, height = image.size
+    dark = [[pixels[y * width + x] < 200 for x in range(width)] for y in range(height)]
+    lines, y = [], 0
+    while y < height:
+        if not any(dark[y]):
+            y += 1
+            continue
+        top = y
+        while y < height and any(dark[y]):
+            y += 1
+        columns = [x for x in range(width) if any(dark[row][x] for row in range(top, y))]
+        runs = [[columns[0], columns[0]]]
+        for x in columns[1:]:
+            if x - runs[-1][1] > 12 * INK_SCALE:
+                runs.append([x, x])
+            runs[-1][1] = x
+        lines.append([(start / INK_SCALE, (end + 1) / INK_SCALE) for start, end in runs])
+    return lines
+
+
+DEJAVU = 'font-family="DejaVu Sans" font-size="20"'
+
+
+def test_an_effect_measures_a_chunked_text_where_it_is_drawn() -> None:
+    # The clip in objectBoundingBox units spans the box of the text: measured before it draws, the box
+    # must lie where the chunks are drawn, or the clip cuts the text
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="1" height="1"/></clipPath>'
+    body = f'{clip}<text clip-path="url(#c)" x="10" y="50" text-anchor="middle" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>'
+    [[(start, end)]] = ink_lines(render(svg(body, width=300, height=150)))
+    assert start == pytest.approx(108.5, abs=1)
+    assert end == pytest.approx(190.25, abs=1)
+
+
+# The ink Chromium draws, read from its PDF at 4x: a text chunk runs from a character with an absolute x or y
+# to the next one, across elements, and text-anchor places each chunk as one
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        # The text after a positioned tspan, in the <text> or in a tspan without x, continues its chunk
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(108.5, 190.25)]]),
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}><tspan x="150">AAA</tspan><tspan>BBB</tspan></text>', [[(108.5, 190.25)]]),
+        (f'<text x="10" y="50" text-anchor="end" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(66.75, 148.75)]]),
+        (f'<text x="10" y="50" direction="rtl" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(66.75, 148.75)]]),
+        # "CC" alone at 10, off the left edge, "AAABBB" at 150, "DD E" at 150 on the second line
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}>CC<tspan x="150">AAA</tspan>BBB<tspan x="150" dy="30">DD</tspan> E</text>', [[(0, 23), (108.5, 190.25)], [(127, 173.75)]]),
+        # The chunk out of a nested tspan, and a chunk that starts inside one
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}><tspan><tspan x="150">AAA</tspan>BB</tspan>CC</text>', [[(101.5, 197.5)]]),
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}>XX<tspan>AA<tspan x="150">BB</tspan>CC</tspan>DD</text>', [[(0, 37.5), (109, 191.75)]]),
+        # The anchor of a chunk is the anchor of the element of its first character
+        (f'<text x="150" y="50" {DEJAVU}><tspan text-anchor="middle">AAA</tspan>BBB</text>', [[(108.5, 190.25)]]),
+        (f'<text x="10" y="50" {DEJAVU}>CC<tspan x="150" text-anchor="middle">AAA</tspan>BBB</text>', [[(11, 37), (108.5, 190.25)]]),
+        (f'<text x="150" y="50" text-anchor="middle" {DEJAVU}>AAA<tspan text-anchor="end">BBB</tspan></text>', [[(108.5, 190.25)]]),
+        # The letter-spacing after the last character of a chunk widens it
+        (f'<text x="150" y="50" text-anchor="middle" letter-spacing="3" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(99.5, 196.25)]]),
+        # Each value of a list of x starts a chunk of its own
+        (f'<text x="100 200" y="50" text-anchor="middle" {DEJAVU}>AB<tspan>CC</tspan></text>', [[(93.25, 106.75), (181.25, 219.75)]]),
+        # The collapsed space between two lines belongs to the first: it widens that line, the last line has none
+        (
+            f'<text x="150" y="40" text-anchor="middle" {DEJAVU}>\n <tspan>Top</tspan>\n <tspan x="150" font-size="14" dy="25">Second line</tspan>\n <tspan x="150" font-size="14" dy="25">Third</tspan>\n </text>',
+            [[(129.75, 162.75)], [(107, 186.75)], [(132, 166.75)]],
+        ),
+    ],
+)
+def test_text_anchor_places_each_text_chunk_as_chromium(body: str, expected: list[list[tuple[float, float]]]) -> None:
+    found = ink_lines(render(svg(body, width=300, height=150)))
+    assert len(found) == len(expected)
+    for line, runs in zip(found, expected, strict=True):
+        assert len(line) == len(runs), found
+        for (start, end), (want_start, want_end) in zip(line, runs, strict=True):
+            assert start == pytest.approx(want_start, abs=1), found
+            assert end == pytest.approx(want_end, abs=1), found
 
 
 # ---------------- leading shifts ----------------

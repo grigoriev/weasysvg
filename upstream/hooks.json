@@ -31,7 +31,7 @@
   },
   "weasyprint.svg:SVG.draw_node": {
    "fingerprint": "3e14b48840ec2684",
-   "used_by": "_core._draw_node and _draw_with_effects mirror its order of effects"
+   "used_by": "_core._draw_node and _draw_with_effects mirror its order of effects; text._record lays a text out through it with fill_stroke=False"
   },
   "weasyprint.svg:SVG.set_graphical_state": {
    "fingerprint": "64e852909af7633d",
@@ -115,7 +115,7 @@
   },
   "weasyprint.svg.text:text": {
    "fingerprint": "388f5046ffe009d3",
-   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge; text.recorded_draw_first_line reads its matrix per character; paint_order.split_text splits its 2 Tr"
+   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge; text.recorded_draw_first_line its matrices, text._draw_planned its cursor; paint_order.split_text its 2 Tr"
   },
   "weasyprint.svg.css:parse_declarations": {
    "fingerprint": "55a5890696d6d514",
@@ -227,7 +227,7 @@
   },
   "weasyprint.pdf.stream:Stream.add_group": {
    "fingerprint": "d8781b7b3242be5e",
-   "used_by": "_core._add_group keeps the absolute matrix; _core.measure_text removes its scratch group from _resources; _core, filters, paint groups"
+   "used_by": "_core._add_group keeps the absolute matrix; _core.measure_text and text._record remove their scratch group from _resources; _core, filters, paint groups"
   },
   "weasyprint.pdf.stream:Stream.set_alpha_state": {
    "fingerprint": "1c570e0b507a14dd",

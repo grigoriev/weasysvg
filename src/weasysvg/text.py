@@ -404,7 +404,7 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
     hidden as the box of the chunk is. Text inside the chunk started last is left to WeasyPrint, which
     merges it into that chunk.
     """
-    if node.tag not in TEXT_TAGS_WITH_CHUNKS:
+    if node.tag not in TEXT_TAGS_WITH_CHUNKS or _planned(node) is not None:
         return
     hidden = [entry for child in node for entry in child.__dict__.pop(CHUNK_BOX, ())]
     box = getattr(node, "text_bounding_box", None)
@@ -429,6 +429,225 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
         LAST_CHUNK.set(None)
     if hidden:
         node.__dict__[CHUNK_BOX] = hidden
+
+
+# ---------------- chunk plans ----------------
+#
+# The groups of WeasyPrint anchor the text of one element with its descendants: text after a positioned
+# <tspan> stayed in the chunk of the <text>, "<tspan x="150">AAA</tspan>BBB" drew BBB off the left edge.
+# A chunk runs from a character with an absolute x or y to the next one, across elements, and takes the
+# anchor of the element of its first character (SVG 2, text chunks). A text with more than one chunk is
+# laid out once first, into a scratch group: each piece draw_first_line places is noted with its chunk.
+# Then WeasyPrint anchors nothing, and each node draws moved by the shift of its own chunk.
+
+
+@dataclass
+class _Piece:
+    """What one call of draw_first_line placed: a character, or a whole run."""
+
+    node: Any
+    start: float
+    end: float
+    absolute: bool  # whether its first character has an absolute x or y: it starts a chunk
+    shift: float = 0.0
+
+
+@dataclass
+class ChunkPlan:
+    """The chunks of one <text>: recorded by a scratch layout, then applied while the text draws."""
+
+    text: Any
+    recording: bool = True
+    nodes: dict[int, Any] = field(default_factory=dict)  # the text and the text elements inside it
+    pieces: list[_Piece] = field(default_factory=list)
+    pending: bool = False  # a node with x or y and no text: its position goes to the next character
+
+    def of(self, node: Any) -> list[_Piece]:
+        return [piece for piece in self.pieces if piece.node is node]
+
+    def place(self) -> None:
+        """Give each piece the shift text-anchor gives its chunk."""
+        chunks: list[list[_Piece]] = []
+        for piece in self.pieces:
+            if piece.absolute or not chunks:
+                chunks.append([])
+            chunks[-1].append(piece)
+        for chunk in chunks:
+            anchor, direction = _anchor(chunk[0].node)
+            width = max(piece.end for piece in chunk) - min(piece.start for piece in chunk)
+            factor = {"middle": 0.5, "end": 0.0 if direction == "rtl" else 1.0}.get(anchor, 1.0 if direction == "rtl" else 0.0)
+            for piece in chunk:
+                piece.shift = -width * factor
+
+
+@dataclass
+class _Drawing:
+    """The node draw_text is drawing inside a planned text, and how many pieces it placed so far."""
+
+    plan: ChunkPlan
+    node: Any
+    absolute: list[bool]  # recording: whether each piece starts with an absolute position
+    offsets: list[float]  # applying: how far each piece moves past the shift of the whole node
+    index: int = 0
+
+    def place(self, matrix: Any) -> Any:
+        """The matrix of the next piece, moved by its offset."""
+        offset = self.offsets[self.index] if self.index < len(self.offsets) else 0.0
+        self.index += 1
+        return matrix @ Matrix(e=offset) if offset else matrix
+
+    def record(self, textbox: Any, matrix: Any) -> None:
+        absolute = self.index < len(self.absolute) and self.absolute[self.index]
+        start = matrix[2][0]
+        advance = _line_width(textbox.pango_layout) * math.hypot(matrix[0][0], matrix[1][0])
+        self.plan.pieces.append(_Piece(self.node, start, start + advance, absolute or self.plan.pending))
+        self.plan.pending = False
+        self.index += 1
+
+
+# The plans of the texts being drawn, the innermost last
+_PLANS: ContextVar[tuple[ChunkPlan, ...]] = ContextVar("weasysvg_chunk_plans", default=())
+_DRAWING: ContextVar[_Drawing | None] = ContextVar("weasysvg_chunk_drawing", default=None)
+
+
+def _planned(node: Any) -> ChunkPlan | None:
+    """The plan of the text being drawn, if node lies in it."""
+    plans = _PLANS.get()
+    return plans[-1] if plans and id(node) in plans[-1].nodes else None
+
+
+def _anchor(node: Any) -> tuple[str, str]:
+    return node.get("text-anchor", "start"), node.get("direction", "ltr")
+
+
+def _shifting(node: Any) -> bool:
+    return _anchor(node) not in (("start", "ltr"), ("end", "rtl"))
+
+
+def _count(node: Any, name: str) -> int:
+    return len(normalize(node.attrib.get(name, "")).split())
+
+
+def _text_nodes(node: Any) -> Iterator[Any]:
+    yield node
+    for child in node:
+        if child.tag in TEXT_TAGS_WITH_CHUNKS:
+            yield from _text_nodes(child)
+
+
+def needs_plan(node: Any) -> bool:
+    """Whether a <text> holds a chunk WeasyPrint anchors wrong: more than one, or one anchored by a descendant.
+
+    A text of one chunk anchored by the <text> itself is right already, and spared a second layout.
+    """
+    if _laid_out(node):
+        return False
+    nodes = list(_text_nodes(node))
+    if not any(_shifting(item) for item in nodes):
+        return False
+    own = _anchor(node)
+    return any(max(_count(item, "x"), _count(item, "y")) > 1 or (item is not node and (starts_chunk(item) or _anchor(item) != own)) for item in nodes)
+
+
+def _record(svg: Any, node: Any, font_size: float) -> ChunkPlan:
+    """Lay the text out into a scratch group, unanchored, and plan the shift of each piece."""
+    # The children cascade the original anchor here, before chunk_restyle changes it
+    plan = ChunkPlan(node, nodes={id(item): item for item in _text_nodes(node)})
+    outer = svg.stream
+    scratch = outer.add_group(0, 0, 0, 0)
+    cursor, shift = svg.cursor_position, list(svg.cursor_d_position)
+    token = _PLANS.set((*_PLANS.get(), plan))
+    chunk = LAST_CHUNK.set(LAST_CHUNK.get())
+    saved = {key: item.bounding_box for key, item in plan.nodes.items()}
+    try:
+        svg.stream = scratch
+        # Without fill_stroke: no restyler, no effect, the anchor groups of WeasyPrint stay in the scratch group
+        svg.draw_node(node, font_size, fill_stroke=False)
+    finally:
+        svg.stream = outer
+        svg.cursor_position, svg.cursor_d_position = cursor, shift
+        _PLANS.reset(token)
+        LAST_CHUNK.reset(chunk)
+        outer._resources["XObject"].pop(scratch.id, None)
+        # The boxes of the scratch layout lie where no anchor put them: effects measure the text as drawn
+        for item in plan.nodes.values():
+            item.__dict__.pop("text_bounding_box", None)
+            item.bounding_box = saved[id(item)]
+    plan.recording = False
+    plan.place()
+    return plan
+
+
+def chunk_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:
+    """Plan the chunks of a <text> before it draws; text-anchor then reads start to WeasyPrint inside it."""
+    plans = _PLANS.get()
+    if node.tag == "text":
+        if plans and plans[-1].text is node:
+            plan = plans[-1]  # drawn again inside its own drawing: measured for an effect, or blurred
+        elif needs_plan(node):
+            plan = _record(svg, node, font_size)
+        else:
+            return None
+        _PLANS.set((*plans, plan))
+    elif _planned(node) is None:
+        return None
+    # The children cascade the original anchor first: they keep their own copy of it
+    list(node)
+    saved = {"text-anchor": node.attrib.get("text-anchor")}
+    node.attrib["text-anchor"] = "end" if node.get("direction") == "rtl" else "start"
+    return saved
+
+
+def chunk_done(_svg: Any, node: Any) -> None:
+    """End the plan of a <text> once it is drawn."""
+    plans = _PLANS.get()
+    if node.tag == "text" and plans and plans[-1].text is node and not plans[-1].recording:
+        _PLANS.set(plans[:-1])
+
+
+def _absolute(node: Any) -> list[bool]:
+    """Whether each piece the node draws starts with an absolute x or y: a whole run is one piece."""
+    if _whole_run(node):
+        return ["x" in node.attrib or "y" in node.attrib]
+    count = max(_count(node, "x"), _count(node, "y"))
+    return [index < count for index in range(len(node.text or ""))]
+
+
+def _draw_planned(svg: Any, node: Any, font_size: float, plan: ChunkPlan) -> Any:
+    """Draw a node of a planned text: noted piece by piece, or moved by the shift of its chunk."""
+    if plan.recording:
+        token = _DRAWING.set(_Drawing(plan, node, _absolute(node), []))
+        count = len(plan.pieces)
+        try:
+            return _draw_text(svg, node, font_size)
+        finally:
+            _DRAWING.reset(token)
+            if len(plan.pieces) > count:
+                # The text after the node goes on from the cursor: its last piece ends there, past the
+                # letter-spacing the extents of Pango leave out
+                plan.pieces[-1].end = svg.cursor_position[0] + svg.cursor_d_position[0]
+            if not node.text and ("x" in node.attrib or "y" in node.attrib):
+                plan.pending = True
+    pieces = plan.of(node)
+    if not pieces:
+        return _draw_text(svg, node, font_size)
+    shift = pieces[0].shift
+    token = _DRAWING.set(_Drawing(plan, node, [], [piece.shift - shift for piece in pieces]))
+    svg.stream.push_state()
+    try:
+        svg.stream.transform(e=shift)
+        result = _draw_text(svg, node, font_size)
+    finally:
+        svg.stream.pop_state()
+        _DRAWING.reset(token)
+    # A node that placed pieces has a box: where WeasyPrint laid it out, before the shifts
+    x, y, width, height = node.text_bounding_box
+    if all(piece.shift == shift for piece in pieces):
+        left, right = x + shift, x + width + shift
+    else:
+        left, right = min(piece.start + piece.shift for piece in pieces), max(piece.end + piece.shift for piece in pieces)
+    node.text_bounding_box = (left, y, right - left, height)
+    return result
 
 
 # ---------------- leading shifts ----------------
@@ -707,7 +926,12 @@ def recorded_draw_first_line(stream: Any, textbox: Any, text_overflow: Any, bloc
     The decoration lines run under each character on its own baseline. A turned character keeps its piece
     level, as in Chromium; its glyph crosses a line at a slant, so it is left out and cuts nothing.
     """
+    drawing = _DRAWING.get()
+    if drawing is not None and not drawing.plan.recording:
+        matrix = drawing.place(matrix)
     emojis = _ORIGINAL_DRAW_FIRST_LINE(stream, textbox, text_overflow, block_ellipsis, matrix)
+    if drawing is not None and drawing.plan.recording:
+        drawing.record(textbox, matrix)
     recording = _RECORDED.get()
     if recording is not None and recording.stream is stream:
         x, baseline = matrix[2][0], matrix[2][1]
@@ -856,7 +1080,8 @@ def _draw_on_path(svg: Any, node: Any, font_size: float) -> bool:
 def draw_text(svg: Any, node: Any, font_size: float) -> Any:
     # The text objects it draws, painted again in the paint-order of node
     stream, start = svg.stream, len(svg.stream.stream)
-    result = _draw_text(svg, node, font_size)
+    plan = _planned(node)
+    result = _draw_text(svg, node, font_size) if plan is None else _draw_planned(svg, node, font_size, plan)
     paint_order.split_text(stream, node, start)
     return result
 
@@ -895,8 +1120,10 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     _core.add_before_draw(note_fonts)
     _core.add_restyler(ex_restyle)
     _core.add_restyler(anchor_restyle)
+    _core.add_restyler(chunk_restyle)
     _core.add_before_draw(chunk_started)
     _core.add_after_draw(chunk_boxes)
+    _core.add_after_draw(chunk_done)
     wp_draw_text.draw_first_line = recorded_draw_first_line
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:

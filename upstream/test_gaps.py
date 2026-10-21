@@ -324,6 +324,16 @@ def test_text_chunk_is_anchored_with_its_parent() -> None:
     still_broken(sorted(shift.findall(content(chunked))) != sorted(shift.findall(content(alone))), "text-anchor per text chunk", "text.chunk_boxes")
 
 
+def test_text_after_a_chunk_is_anchored_with_its_parent() -> None:
+    # The text after a tspan with its own x continues the chunk of that tspan, but takes the anchor of the <text>
+    def ink(body: str) -> list[int]:
+        pdf, _ = render(svg(f'<text x="10" y="50" font-size="40" fill="red" text-anchor="middle">{body}</text>'))
+        return [x for x in range(150) if not near(pixel(pdf, x, 28), WHITE)]
+
+    chunked, alone = ink('<tspan x="100">AAA</tspan>BBB'), ink('<tspan x="100">AAABBB</tspan>')
+    still_broken(abs(chunked[0] - alone[0]) > 2, "text after a text chunk", "text.chunk_restyle")
+
+
 def test_text_is_laid_out_one_character_at_a_time() -> None:
     pdf, _ = render(svg(f'<text x="10" y="50" font-size="20">{ARABIC}</text>'))
     still_broken(len(text_matrices(pdf)) >= len(ARABIC.replace(" ", "")), "whole-run text layout", "text._draw_run")
