@@ -307,12 +307,19 @@ _ORIGINAL_ELEMENT_TO_BOX = wp_build.element_to_box
 SIDES_OF_INLINE = ("left", "right")
 
 
-def _plain_empty(box: Any) -> bool:
-    """Whether box is an inline box with nothing in it and nothing drawn: white space ignores it."""
+def _plain_empty(box: Any, parent: Any) -> bool:
+    """Whether box is an inline box with nothing in it, nothing drawn, and the line box of its parent.
+
+    White space ignores such a box. An auto margin of an inline box is 0. A box of another font size, line
+    height or vertical alignment still shapes the line, and stays.
+    """
+    if type(box) is not wp_boxes.InlineBox or box.children:
+        return False
     style = box.style
-    return (
-        type(box) is wp_boxes.InlineBox and not box.children and all(style[f"border_{side}_width"] == 0 for side in SIDES_OF_INLINE) and all(style[f"{kind}_{side}"].value == 0 for kind in ("padding", "margin") for side in SIDES_OF_INLINE)
-    )
+    drawn = any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES_OF_INLINE)
+    spaced = any(style[f"margin_{side}"] != "auto" and style[f"margin_{side}"].value for side in SIDES_OF_INLINE)
+    shaping = any(style[key] != parent.style[key] for key in ("font_size", "line_height", "vertical_align"))
+    return not (drawn or spaced or shaping)
 
 
 def _element_to_box(*args: Any, **kwargs: Any) -> Any:
@@ -325,7 +332,7 @@ def _element_to_box(*args: Any, **kwargs: Any) -> Any:
     if IN_FOREIGN_OBJECT.get():
         for box in found:
             if isinstance(box, wp_boxes.ParentBox):
-                box.children = [child for child in box.children if not _plain_empty(child)]
+                box.children = [child for child in box.children if not _plain_empty(child, box)]
     return found
 
 

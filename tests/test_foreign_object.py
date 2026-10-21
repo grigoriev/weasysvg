@@ -413,6 +413,29 @@ def test_a_label_sized_to_its_content_ignores_the_space_too() -> None:
     assert first_character_x(label("<i></i> Car")) == pytest.approx(first_character_x(label("Car")))
 
 
+def test_an_empty_inline_with_auto_margins_is_dropped_too() -> None:
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_x(f'<p style="{style}"><i style="margin-left:auto"></i> Car</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car</p>'))
+
+
+def first_character_top(body: str) -> float:
+    import pypdfium2 as pdfium
+
+    document = pdfium.PdfDocument(render(svg(fo(body, width=200, height=80), width=200, height=80)))
+    page = document[0]
+    textpage = page.get_textpage()
+    try:
+        return float(textpage.get_charbox(next(index for index in range(textpage.count_chars()) if textpage.get_text_range(index, 1).strip()))[3])
+    finally:
+        close(textpage, page, document)
+
+
+def test_an_empty_inline_that_sizes_the_line_stays() -> None:
+    # Its larger font makes the line taller, in Chromium too: the text moves down
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_top(f'<p style="{style}"><i style="font-size:40px"></i>Car</p>') < first_character_top(f'<p style="{style}">Car</p>') - 5
+
+
 def test_an_empty_inline_with_padding_keeps_the_space() -> None:
     # A box with padding is drawn: the space after it is no longer at the start of the line
     style = "margin:0;font:16px 'DejaVu Sans'"
