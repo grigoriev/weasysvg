@@ -104,11 +104,26 @@ def _signed_area(ring: Ring) -> float:
     return sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(ring, ring[1:] + ring[:1], strict=True)) / 2
 
 
+def _ring(points: list[Point], size: tuple[int, int]) -> Image.Image:
+    """The samples whose center lies inside one subpath, in a layer of size: 1 inside, 0 outside.
+
+    Pillow fills a sample where the outline enters a row or column even when its center lies outside:
+    the subpath grows by one sample on its left and top. Drawn once more turned by 180 degrees it grows
+    on the other sides: the samples both fill are those whose center lies inside.
+    """
+    width, height = size
+    layer, turned = Image.new("L", size), Image.new("L", size)
+    ImageDraw.Draw(layer).polygon(points, fill=1)
+    ImageDraw.Draw(turned).polygon([(width - 1 - x, height - 1 - y) for x, y in points], fill=1)
+    return ImageChops.darker(layer, turned.transpose(Image.Transpose.ROTATE_180))
+
+
 def _inside(rings: list[list[Point]], signs: list[int], even_odd: bool, big: tuple[int, int]) -> Image.Image:
     """The samples inside the rings, already in sample coordinates: 255 inside, 0 outside.
 
     Nonzero counts each subpath by its direction, which is the winding number wherever no subpath
-    crosses itself.
+    crosses itself. Each subpath is cut to its own samples before it is counted: a hole grown on all
+    sides thinned the lens ring of the OpenStreetMap logo, and its shadow came out lighter.
     """
     counts = {1: Image.new("L", big), -1: Image.new("L", big)}
     for points, sign in zip(rings, signs, strict=True):
@@ -117,8 +132,7 @@ def _inside(rings: list[list[Point]], signs: list[int], even_odd: bool, big: tup
         right, bottom = min(math.ceil(max(x for x, _ in points)) + 2, big[0]), min(math.ceil(max(y for _, y in points)) + 2, big[1])
         if right <= left or bottom <= top:
             continue  # a clip may lie beside the samples it is cut to
-        layer = Image.new("L", (right - left, bottom - top))
-        ImageDraw.Draw(layer).polygon([(x - left, y - top) for x, y in points], fill=1)
+        layer = _ring([(x - left, y - top) for x, y in points], (right - left, bottom - top))
         box = (left, top, right, bottom)
         counts[sign].paste(ImageChops.add(counts[sign].crop(box), layer), box)
     winding = ImageChops.difference(counts[1], counts[-1])
@@ -129,10 +143,8 @@ def _inside(rings: list[list[Point]], signs: list[int], even_odd: bool, big: tup
 def _coverage(rings: list[Ring], even_odd: bool, size: tuple[int, int], to_grid: Callable[[Point], Point]) -> Image.Image:
     """The share of each cell the shape covers, 0 to 255, from SUPERSAMPLE squared samples per cell.
 
-    Pillow fills a sample where the outline enters a row or column even when its center lies outside:
-    the shape grows by one sample on its left and top, a 24th of the deviation, which moved the blurred
-    edge by 4 levels. Drawn once more turned by 180 degrees it grows on the other sides: the samples both
-    fill are those whose center lies inside.
+    A sample counts where its center lies inside (_ring). One sample more on the left and top, a 24th of
+    the deviation, moved the blurred edge by 4 levels.
     """
     big = (size[0] * SUPERSAMPLE, size[1] * SUPERSAMPLE)
     signs = [1 if even_odd or _signed_area(ring) >= 0 else -1 for ring in rings]
@@ -146,9 +158,8 @@ def to_samples(ring: Ring, to_grid: Callable[[Point], Point], left: int = 0, top
 
 
 def samples(rings: list[list[Point]], signs: list[int], even_odd: bool, size: tuple[int, int]) -> Image.Image:
-    """The samples whose center lies inside the rings, 255 inside, 0 outside (see _coverage)."""
-    turned = [[(size[0] - 1 - x, size[1] - 1 - y) for x, y in ring] for ring in rings]
-    return ImageChops.darker(_inside(rings, signs, even_odd, size), _inside(turned, signs, even_odd, size).transpose(Image.Transpose.ROTATE_180))
+    """The samples whose center lies inside the rings, 255 inside, 0 outside (see _ring)."""
+    return _inside(rings, signs, even_odd, size)
 
 
 class Field:
