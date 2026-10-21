@@ -163,5 +163,7 @@ def install() -> None:
 
 def set_language(language: str) -> None:
     """The language of the reader for a document or image without a lang."""
+    if not language.strip():
+        raise ValueError("language must not be empty: it would match no systemLanguage")
     global DEFAULT_LANGUAGE
     DEFAULT_LANGUAGE = language

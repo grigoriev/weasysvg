@@ -207,3 +207,12 @@ def test_an_svg_inside_a_foreign_object_takes_the_language_of_the_document() -> 
     inner = base64.b64encode(GREETING.encode()).decode()
     outer = svg(f'<foreignObject width="200" height="100"><div xmlns="{XHTML_NS}"><img src="data:image/svg+xml;base64,{inner}"/></div></foreignObject>')
     assert text_of(page(image(outer), lang="ru")).strip() == "Privet"
+
+
+@pytest.mark.parametrize("language", ["", "  "])
+def test_an_empty_language_is_refused(monkeypatch: pytest.MonkeyPatch, language: str) -> None:
+    # An empty language would match no systemLanguage at all
+    monkeypatch.setattr(conditional, "DEFAULT_LANGUAGE", conditional.DEFAULT_LANGUAGE)
+    with pytest.raises(ValueError, match="language"):
+        weasysvg.install(language=language)
+    assert conditional.DEFAULT_LANGUAGE == "en"
