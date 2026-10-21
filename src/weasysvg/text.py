@@ -26,12 +26,14 @@ import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
 
 from weasyprint import svg as wp_svg
 from weasyprint.css.properties import INITIAL_VALUES
+from weasyprint.draw import text as wp_draw_text
 from weasyprint.matrix import Matrix
 from weasyprint.svg.bounding_box import EMPTY_BOUNDING_BOX, extend_bounding_box, is_valid_bounding_box
 from weasyprint.svg.utils import normalize, size
@@ -68,6 +70,10 @@ DEFAULT_FONT_PX = 16.0  # px, the 12pt WeasyPrint draws an SVG with
 
 _ORIGINAL_CASCADE = wp_svg.Node.cascade
 _ORIGINAL_TEXT = wp_svg.TAGS["text"]
+_ORIGINAL_DRAW_FIRST_LINE = wp_draw_text.draw_first_line
+# The stream of a node whose lines skip ink, and the glyphs draw_first_line places in it while text() of
+# WeasyPrint draws the node. A pattern fill draws its own text meanwhile, into a stream of its own
+_RECORDED: ContextVar[tuple[Any, list[ink.Glyph]] | None] = ContextVar("weasysvg_recorded_glyphs", default=None)
 
 
 # ---------------- font sizes ----------------
@@ -546,10 +552,33 @@ def _draw_run(svg: Any, node: Any, font_size: float) -> None:
     draw_emojis(svg.stream, style, x, y, emojis)
 
 
+def recorded_draw_first_line(stream: Any, textbox: Any, text_overflow: Any, block_ellipsis: Any, matrix: Any) -> Any:
+    """draw_first_line of WeasyPrint, noting the glyphs it places while a node that skips ink draws.
+
+    A turned glyph crosses a line at a slant: it is left out, the line stays whole under it.
+    """
+    emojis = _ORIGINAL_DRAW_FIRST_LINE(stream, textbox, text_overflow, block_ellipsis, matrix)
+    recording = _RECORDED.get()
+    if recording is not None and recording[0] is stream and matrix[0][1] == 0 and matrix[1][0] == 0:
+        found = recording[1]
+        scale_x, x = matrix[0][0], matrix[2][0]
+        found += [replace(glyph, x=x + scale_x * glyph.x, stretch=scale_x) for glyph in ink.run_glyphs(textbox.pango_layout.get_first_line()[0], 0)]
+    return emojis
+
+
 def _draw_decorated(svg: Any, node: Any, font_size: float) -> Any:
     if _whole_run(node):
         _draw_run(svg, node, font_size)
         result = None
+    elif FEATURES["decoration"] and SKIP_INK.intersection((node.get("text-decoration") or "").split()):
+        # WeasyPrint lays the text out one character at a time: its glyphs are noted as they are drawn
+        found: list[ink.Glyph] = []
+        token = _RECORDED.set((svg.stream, found))
+        try:
+            result = _ORIGINAL_TEXT(svg, node, font_size)
+            node.__dict__[GLYPHS] = found
+        finally:
+            _RECORDED.reset(token)
     else:
         result = _ORIGINAL_TEXT(svg, node, font_size)
     if FEATURES["decoration"]:
@@ -704,6 +733,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     _core.add_restyler(anchor_restyle)
     _core.add_before_draw(chunk_started)
     _core.add_after_draw(chunk_boxes)
+    wp_draw_text.draw_first_line = recorded_draw_first_line
     for tag in TEXT_TAGS:
         if wp_svg.TAGS.get(tag) is _ORIGINAL_TEXT:
             wp_svg.TAGS[tag] = draw_text

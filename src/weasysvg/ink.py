@@ -35,6 +35,7 @@ class Glyph:
     x: float
     y: float  # down from the baseline of the run
     scale: float
+    stretch: float = 1.0  # horizontal scale on top, as textLength gives it
 
 
 # The font file of each key, and the key of each HarfBuzz face: reading and hashing a file costs its size
@@ -180,7 +181,8 @@ def intercepts(glyphs: list[Glyph], top: float, bottom: float) -> list[tuple[flo
         low, high = (glyph.y - bottom) / glyph.scale, (glyph.y - top) / glyph.scale
         extent = _extent(glyph.font, glyph.index, round(low, 3), round(high, 3))
         if extent is not None:
-            out.append((glyph.x + extent[0] * glyph.scale, glyph.x + extent[1] * glyph.scale))
+            across = glyph.scale * glyph.stretch
+            out.append((glyph.x + extent[0] * across, glyph.x + extent[1] * across))
     return out
 
 
