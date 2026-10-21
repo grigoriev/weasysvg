@@ -39,7 +39,7 @@ uv build                # wheel and sdist
 once.
 
 - `_core.py`: the two shared hooks. `images.SVGImage.__init__` runs the tree passes on the parsed
-  XML (conditional 10, nested_text 15, invalid_rotate 16, empty_presentation 20, foreign_object 30) and wraps the URL
+  XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, empty_presentation 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
   A node that holds text and has a filter, mask or clip is drawn once into a scratch group first
   (`measure_text`): WeasyPrint knows the box of a text only after drawing it. The text box is kept

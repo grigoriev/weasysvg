@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 from fontTools.ttLib import TTFont, newTable
-from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
+from helpers import SVG_NS, RecordingStream, content, rasterize, render, svg, text_of
 from weasyprint import svg as wp_svg
 from weasyprint.text.fonts import get_hb_object_data
 
@@ -1057,3 +1057,34 @@ def test_letter_spacing_leaves_arabic_joined_one_character_at_a_time(body: str) 
 )
 def test_the_text_after_a_child_of_a_tspan_is_drawn(body: str, expected: str) -> None:
     assert text_of(render(svg(body))).strip() == expected
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # WeasyPrint trims the last tail of a <textPath> or <a>, and of the text: no trailing space moves the anchor
+        '<text x="100" y="40" text-anchor="end"><a href="#x">A <tspan>B</tspan>\n  </a></text>',
+        '<text x="100" y="40" text-anchor="end"><tspan>A<tspan>B</tspan>\n  </tspan></text>',
+    ],
+)
+def test_a_trailing_tail_moves_no_anchor(body: str) -> None:
+    trimmed = re.sub(r"\s+(</a>|</tspan></text>)", r"\1", body)
+    assert glyph_matrices(render(svg(body))) == glyph_matrices(render(svg(trimmed)))
+
+
+def test_the_tspan_of_a_tail_keeps_the_white_space_of_its_parent() -> None:
+    # PDFium extracts one space for three: the x is where the three spaces put it, as without the <wbr/>
+    def right(body: str) -> int:
+        box = rasterize(render(svg(body)), 2).convert("L").point(lambda value: 255 if value < 128 else 0).getbbox()
+        assert box is not None
+        return box[2]
+
+    kept = right('<text x="10" y="40" font-size="20"><tspan xml:space="preserve">Ae   x</tspan></text>')
+    assert right('<text x="10" y="40" font-size="20"><tspan xml:space="preserve">A<wbr/>e   x</tspan></text>') == kept
+
+
+def test_a_tail_inside_an_element_that_draws_nothing_stays_hidden() -> None:
+    # WeasyPrint draws the T of a <tspan> inside a <desc> on its own; the pass adds no tail there
+    text = text_of(render(svg('<text x="10" y="40"><tspan>A<desc><tspan>T<title>X</title> hidden</tspan></desc>C</tspan></text>')))
+    assert "hidden" not in text
+    assert text.strip().endswith("C")

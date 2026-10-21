@@ -46,6 +46,7 @@ from .conditional import local_name
 from .fonts import FALLBACK, resolve_families
 
 TEXT_TAGS = ("a", "text", "textPath", "tspan")
+XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
 # font-size keywords, as CSS defines them (medium = 16px)
 FONT_SIZE_KEYWORDS = {
     "xx-small": "9px",
@@ -216,13 +217,17 @@ def keep_nested_tails(root: ET.Element) -> None:
     """
     for outer in [element for element in root.iter() if local_name(element.tag) == "text"]:
         parents = {child: parent for parent in outer.iter() for child in parent}
+        # Only the children of a <tspan>: WeasyPrint draws those of a <textPath> or <a>, and trims the last.
         # Only where the text is drawn: the text of a <desc> or an unknown element stays hidden
-        for parent in [element for element in outer.iter() if element is not outer and _drawn_text(element, outer, parents)]:
+        for parent in [element for element in outer.iter() if local_name(element.tag) == "tspan" and _drawn_text(element, outer, parents)]:
             namespace = parent.tag.rpartition("}")[0] + "}" if "}" in parent.tag else ""
             # From the end, so an insertion moves no child still to come
             for index, child in reversed(list(enumerate(parent))):
                 if child.tail:
                     tspan = ET.Element(namespace + "tspan")
+                    # WeasyPrint reads the xml:space of a nested element from its own attributes alone
+                    if (space := parent.get(XML_SPACE)) is not None:
+                        tspan.set(XML_SPACE, space)
                     tspan.text, child.tail = child.tail, None
                     parent.insert(index + 1, tspan)
 

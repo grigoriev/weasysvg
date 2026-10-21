@@ -40,7 +40,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.svg:Node.cascade": "text.cascade; restylers cascade children before they change a node",
     "weasyprint.svg:Node.__iter__": "restylers rely on cached children",
     "weasyprint.svg:Node.override_iter": "paint._materialized_override_iter",
-    "weasyprint.svg:Node.text_children": "text.drop_invalid_rotate: rotate parsed during the cascade",
+    "weasyprint.svg:Node.text_children": "text.drop_invalid_rotate: rotate parsed during the cascade; text.keep_nested_tails: the tails of a <tspan> it drops",
     "weasyprint.svg:Node.tag": "clip paths, masks and the root are retagged <g> while they draw",
     "weasyprint.svg:TAGS": "markers, text, foreign_object and paint register drawing functions",
     "weasyprint.svg:NOT_INHERITED_ATTRIBUTES": "paint adds mix-blend-mode and isolation",

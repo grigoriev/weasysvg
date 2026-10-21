@@ -55,7 +55,7 @@
   },
   "weasyprint.svg:Node.text_children": {
    "fingerprint": "e55a09064236dd34",
-   "used_by": "text.drop_invalid_rotate: rotate parsed during the cascade"
+   "used_by": "text.drop_invalid_rotate: rotate parsed during the cascade; text.keep_nested_tails: the tails of a <tspan> it drops"
   },
   "weasyprint.svg:Node.tag": {
    "fingerprint": "b0c2efa82a2772aa",

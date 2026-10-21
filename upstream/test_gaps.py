@@ -262,6 +262,13 @@ def test_nested_text_is_drawn() -> None:
     still_broken(len(text_matrices(pdf)) > 1, "nested <text>", "text.drop_nested_text")
 
 
+def test_text_after_a_child_of_a_tspan_is_dropped() -> None:
+    # The C after the inner <tspan> draws nothing, unless it sits in a <tspan> of its own
+    tail, _ = render(svg('<text x="10" y="40"><tspan>A<tspan>B</tspan>C</tspan></text>'))
+    own, _ = render(svg('<text x="10" y="40"><tspan>A<tspan>B</tspan><tspan>C</tspan></tspan></text>'))
+    still_broken(len(text_matrices(tail)) < len(text_matrices(own)), "the text after a child of a <tspan>", "text.keep_nested_tails")
+
+
 def test_baseline_uses_a_fixed_ascent() -> None:
     pdf, _ = render(svg('<text x="10" y="50" font-size="100" dominant-baseline="text-before-edge">X</text>', height=200))
     still_broken(any(abs(matrix[5] - 130) < 1 for matrix in text_matrices(pdf)), "dominant-baseline from font metrics", "text.baseline_shift")
