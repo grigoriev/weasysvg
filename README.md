@@ -34,8 +34,6 @@ Install it from PyPI:
 pip install weasysvg
 ```
 
-Each release on PyPI and on GitHub carries signed build provenance.
-
 weasysvg depends on WeasyPrint only. Every SVG feature it adds stays vector in the PDF, blur included.
 The one exception is the noise of `feTurbulence`: it has no vector form, so it is an image, computed in
 Python.
@@ -45,8 +43,10 @@ WeasyPrint needs Pango, see its
 
 ### Verify
 
-GitHub releases carry a signed provenance bundle. Verify a downloaded file with
-`gh attestation verify <file> --repo grigoriev/weasysvg`.
+The build of each release has signed provenance on GitHub, and the GitHub release carries its bundle.
+PyPI and the GitHub release hold the same files, so verify a file from either with
+`gh attestation verify <file> --repo grigoriev/weasysvg`. On PyPI each file also has a publish
+attestation (PEP 740): it ties the upload to `release.yml` of this repository.
 
 ## Usage
 

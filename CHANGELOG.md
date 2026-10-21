@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upright CJK in vertical text hangs from the vertical origin of its font (`VORG`, `vmtx`), as in Chromium
   and resvg, and `rotate` turns it about that point.
 - Python 3.10 to 3.14 and PyPy 3.11, the versions WeasyPrint 70 supports.
-- Releases on PyPI (`pip install weasysvg`) and on GitHub, with signed build provenance.
+- Releases on PyPI (`pip install weasysvg`), with publish attestations, and on GitHub, with signed
+  build provenance of the same files.
 - Upstream tracking for WeasyPrint upgrades (UPGRADING.md): probes of the gaps weasysvg covers, a
   snapshot of the internals it hooks, a bench baseline, and a weekly run against the newest WeasyPrint.
 - A visual regression corpus of 115 SVGs with Chromium and resvg references, and a bench that
