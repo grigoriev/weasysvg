@@ -334,10 +334,10 @@
  },
  {
   "name": "real__wm-Bitmap_VS_SVG",
-  "reference": "browser",
-  "reference_why": "Chromium of the references ran with no English language: the switch has no fallback child, so it drew no title. An English browser shows Raster and Vector, as weasysvg does (see the browser panel).",
+  "reference": "chromium",
+  "reference_why": "resvg draws no Raster and Vector titles.",
   "verdict": "same",
-  "what": "Matches an English browser: Raster and Vector titles.",
+  "what": "Matches: Raster and Vector titles.",
   "native_verdict": "differs",
   "native_what": "All translations of the titles are drawn on top of each other."
  },
