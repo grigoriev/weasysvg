@@ -11,12 +11,17 @@ Touches:
   nothing drawn is dropped, so the white space around it collapses as CSS says and Chromium does (Mermaid
   writes icons whose font never loads);
 - ``formatting_structure.build.marker_to_box``: inside a foreignObject an outside disc, circle or square
-  marker is the shape Chromium paints, sized and placed from the ascent of the font, not a glyph.
+  marker is the shape Chromium paints, sized and placed from the ascent of the font, not a glyph;
+- ``layout.inline.strut`` and ``layout.inline.split_text_box``: inside a foreignObject a line takes the
+  font metrics rounded to whole px and the half leading rounded down, as Blink does; after the layout each
+  baseline moves to a whole px of the HTML, where Blink paints it.
 """
 
 from __future__ import annotations
 
 import html
+import math
+import struct
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -27,11 +32,13 @@ from weasyprint.draw import draw_page
 from weasyprint.formatting_structure import boxes as wp_boxes
 from weasyprint.formatting_structure import build as wp_build
 from weasyprint.layout import block as wp_block
+from weasyprint.layout import inline as wp_inline
 from weasyprint.layout import table as wp_table
 from weasyprint.layout.table import add_top_padding
 from weasyprint.svg.utils import size as wp_size
-from weasyprint.text.ffi import FROM_UNITS, ffi, pango
-from weasyprint.text.line_break import Layout
+from weasyprint.text.ffi import FROM_UNITS, ffi, harfbuzz, pango
+from weasyprint.text.fonts import get_pango_font_hb_face
+from weasyprint.text.line_break import Layout, _font_style_cache_key
 
 from . import _core, conditional
 from .conditional import local_name
@@ -153,9 +160,12 @@ def _render(svg: Any, html_string: str) -> Any:
     font_config = svg.context.font_config if svg.context is not None else None
     token = IN_FOREIGN_OBJECT.set(True)
     try:
-        return _ForeignHTML(string=html_string, base_url=svg.url, url_fetcher=svg.url_fetcher).render(font_config=font_config, presentational_hints=True)
+        rendered = _ForeignHTML(string=html_string, base_url=svg.url, url_fetcher=svg.url_fetcher).render(font_config=font_config, presentational_hints=True)
     finally:
         IN_FOREIGN_OBJECT.reset(token)
+    for page in rendered.pages:
+        _snap_baselines(page._page_box)
+    return rendered
 
 
 def _object_html(node: Any, width: float, height: float, inherited: str, page: str | None = None) -> str:
@@ -420,6 +430,108 @@ def _marker_to_box(element: Any, state: Any, parent_style: Any, style_for: Any, 
         yield marker
 
 
+# ---------------- line metrics ----------------
+# Blink (SimpleFontData::PlatformInit) rounds the ascent, the descent and the line gap of a font to whole px.
+# A line of line-height normal is the sum of the three, and the half leading goes above the text rounded down
+# (CalculateLeadingSpace in NGInlineBoxState). The text is painted with its baseline on a whole px of the
+# HTML, the object itself keeps the fraction the SVG gives it. WeasyPrint and Firefox keep the fractions:
+# Mermaid labels sat up to 1 px lower than in Chromium and Safari.
+
+_ORIGINAL_STRUT = wp_inline.strut
+_ORIGINAL_SPLIT_TEXT_BOX = wp_inline.split_text_box
+USE_TYPO_METRICS = 1 << 7  # fsSelection bit of the OS/2 table, which Skia and HarfBuzz follow
+
+
+def _round(value: float) -> int:
+    """Half up, as SkScalarRoundToInt."""
+    return math.floor(value + 0.5)
+
+
+def _int16(table: bytes, offset: int) -> int | None:
+    return struct.unpack_from(">h", table, offset)[0] if len(table) >= offset + 2 else None
+
+
+def _table(face: Any, tag: bytes) -> bytes:
+    blob = harfbuzz.hb_face_reference_table(face, harfbuzz.hb_tag_from_string(tag, len(tag)))
+    try:
+        length = ffi.new("unsigned int *")
+        data = harfbuzz.hb_blob_get_data(blob, length)
+        return bytes(ffi.buffer(data, length[0])) if length[0] else b""
+    finally:
+        harfbuzz.hb_blob_destroy(blob)
+
+
+def _line_gap(pango_font: Any, font_size: float) -> float:
+    """The line gap of a font in px: of the OS/2 table when the font asks for its typographic metrics, of hhea otherwise."""
+    face = get_pango_font_hb_face(pango_font)
+    os2 = _table(face, b"OS/2")
+    gap = _int16(os2, 72) if len(os2) >= 74 and struct.unpack_from(">H", os2, 62)[0] & USE_TYPO_METRICS else _int16(_table(face, b"hhea"), 8)
+    upem: int = harfbuzz.hb_face_get_upem(face)
+    return (gap or 0) * font_size / upem
+
+
+def _rounded_metrics(style: Any) -> tuple[int, int, int]:
+    """The ascent, descent and line gap of the first font of style, in whole px as Blink keeps them."""
+    key = "weasysvg-rounded:" + _font_style_cache_key(style, include_size=True)
+    cache = style.font_config.strut_layouts
+    if key not in cache:
+        layout = Layout(style)
+        try:
+            layout.set_text(" ")
+            line, _ = layout.get_first_line()
+            logical = ffi.new("PangoRectangle *")
+            pango.pango_layout_line_get_extents(line, ffi.NULL, logical)
+            gap = _line_gap(line.runs[0].data.item.analysis.font, style["font_size"]) if line.runs != ffi.NULL else 0
+            cache[key] = (_round(-logical.y * FROM_UNITS), _round((logical.height + logical.y) * FROM_UNITS), _round(gap))
+        finally:
+            layout.deactivate()
+    found: tuple[int, int, int] = cache[key]
+    return found
+
+
+def _strut(style: Any) -> tuple[float, float]:
+    """strut of WeasyPrint: the line height and the baseline below its top; inside a foreignObject as Blink sets them."""
+    line_height, baseline = _ORIGINAL_STRUT(style)
+    if not IN_FOREIGN_OBJECT.get() or not style["font_size"]:
+        return line_height, baseline
+    ascent, descent, gap = _rounded_metrics(style)
+    if style["line_height"] == "normal":
+        line_height = ascent + descent + gap
+    return line_height, ascent + math.floor((line_height - ascent - descent) / 2)
+
+
+def _split_text_box(*args: Any, **kwargs: Any) -> Any:
+    """split_text_box of WeasyPrint; inside a foreignObject the text sits in its line as Blink puts it.
+
+    With line-height normal the fonts Pango falls back to for some characters count too, as Blink counts
+    the fonts a line uses; with any other line height only the first font does.
+    """
+    result = _ORIGINAL_SPLIT_TEXT_BOX(*args, **kwargs)
+    box = result[0]
+    if IN_FOREIGN_OBJECT.get() and box is not None:
+        style = box.style
+        line_height, baseline = _strut(style)
+        # Pango gives the ascent of the line from the top of the content box
+        content_ascent = box.baseline - box.margin_top
+        if style["line_height"] == "normal":
+            ascent, descent, gap = _rounded_metrics(style)
+            ascent = max(ascent, _round(content_ascent))
+            descent = max(descent, _round(box.height - content_ascent))
+            line_height, baseline = ascent + descent + gap, ascent + gap // 2
+        box.margin_top = baseline - content_ascent
+        box.margin_bottom = line_height - box.height - box.margin_top
+        box.baseline = baseline
+    return result
+
+
+def _snap_baselines(page_box: Any) -> None:
+    """Move each text to the whole px of the page nearest its baseline, half up: the page is the HTML of the object."""
+    for box in page_box.descendants():
+        if isinstance(box, wp_boxes.TextBox):
+            baseline = box.position_y + box.baseline
+            box.position_y += _round(baseline) - baseline
+
+
 def install() -> None:
     global _UA_EXTRA_SHEET
     if _UA_EXTRA_SHEET is None:
@@ -430,4 +542,6 @@ def install() -> None:
     wp_block.table_layout = _table_layout
     wp_build.marker_to_box = _marker_to_box
     wp_build.element_to_box = _element_to_box
+    wp_inline.strut = _strut
+    wp_inline.split_text_box = _split_text_box
     wp_svg.TAGS["foreignObject"] = foreign_object

@@ -157,6 +157,26 @@
    "fingerprint": "4a83d21e55ea983d",
    "used_by": "foreign_object._element_to_box drops empty inline boxes"
   },
+  "weasyprint.text.line_break:strut": {
+   "fingerprint": "90f46feb57839dca",
+   "used_by": "foreign_object._strut wraps it through layout.inline"
+  },
+  "weasyprint.text.line_break:_font_style_cache_key": {
+   "fingerprint": "bae00df32a77a32b",
+   "used_by": "foreign_object._rounded_metrics keys its cache with it"
+  },
+  "weasyprint.layout.inline:split_text_box": {
+   "fingerprint": "af455a24b6afd40c",
+   "used_by": "foreign_object._split_text_box resets the margins and the baseline it sets"
+  },
+  "weasyprint.layout.inline:_adjust_line_height": {
+   "fingerprint": "cc82ea5d2410a45c",
+   "used_by": "foreign_object._strut sets the baseline it reads"
+  },
+  "weasyprint.draw.text:draw_text": {
+   "fingerprint": "74e0b88db0fe87e2",
+   "used_by": "foreign_object._snap_baselines moves position_y, where it draws the baseline"
+  },
   "weasyprint.formatting_structure.build:marker_to_box": {
    "fingerprint": "a657195c9f6fe508",
    "used_by": "foreign_object._marker_to_box draws symbol markers as Chromium does"

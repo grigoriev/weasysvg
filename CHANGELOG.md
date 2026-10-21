@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   current point, which broke every slice of a Highcharts pie.
 - The text after a child of a `<tspan>` is drawn: WeasyPrint dropped it, so `Don<wbr/>e` in a Polarion chart
   label read "Don".
+- Text in a `<foreignObject>` sits on the line where Chromium and Safari put it: Blink rounds the font
+  metrics to whole px and paints the baseline on a whole px. Mermaid labels sat up to 1 px lower.
 
 ## [0.1.0] - 2026-10-21
 

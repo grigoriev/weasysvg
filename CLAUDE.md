@@ -47,7 +47,8 @@ once.
 - `conditional.py`: `<switch>`, `requiredExtensions`, `systemLanguage`.
 - `foreign_object.py`: stashes the XHTML in an attribute, lays all objects of one SVG out as one
   WeasyPrint document (one page each), draws each page into the SVG stream. Also patches
-  `layout.block.table_layout` inside a foreignObject.
+  `layout.block.table_layout` inside a foreignObject, and `layout.inline.strut` and `split_text_box`: lines take
+  the font metrics rounded to whole px as Blink does, and each baseline lands on a whole px of the HTML.
 - `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask built in
   levels: the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
   and transfer functions recolor every parsed color (`RECOLOR`). feComposite arithmetic with a constant
