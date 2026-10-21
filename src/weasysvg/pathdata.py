@@ -91,7 +91,8 @@ def _arc_tangent(arc: tuple[float, ...], theta: float) -> Point:
 def _arc(start: Point, end: Point, rx: float, ry: float, angle: float, large: bool, sweep: bool) -> Segment:
     """An elliptical arc in center parameterization (SVG implementation notes, F.6.5 and F.6.6)."""
     rx, ry = abs(rx), abs(ry)
-    if not rx or not ry:
+    # A radius whose square underflows to 0 draws the line a zero radius draws
+    if not rx * rx or not ry * ry:
         return Segment("line", (start, end))
     phi = math.radians(angle % 360)
     (x1, y1), (x2, y2) = start, end
@@ -368,18 +369,18 @@ def without_zero_radius_arcs(data: str | None) -> str | None:
     stop at.
     """
     commands, mark, command = _read(data)
+    if not any(_zero_radius(name, values) for name, values in commands):
+        return None
     builder = _Builder()
     written: list[str] = []
-    changed = False
     for name, values in commands:
         if _zero_radius(name, values):
-            changed = True
             line = _as_line(name, values, builder.current)
             written.extend([line] if line else [])
         else:
             written.append(name + " ".join(_number(value) for value in values))
         builder.add(name, values)
-    return " ".join(written + _tail(data or "", mark, command)) if changed else None
+    return " ".join(written + _tail(data or "", mark, command))
 
 
 class Polyline:

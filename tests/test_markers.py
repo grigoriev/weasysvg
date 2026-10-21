@@ -194,3 +194,10 @@ def test_arcs_of_no_radius_become_lines(data: str, expected: str) -> None:
 @pytest.mark.parametrize("data", ["M0 0 A 5 5 0 0 1 10 0", "M0 0 L10 10", "", "A 0 0 0 0 1 5 5"])
 def test_path_data_without_arcs_of_no_radius_stays(data: str) -> None:
     assert pathdata.without_zero_radius_arcs(data) is None
+
+
+@pytest.mark.parametrize("data", ["M0 0 A1e-200 1 0 0 1 10 10", "M0 0 A1e-200 1 0 0 1 10 10 A0 0 0 0 1 5 5"])
+def test_a_radius_whose_square_underflows_is_read(data: str) -> None:
+    # rx * rx is 0 for such a radius: the arc is the line it degenerates to, not a division by zero
+    assert [segment.kind for segment in pathdata.parse(data)][-1] == "line"
+    pathdata.without_zero_radius_arcs(data)
