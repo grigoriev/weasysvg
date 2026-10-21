@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 108 |
-| 🟡 close to the reference | 22 | 6 |
+| ✅ matches the reference | 39 | 109 |
+| 🟡 close to the reference | 22 | 5 |
 | ❌ differs from the reference | 54 | 0 |
 
 References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
@@ -210,7 +210,7 @@ References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg draws the underline under &#x27;waiting&#x27; through the descenders; Chromium skips their ink. |
-| 🟡 | weasysvg | **close to the reference** | The underline under &#x27;waiting&#x27; runs whole: the text has a textLength, so it is laid out character by character and skips no ink. Chromium cuts it under each glyph. |
+| ✅ | weasysvg | **matches the reference** | Matches, the underlined word included: its glyphs cut the line as in Chromium. |
 | 🟡 | WeasyPrint | **close to the reference** | The underline under &#x27;waiting&#x27; is missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

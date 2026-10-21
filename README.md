@@ -108,11 +108,11 @@ gives the verdict:
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 108 |
-| 🟡 close to the reference | 22 | 6 |
+| ✅ matches the reference | 39 | 109 |
+| 🟡 close to the reference | 22 | 5 |
 | ❌ differs from the reference | 54 | 0 |
 
-Of the 35 diagrams from draw.io, kroki and mermaid.ink, 32 match the reference and 3 are close.
+Of the 35 diagrams from draw.io, kroki and mermaid.ink, 33 match the reference and 2 are close.
 Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
 shows every SVG in Chromium, your own browser, resvg, WeasyPrint alone and WeasyPrint with weasysvg, in a row,
 with the reference marked and a swipe between any two of them, as GitHub compares images;
@@ -124,8 +124,7 @@ with the reference marked and a swipe between any two of them, as GitHub compare
   but loses the cursive attachment some fonts use to pull the letters together (Amiri): it runs longer.
 - On a `textPath` and in vertical text, joining and right-to-left order stop at the edge of a `<tspan>`: an
   Arabic word split by one falls apart there.
-- An underline or overline skips no ink on text laid out character by character (several `x` or `y`
-  values, `rotate`, `textLength`) or on vertical text.
+- An underline or overline skips no ink under a turned character (`rotate`) or on vertical text.
 - A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
   edge, which knows nothing of the far edge: a filled shape thinner than about two deviations comes out
   darker and sharper than in Chromium, and corners come out mitered inside the shape.
