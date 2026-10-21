@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 109 |
-| 🟡 close to the reference | 22 | 5 |
+| ✅ matches the reference | 39 | 110 |
+| 🟡 close to the reference | 22 | 4 |
 | ❌ differs from the reference | 54 | 0 |
 
 References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
@@ -322,7 +322,7 @@ References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg has no foreignObject: every label is missing. |
-| 🟡 | weasysvg | **close to the reference** | The label Car sits 3 px right of where Chromium puts it; the rest matches. |
+| ✅ | weasysvg | **matches the reference** | Matches, the label Car after its icon included; the text sits up to 1 px lower, as in all Mermaid labels with Trebuchet MS. |
 | ❌ | WeasyPrint | **differs from the reference** | All labels are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

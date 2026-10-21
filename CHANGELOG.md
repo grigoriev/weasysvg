@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `weasysvg.install()` patches WeasyPrint 70.x to render SVG close to Chromium: `<foreignObject>` with
-  the list markers of Chromium,
+  the list markers of Chromium and the white space of empty inline boxes collapsed as there,
   conditional processing, vector filter chains (blur, exact for a plain rect, color matrices and
   transfer functions included), masks set before the path, pattern and gradient fixes, `mix-blend-mode`, unclipped
   opacity groups, marker orientation, text baselines from font metrics, text-anchor per text chunk, filters, masks and clips on text, circles of the right length, dots of zero-length dashes in place in PDFium, negative dash offsets of odd dash arrays, decorations placed as in Chromium with underlines that skip the ink of the glyphs (laid out whole or character by character), font-size

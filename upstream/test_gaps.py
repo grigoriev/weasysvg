@@ -306,3 +306,15 @@ def test_unknown_family_falls_back_to_sans() -> None:
     # Chromium draws an unknown family with Times New Roman (Liberation Serif), Pango with DejaVu Sans
     pdf, _ = render(svg('<text x="10" y="50" font-family="NoSuchFont">Text</text>'))
     still_broken(b"Liberation-Serif" not in pdf, "Chromium font selection", "fonts.resolve_families")
+
+
+def test_space_after_an_empty_inline_starts_a_line() -> None:
+    import pypdfium2 as pdfium
+    import weasyprint
+
+    def first_x(body: str) -> float:
+        pdf = weasyprint.HTML(string=f"<style>@page{{size:200px 40px;margin:0}} p{{margin:0}}</style><p>{body}</p>").write_pdf()
+        textpage = pdfium.PdfDocument(pdf)[0].get_textpage()
+        return float(next(textpage.get_charbox(index)[0] for index in range(textpage.count_chars()) if textpage.get_text_range(index, 1).strip()))
+
+    still_broken(first_x("<i></i> Car") > first_x("Car") + 1, "space after an empty inline at the start of a line", "foreign_object._element_to_box")

@@ -108,11 +108,11 @@ gives the verdict:
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 109 |
-| 🟡 close to the reference | 22 | 5 |
+| ✅ matches the reference | 39 | 110 |
+| 🟡 close to the reference | 22 | 4 |
 | ❌ differs from the reference | 54 | 0 |
 
-Of the 35 diagrams from draw.io, kroki and mermaid.ink, 33 match the reference and 2 are close.
+Of the 35 diagrams from draw.io, kroki and mermaid.ink, 34 match the reference and 1 is close.
 Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
 shows every SVG in Chromium, your own browser, resvg, WeasyPrint alone and WeasyPrint with weasysvg, in a row,
 with the reference marked and a swipe between any two of them, as GitHub compares images;

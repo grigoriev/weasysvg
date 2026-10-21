@@ -192,8 +192,8 @@
   "name": "diagrams__mermaid-ink-flowchart",
   "reference": "chromium",
   "reference_why": "resvg has no foreignObject: every label is missing.",
-  "verdict": "close",
-  "what": "The label Car sits 3 px right of where Chromium puts it; the rest matches.",
+  "verdict": "same",
+  "what": "Matches, the label Car after its icon included; the text sits up to 1 px lower, as in all Mermaid labels with Trebuchet MS.",
   "native_verdict": "differs",
   "native_what": "All labels are missing."
  },

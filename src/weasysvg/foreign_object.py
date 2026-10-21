@@ -7,6 +7,9 @@ Touches:
 - ``layout.block.table_layout``: inside a foreignObject a table taller than its rows gives the
   extra height to the rows, as browsers do (Mermaid centers its labels that way);
 - a UA stylesheet for the sub-document: what Chromium does differently in an SVG used as an image;
+- ``formatting_structure.build.element_to_box``: inside a foreignObject an inline box with nothing in it and
+  nothing drawn is dropped, so the white space around it collapses as CSS says and Chromium does (Mermaid
+  writes icons whose font never loads);
 - ``formatting_structure.build.marker_to_box``: inside a foreignObject an outside disc, circle or square
   marker is the shape Chromium paints, sized and placed from the ascent of the font, not a glyph.
 """
@@ -298,27 +301,76 @@ def _table_layout(*args: Any, **kwargs: Any) -> Any:
     return result
 
 
+# ---------------- empty inline boxes ----------------
+
+_ORIGINAL_ELEMENT_TO_BOX = wp_build.element_to_box
+SIDES = ("top", "right", "bottom", "left")
+ITEM_LAYOUTS = frozenset(("flex", "grid", "inline-flex", "inline-grid"))
+# What an empty inline box brings to the height and baseline of its line, besides the metrics of its font
+LINE_SHAPING = ("font_size", "line_height")
+METRIC_TOLERANCE = 0.01  # px
+
+
+def _plain_empty(box: Any, parent: Any) -> bool:
+    """Whether box is an inline box with nothing in it, nothing drawn, and the line box of its parent.
+
+    White space ignores such a box. An auto margin of an inline box is 0. A box with an outline or a shadow is drawn, and
+    a box whose font has other metrics, or of another line height or vertical alignment, still shapes the
+    line: both stay.
+    """
+    if type(box) is not wp_boxes.InlineBox or box.children:
+        return False
+    style = box.style
+    drawn = style["outline_width"] or style["box_shadow"] or any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES)
+    spaced = any(style[f"margin_{side}"] != "auto" and style[f"margin_{side}"].value for side in SIDES)
+    # vertical-align is not inherited: a box off the baseline shapes the line, whatever its parent has
+    if drawn or spaced or style["vertical_align"] != "baseline" or any(style[key] != parent.style[key] for key in LINE_SHAPING):
+        return False
+    # Another face, of another family or not, may bring other metrics: <i> and <b> mostly do not
+    return all(abs(mine - theirs) < METRIC_TOLERANCE for mine, theirs in zip(_line_metrics(style), _line_metrics(parent.style), strict=True))
+
+
+def _element_to_box(*args: Any, **kwargs: Any) -> Any:
+    """element_to_box of WeasyPrint; inside a foreignObject without the empty inline boxes among the children.
+
+    WeasyPrint keeps the space after such a box at the start of a line, in the line and in the width the
+    content asks for. The element calls itself for its children: each level drops its own.
+    """
+    found = _ORIGINAL_ELEMENT_TO_BOX(*args, **kwargs)
+    if IN_FOREIGN_OBJECT.get():
+        for box in found:
+            # Only in a block container or an inline box: in a flex or grid container an empty box is an item,
+            # which takes a cell or a gap. Right in a table, a row group or a row WeasyPrint 70 gives it no cell,
+            # but a later version may, as Chromium does
+            if isinstance(box, (wp_boxes.BlockContainerBox, wp_boxes.InlineBox)) and not ITEM_LAYOUTS.intersection(box.style["display"]):
+                box.children = [child for child in box.children if not _plain_empty(child, box)]
+    return found
+
+
 # ---------------- list markers ----------------
 
 _ORIGINAL_MARKER_TO_BOX = wp_build.marker_to_box
 SYMBOL_MARKERS = frozenset(("disc", "circle", "square"))
 CORNERS = ("top_left", "top_right", "bottom_right", "bottom_left")
-SIDES = ("top", "right", "bottom", "left")
 MARKER_PADDING = 7  # px, kCMarkerPaddingPx of Blink
 
 
-def _ascent(style: Any) -> int:
-    """The ascent of the first font of style, in whole px as Chromium counts it."""
+def _line_metrics(style: Any) -> tuple[float, float]:
+    """The ascent and descent of the first font of style, in px."""
     layout = Layout(style)
     try:
         layout.set_text("x")
         line, _ = layout.get_first_line()
         logical = ffi.new("PangoRectangle *")
         pango.pango_layout_line_get_extents(line, ffi.NULL, logical)
-        ascent: int = round(-logical.y * FROM_UNITS)
-        return ascent
+        return -logical.y * FROM_UNITS, (logical.height + logical.y) * FROM_UNITS
     finally:
         layout.deactivate()
+
+
+def _ascent(style: Any) -> int:
+    """The ascent of the first font of style, in whole px as Chromium counts it."""
+    return round(_line_metrics(style)[0])
 
 
 def _symbol_marker(marker: Any, kind: str) -> None:
@@ -377,4 +429,5 @@ def install() -> None:
     conditional.SUPPORTED_EXTENSIONS.add(conditional.XHTML_NS)
     wp_block.table_layout = _table_layout
     wp_build.marker_to_box = _marker_to_box
+    wp_build.element_to_box = _element_to_box
     wp_svg.TAGS["foreignObject"] = foreign_object

@@ -383,3 +383,86 @@ def test_a_marker_image_stays_an_image() -> None:
     html = f"<ul style=\"margin:0;padding-left:40px;font:16px 'DejaVu Sans';color:#0000ff;list-style-image:url(&quot;{square}&quot;)\"><li>I</li></ul>"
     image = rasterize(render(svg(fo(html, width=200, height=40), width=200, height=40)), MARKER_SCALE / 0.75)
     assert ink_box(image, (255, 0, 0), slice(0, 38 * MARKER_SCALE))
+
+
+def first_character_x(body: str) -> float:
+    import pypdfium2 as pdfium
+
+    document = pdfium.PdfDocument(render(svg(fo(body, width=200, height=40), width=200, height=40)))
+    page = document[0]
+    textpage = page.get_textpage()
+    try:
+        boxes = [textpage.get_charbox(index) for index in range(textpage.count_chars()) if textpage.get_text_range(index, 1).strip()]
+        return float(boxes[0][0])
+    finally:
+        close(textpage, page, document)
+
+
+@pytest.mark.parametrize("icon", ['<i class="fa fa-car"></i>', "<i></i><b></b>", "<span><i></i></span>"])
+def test_a_space_after_an_empty_inline_starts_no_line(icon: str) -> None:
+    # Mermaid writes an icon its font never loads: Chromium drops the space after it at the start of the line
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_x(f'<p style="{style}">{icon} Car</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car</p>'))
+
+
+def test_a_label_sized_to_its_content_ignores_the_space_too() -> None:
+    # Mermaid sizes its labels by a table cell: its width, from the content, must not count the space either
+    def label(inner: str) -> str:
+        return f'<div style="display: table-cell; white-space: nowrap; text-align: center; font:16px \'DejaVu Sans\'"><p style="margin:0">{inner}</p></div>'
+
+    assert first_character_x(label("<i></i> Car")) == pytest.approx(first_character_x(label("Car")))
+
+
+def test_an_empty_inline_of_a_face_with_other_metrics_stays(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A bold or italic face may come with other metrics: then the box shapes the line, and stays
+    metrics = iter([(14.0, 4.0), (15.0, 4.0)])
+    monkeypatch.setattr(foreign_object, "_line_metrics", lambda _style: next(metrics))
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    kept = first_character_x(f'<p style="{style}"><i></i> Car</p>')
+    monkeypatch.undo()
+    assert kept > first_character_x(f'<p style="{style}">Car</p>') + 3
+
+
+def test_an_empty_inline_in_a_table_cell_is_dropped() -> None:
+    # A cell has vertical-align middle, which its children do not inherit: the box still goes
+    def cell(inner: str) -> str:
+        return f'<table style="border-spacing:0"><tr><td style="padding:0;font:16px \'DejaVu Sans\'">{inner}</td></tr></table>'
+
+    assert first_character_x(cell("<i></i> Car")) == pytest.approx(first_character_x(cell("Car")))
+
+
+@pytest.mark.parametrize("display", ["grid;grid-template-columns:24px 100px", "flex;gap:24px"])
+def test_an_empty_item_of_a_flex_or_grid_stays(display: str) -> None:
+    # There an empty <i> is an item: it takes a cell, or a gap after it, as in Chromium
+    body = f"<div style=\"display:{display};font:16px 'DejaVu Sans'\"><i></i><span>Car</span></div>"
+    assert first_character_x(body) > 15  # pt: 24 px is 18 pt
+
+
+def test_an_empty_inline_with_auto_margins_is_dropped_too() -> None:
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_x(f'<p style="{style}"><i style="margin-left:auto"></i> Car</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car</p>'))
+
+
+def first_character_top(body: str) -> float:
+    import pypdfium2 as pdfium
+
+    document = pdfium.PdfDocument(render(svg(fo(body, width=200, height=80), width=200, height=80)))
+    page = document[0]
+    textpage = page.get_textpage()
+    try:
+        return float(textpage.get_charbox(next(index for index in range(textpage.count_chars()) if textpage.get_text_range(index, 1).strip()))[3])
+    finally:
+        close(textpage, page, document)
+
+
+def test_an_empty_inline_that_sizes_the_line_stays() -> None:
+    # Its larger font makes the line taller, in Chromium too: the text moves down
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_top(f'<p style="{style}"><i style="font-size:40px"></i>Car</p>') < first_character_top(f'<p style="{style}">Car</p>') - 5
+
+
+@pytest.mark.parametrize("own", ["vertical-align:super", "padding-left:4px", "padding-top:4px", "border-bottom:1px solid red", "outline:2px solid red", "box-shadow:2px 2px 0 4px red", "font-family:'Liberation Serif'"])
+def test_an_empty_inline_that_shows_keeps_the_space(own: str) -> None:
+    # A box drawn, or with a font of its own that sets the line metrics, stays: the space after it too
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_x(f'<p style="{style}"><i style="{own}"></i> Car</p>') > first_character_x(f'<p style="{style}">Car</p>') + 3
