@@ -78,6 +78,7 @@ weasysvg.install(filters=False, fonts=False)
 | `fonts` | `True` | font family selection as Chromium does it |
 | `fetch_cache` | `True` | one fetch per URL and SVG |
 | `markers` | `True` | marker orientation as in Chromium |
+| `paint_order` | `True` | `paint-order` of shapes and text |
 | `language` | `"en"` | the language `systemLanguage` reads where the document has no `lang` |
 
 weasysvg targets WeasyPrint 70.x and warns on any other major version: it patches internals that
@@ -96,6 +97,7 @@ change between releases.
 | Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright from the vertical origin of the font (`VORG`, `vmtx`), other scripts sideways, `rotate` about the origin of each glyph as in resvg. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; laid out one character at a time, on a path or down a column, Arabic in one text node still takes its joining forms and runs right to left; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, underlines and overlines skip the ink of the glyphs, text laid out one character at a time (`textLength`, `x`, `y`, `dx`, `dy` lists) carries the lines under each character on its own baseline and leaves the room added between characters bare, font-size keywords, a relative font size inherited as computed and `ex` from the x-height of the font, nested `<text>` ignored, the text after a child of a `<tspan>` drawn (`Don<wbr/>e` in a Polarion chart label), `text-anchor` per text chunk. A filter, mask or clip on text uses the box of the text as drawn. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
+| Paint order | `paint-order` (`normal` or any order of `fill`, `stroke` and `markers`, attribute or CSS, inherited) on shapes, their markers, text and its decoration lines, as in Chromium. Each paint is a pass of its own in one graphics state, inside the opacity group, mask, filter and clip of the element. An invalid value is ignored, so the parent value inherits. A translucent stroke over a fill shows the fill under it: WeasyPrint painted both as one knockout object, which showed the backdrop. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
 | Path data | An arc of a zero radius draws a straight line to its end, as SVG says: Highcharts closes each slice of a pie with one. |
 

@@ -41,7 +41,7 @@ from weasyprint.text.ffi import FROM_UNITS, TO_UNITS, ffi, pango
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.text.line_break import Layout
 
-from . import _core, glyphs, ink, textpath, vertical
+from . import _core, glyphs, ink, paint_order, textpath, vertical
 from .conditional import local_name
 from .fonts import FALLBACK, resolve_families
 
@@ -854,6 +854,14 @@ def _draw_on_path(svg: Any, node: Any, font_size: float) -> bool:
 
 
 def draw_text(svg: Any, node: Any, font_size: float) -> Any:
+    # The text objects it draws, painted again in the paint-order of node
+    stream, start = svg.stream, len(svg.stream.stream)
+    result = _draw_text(svg, node, font_size)
+    paint_order.split_text(stream, node, start)
+    return result
+
+
+def _draw_text(svg: Any, node: Any, font_size: float) -> Any:
     if FEATURES["fonts"]:
         node.attrib["font-family"] = f"{resolve_families(node.get('font-family') or '', svg.font_config)}, {FALLBACK}"
     if _draw_vertical(svg, node, font_size) or _draw_on_path(svg, node, font_size):

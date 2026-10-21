@@ -39,7 +39,11 @@
   },
   "weasyprint.svg:SVG.draw_markers": {
    "fingerprint": "b3bdac61521dd31b",
-   "used_by": "markers.vertices writes the form it reads"
+   "used_by": "markers.vertices writes the form it reads; paint_order.fill_stroke calls it between the paints"
+  },
+  "weasyprint.svg:SVG.fill_stroke": {
+   "fingerprint": "6c130641cc424b45",
+   "used_by": "paint_order.fill_stroke replaces it; it reads the path draw_node left in the stream"
   },
   "weasyprint.svg:Node.cascade": {
    "fingerprint": "3918fd436da24f7d",
@@ -111,7 +115,11 @@
   },
   "weasyprint.svg.text:text": {
    "fingerprint": "388f5046ffe009d3",
-   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge; text.recorded_draw_first_line reads the matrix it passes for each character"
+   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge; text.recorded_draw_first_line reads its matrix per character; paint_order.split_text splits its 2 Tr"
+  },
+  "weasyprint.svg.css:parse_declarations": {
+   "fingerprint": "55a5890696d6d514",
+   "used_by": "paint_order._valid_style reads a style attribute as the cascade does"
   },
   "weasyprint.svg.text:TextBox": {
    "fingerprint": "af3cf2f8fbba9a1c",

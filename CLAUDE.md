@@ -39,7 +39,7 @@ uv build                # wheel and sdist
 once.
 
 - `_core.py`: the two shared hooks. `images.SVGImage.__init__` runs the tree passes on the parsed
-  XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, trailing_space 18, empty_presentation 20, arcs 20, foreign_object 30) and wraps the URL
+  XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, trailing_space 18, empty_presentation 20, arcs 20, paint_order 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
   A node that holds text and has a filter, mask or clip is drawn once into a scratch group first
   (`measure_text`): WeasyPrint knows the box of a text only after drawing it. The text box is kept
@@ -55,6 +55,8 @@ once.
   input is a recolor too. `turbulence.py` computes the noise of feTurbulence as an image layer.
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
 - `pathdata.py`: path data as segments with tangents and points along them.
+- `paint_order.py`: `paint-order` and translucent strokes. `fill_stroke` paints the path left in the stream once
+  per paint, markers in between; `text.draw_text` splits each mode 2 text object into two passes.
 - `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.
 - `text.py`, `fonts.py`: SVG text, Chromium font selection.
 - `textpath.py`: characters placed along a `pathdata.Polyline`, for `<textPath>` and its `<tspan>`.

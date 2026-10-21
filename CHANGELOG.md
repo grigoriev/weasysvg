@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `paint-order` on shapes, markers, text and text decoration lines, as Chromium paints it: the stroke of
+  the boxes in the OSI model from Wikimedia (`paint-order: stroke`) shows its outer half only. The
+  `paint_order` argument of `install()` turns it off.
+
 ### Fixed
 
+- A translucent stroke over a fill shows the fill under it, as in Chromium. WeasyPrint filled and stroked
+  in one operator, a knockout object in PDF, so the stroke showed the white behind the shape.
 - Text laid out one character at a time draws its decoration lines character by character, as Chromium,
   Safari and Firefox do: each character carries them over its advance and its letter-spacing, and the room
   `textLength`, `x` and `dx` add between characters stays bare. Text with several `y` or `dy` values gets its

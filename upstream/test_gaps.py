@@ -240,6 +240,29 @@ def test_opacity_group_clips_anchored_text() -> None:
     still_broken(near(pixel(pdf, 15, 35), WHITE, 3), "the box of opacity groups", "_core (opacity group)")
 
 
+# ---------------- paint-order ----------------
+
+PAINTED = '<rect x="40" y="40" width="120" height="120" fill="lime" stroke="blue" stroke-width="40" {}/>'
+
+
+def test_paint_order_is_ignored() -> None:
+    # Chromium strokes first, the fill covers the inner half of the stroke
+    pdf, _ = render(svg(PAINTED.format('paint-order="stroke"'), height=200))
+    still_broken(near(pixel(pdf, 37, 75), (0, 0, 255), 3), "paint-order", "paint_order (shapes)")
+
+
+def test_paint_order_of_text_is_ignored() -> None:
+    body = '<text x="20" y="180" font-size="160" font-weight="bold" fill="lime" stroke="blue" stroke-width="24" paint-order="stroke">I</text>'
+    pdf, _ = render(svg(body, height=200))
+    still_broken("2 Tr" in content(pdf), "paint-order of text", "paint_order.split_text")
+
+
+def test_translucent_stroke_knocks_out_the_fill() -> None:
+    # B paints fill and stroke as one knockout object: the white under the fill shows through the stroke
+    pdf, _ = render(svg(PAINTED.format('stroke-opacity=".4"'), height=200))
+    still_broken(near(pixel(pdf, 37, 75), (153, 153, 255), 3), "the knockout of a translucent stroke", "paint_order (translucent_stroke)")
+
+
 # ---------------- markers ----------------
 
 
