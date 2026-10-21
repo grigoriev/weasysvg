@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A dash that runs through the start point of a closed shape is one dash, with its line join, as in
+  Chromium. PDFium drew two dashes that met there: a light seam across the stroke and a notch on its
+  outer edge, and no miter at the corner of a rectangle. Every dash keeps its place.
 - A translucent stroke over a fill shows the fill under it, as in Chromium. WeasyPrint filled and stroked
   in one operator, a knockout object in PDF, so the stroke showed the white behind the shape.
 - Text laid out one character at a time draws its decoration lines character by character, as Chromium,

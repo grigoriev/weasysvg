@@ -37,7 +37,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.svg:SVG.draw_node": "_core._draw_node and _draw_with_effects mirror its order of effects; text._record lays a text out through it with fill_stroke=False",
     "weasyprint.svg:SVG.set_graphical_state": "paint.set_graphical_state",
     "weasyprint.svg:SVG.draw_markers": "markers.vertices writes the form it reads; paint_order.fill_stroke calls it between the paints",
-    "weasyprint.svg:SVG.fill_stroke": "paint_order.fill_stroke replaces it; it reads the path draw_node left in the stream",
+    "weasyprint.svg:SVG.fill_stroke": "paint_order.fill_stroke replaces it; it reads the path draw_node left in the stream, and dashes.closing_patches parses its operators",
     "weasyprint.svg:Node.cascade": "text.cascade; restylers cascade children before they change a node; text._cascade_without_rules swaps Node._style",
     "weasyprint.svg:Node.__iter__": "restylers rely on cached children",
     "weasyprint.svg:Node.override_iter": "paint._materialized_override_iter",

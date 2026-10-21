@@ -43,7 +43,7 @@
   },
   "weasyprint.svg:SVG.fill_stroke": {
    "fingerprint": "6c130641cc424b45",
-   "used_by": "paint_order.fill_stroke replaces it; it reads the path draw_node left in the stream"
+   "used_by": "paint_order.fill_stroke replaces it; it reads the path draw_node left in the stream, and dashes.closing_patches parses its operators"
   },
   "weasyprint.svg:Node.cascade": {
    "fingerprint": "3918fd436da24f7d",

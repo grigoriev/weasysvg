@@ -21,6 +21,8 @@ Touches:
 - a tree pass: an arc of a zero radius in path data becomes the line SVG draws for it, and an arc wider
   than 90 degrees curves of 90 degrees. WeasyPrint wrote a relative line to the end of the first, which
   broke every slice of a Highcharts pie, and drew the second as one curve, which bulged.
+- ``svg.SVG.fill_stroke``, through ``paint_order``: a dash through the start point of a closed subpath
+  is joined into one dash (``dashes.py``).
 - ``svg.TAGS['circle']`` and ``svg.TAGS['ellipse']``: each quarter is a Bezier with the arc constant
   4 (sqrt(2) - 1) / 3. WeasyPrint uses 1 / sqrt(pi), a longer outline that moves the dashes along it.
 """
@@ -315,11 +317,11 @@ def _reset_dashes(svg: Any, node: Any, font_size: float) -> None:
     cap a tiny dash would show as a sliver. An odd array repeats, so its period is twice its sum, and a
     negative offset counts back from that period: WeasyPrint counts back from the sum alone.
     """
-    dashes = tuple(svg.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
-    if not any(dashes) or min(dashes) < 0:
+    values = dash_values(svg, node, font_size)
+    if values is None:
         return
-    offset = svg.length(node.get("stroke-dashoffset"), font_size)
-    zero = 0 in dashes and node.get("stroke-linecap", "butt") in ("round", "square")
+    dashes, offset = values
+    zero = zero_dashes_painted(node, dashes)
     if not zero and not (offset < 0 and len(dashes) % 2):
         return
     # Without a dash of length 0 only an odd array with a negative offset is here: repeated, it has its period
@@ -327,6 +329,19 @@ def _reset_dashes(svg: Any, node: Any, font_size: float) -> None:
     if offset < 0:
         offset = sum(fixed) - abs(offset) % sum(fixed)
     svg.stream.set_dash(fixed, offset)
+
+
+def dash_values(svg: Any, node: Any, font_size: float) -> tuple[tuple[float, ...], float] | None:
+    """The stroke-dasharray and stroke-dashoffset of node in user units; None for a solid stroke, as WeasyPrint reads them."""
+    dashes = tuple(svg.length(value, font_size) for value in wp_utils.normalize(node.get("stroke-dasharray")).split() if value != "none")
+    if not any(dashes) or min(dashes) < 0:
+        return None
+    return dashes, svg.length(node.get("stroke-dashoffset"), font_size)
+
+
+def zero_dashes_painted(node: Any, dashes: tuple[float, ...]) -> bool:
+    """Whether a dash of length 0 paints: only under a round or a square cap."""
+    return 0 in dashes and node.get("stroke-linecap", "butt") in ("round", "square")
 
 
 def no_zero_dashes(dashes: tuple[float, ...], stroke_width: float = math.inf) -> tuple[float, ...]:
@@ -577,7 +592,10 @@ def fix_arcs(root: ET.Element) -> None:
 
 
 def install(*, blend: bool = True) -> None:
+    from . import paint_order
+
     wp_svg.TAGS["circle"] = wp_svg.TAGS["ellipse"] = ellipse
+    paint_order.install_dashes()
     _core.add_tree_pass(20, "empty_presentation", drop_empty_presentation)
     _core.add_tree_pass(20, "arcs", fix_arcs)
     wp_defs.draw_gradient = wp_svg.draw_gradient = draw_gradient

@@ -99,6 +99,7 @@ change between releases.
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Paint order | `paint-order` (`normal` or any order of `fill`, `stroke` and `markers`, attribute or CSS, inherited) on shapes, their markers, text and its decoration lines, as in Chromium. Each paint is a pass of its own in one graphics state, inside the opacity group, mask, filter and clip of the element. An invalid value is ignored, so the parent value inherits. A translucent stroke over a fill shows the fill under it: WeasyPrint painted both as one knockout object, which showed the backdrop. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
+| Dashes | A dash that runs through the start point of a closed shape is one dash with its line join, as in Chromium: PDFium drew two, with a seam across the stroke. A dash of length 0 under a round or square cap keeps its place, and a negative offset of an odd array counts back from its whole period. |
 | Path data | An arc of a zero radius draws a straight line to its end, as SVG says: Highcharts closes each slice of a pie with one. An arc wider than 90 degrees is drawn as curves of 90 degrees at most: WeasyPrint drew up to half a circle as one curve, which bulged by 1.8 % of its radius. |
 
 ## How it compares to Chromium

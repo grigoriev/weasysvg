@@ -62,6 +62,8 @@ once.
   Text, images, shadings, patterns, soft masks, blend modes and dashes raise `Unsupported`: the levels draw them.
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
 - `pathdata.py`: path data as segments with tangents and points along them.
+- `dashes.py`: the dash through the start point of a closed subpath, as one dash: `paint_order.fill_stroke` strokes a
+  short patch across that point with the path, after the fill.
 - `paint_order.py`: `paint-order` and translucent strokes. `fill_stroke` paints the path left in the stream once
   per paint, markers in between; `text.draw_text` splits each mode 2 text object into two passes.
 - `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.
