@@ -305,6 +305,7 @@ def _table_layout(*args: Any, **kwargs: Any) -> Any:
 
 _ORIGINAL_ELEMENT_TO_BOX = wp_build.element_to_box
 SIDES = ("top", "right", "bottom", "left")
+ITEM_LAYOUTS = frozenset(("flex", "grid", "inline-flex", "inline-grid"))
 # What an empty inline box brings to the height and baseline of its line, besides the metrics of its font
 LINE_SHAPING = ("font_size", "line_height")
 METRIC_TOLERANCE = 0.01  # px
@@ -338,7 +339,8 @@ def _element_to_box(*args: Any, **kwargs: Any) -> Any:
     found = _ORIGINAL_ELEMENT_TO_BOX(*args, **kwargs)
     if IN_FOREIGN_OBJECT.get():
         for box in found:
-            if isinstance(box, wp_boxes.ParentBox):
+            # In a flex or grid container an empty box is an item, which takes a cell or a gap: it stays
+            if isinstance(box, wp_boxes.ParentBox) and not ITEM_LAYOUTS.intersection(box.style["display"]):
                 box.children = [child for child in box.children if not _plain_empty(child, box)]
     return found
 

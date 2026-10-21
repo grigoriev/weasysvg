@@ -431,6 +431,13 @@ def test_an_empty_inline_in_a_table_cell_is_dropped() -> None:
     assert first_character_x(cell("<i></i> Car")) == pytest.approx(first_character_x(cell("Car")))
 
 
+@pytest.mark.parametrize("display", ["grid;grid-template-columns:24px 100px", "flex;gap:24px"])
+def test_an_empty_item_of_a_flex_or_grid_stays(display: str) -> None:
+    # There an empty <i> is an item: it takes a cell, or a gap after it, as in Chromium
+    body = f"<div style=\"display:{display};font:16px 'DejaVu Sans'\"><i></i><span>Car</span></div>"
+    assert first_character_x(body) > 15  # pt: 24 px is 18 pt
+
+
 def test_an_empty_inline_with_auto_margins_is_dropped_too() -> None:
     style = "margin:0;font:16px 'DejaVu Sans'"
     assert first_character_x(f'<p style="{style}"><i style="margin-left:auto"></i> Car</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car</p>'))
