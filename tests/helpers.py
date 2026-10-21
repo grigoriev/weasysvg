@@ -122,6 +122,7 @@ class RecordingStream:
     def __init__(self) -> None:
         self.depth = 0
         self.id = "x0"
+        self._resources: dict[str, dict[str, Any]] = {"XObject": {}}
 
     def push_state(self) -> None:
         self.depth += 1

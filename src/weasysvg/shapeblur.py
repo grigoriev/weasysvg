@@ -115,6 +115,8 @@ def _inside(rings: list[list[Point]], signs: list[int], even_odd: bool, big: tup
         # Each subpath is drawn in its own box only: a path may hold hundreds of them
         left, top = max(math.floor(min(x for x, _ in points)) - 1, 0), max(math.floor(min(y for _, y in points)) - 1, 0)
         right, bottom = min(math.ceil(max(x for x, _ in points)) + 2, big[0]), min(math.ceil(max(y for _, y in points)) + 2, big[1])
+        if right <= left or bottom <= top:
+            continue  # a clip may lie beside the samples it is cut to
         layer = Image.new("L", (right - left, bottom - top))
         ImageDraw.Draw(layer).polygon([(x - left, y - top) for x, y in points], fill=1)
         box = (left, top, right, bottom)
@@ -134,11 +136,19 @@ def _coverage(rings: list[Ring], even_odd: bool, size: tuple[int, int], to_grid:
     """
     big = (size[0] * SUPERSAMPLE, size[1] * SUPERSAMPLE)
     signs = [1 if even_odd or _signed_area(ring) >= 0 else -1 for ring in rings]
+    return samples([to_samples(ring, to_grid) for ring in rings], signs, even_odd, big).reduce(SUPERSAMPLE)
+
+
+def to_samples(ring: Ring, to_grid: Callable[[Point], Point], left: int = 0, top: int = 0) -> list[Point]:
+    """ring in sample coordinates, the sample (left, top) at the origin."""
     # Pillow puts integer coordinates on the centers of its pixels
-    points = [[(x * SUPERSAMPLE - 0.5, y * SUPERSAMPLE - 0.5) for x, y in map(to_grid, ring)] for ring in rings]
-    turned = [[(big[0] - 1 - x, big[1] - 1 - y) for x, y in ring] for ring in points]
-    inside = ImageChops.darker(_inside(points, signs, even_odd, big), _inside(turned, signs, even_odd, big).transpose(Image.Transpose.ROTATE_180))
-    return inside.reduce(SUPERSAMPLE)
+    return [(x * SUPERSAMPLE - 0.5 - left, y * SUPERSAMPLE - 0.5 - top) for x, y in map(to_grid, ring)]
+
+
+def samples(rings: list[list[Point]], signs: list[int], even_odd: bool, size: tuple[int, int]) -> Image.Image:
+    """The samples whose center lies inside the rings, 255 inside, 0 outside (see _coverage)."""
+    turned = [[(size[0] - 1 - x, size[1] - 1 - y) for x, y in ring] for ring in rings]
+    return ImageChops.darker(_inside(rings, signs, even_odd, size), _inside(turned, signs, even_odd, size).transpose(Image.Transpose.ROTATE_180))
 
 
 class Field:

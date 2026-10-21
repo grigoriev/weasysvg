@@ -43,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Tux) and left white glints where the grown paint had holes (the Inkscape logo).
 - The blurred edge of a plain rect follows the Gaussian to about one level of 255, its tail included:
   one shading over 8 deviations showed bands in PDFium, and the paint stopped at 2.15 deviations.
+- Any blurred content made of paths fades as in Chromium: a group, a stroke, several shapes and colors.
+  Its coverage per color is read back from the PDF operators, blurred and drawn as a mesh of shaded
+  triangles, each color mixed in by its share. The levels of the nearest edge drew a mitered corner on a
+  blurred square (resvg `filters-filter--on-the-root-svg`) and a stroke in steps with a hard inner edge.
+  Text, images, gradients, patterns, masks, blend modes and dashes keep the levels.
 - The gradient of a blurred shape pads past the box of the shape: the pattern WeasyPrint makes of it
   repeated there, which cut the shadow of the map in the OpenStreetMap logo with hard straight edges.
 
