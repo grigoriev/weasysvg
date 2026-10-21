@@ -306,7 +306,7 @@ def _table_layout(*args: Any, **kwargs: Any) -> Any:
 _ORIGINAL_ELEMENT_TO_BOX = wp_build.element_to_box
 SIDES = ("top", "right", "bottom", "left")
 # What an empty inline box brings to the height and baseline of its line, besides the metrics of its font
-LINE_SHAPING = ("font_size", "line_height", "vertical_align")
+LINE_SHAPING = ("font_size", "line_height")
 METRIC_TOLERANCE = 0.01  # px
 
 
@@ -322,7 +322,8 @@ def _plain_empty(box: Any, parent: Any) -> bool:
     style = box.style
     drawn = style["outline_width"] or style["box_shadow"] or any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES)
     spaced = any(style[f"margin_{side}"] != "auto" and style[f"margin_{side}"].value for side in SIDES)
-    if drawn or spaced or any(style[key] != parent.style[key] for key in LINE_SHAPING):
+    # vertical-align is not inherited: a box off the baseline shapes the line, whatever its parent has
+    if drawn or spaced or style["vertical_align"] != "baseline" or any(style[key] != parent.style[key] for key in LINE_SHAPING):
         return False
     # Another face, of another family or not, may bring other metrics: <i> and <b> mostly do not
     return all(abs(mine - theirs) < METRIC_TOLERANCE for mine, theirs in zip(_line_metrics(style), _line_metrics(parent.style), strict=True))

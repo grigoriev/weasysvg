@@ -423,6 +423,14 @@ def test_an_empty_inline_of_a_face_with_other_metrics_stays(monkeypatch: pytest.
     assert kept > first_character_x(f'<p style="{style}">Car</p>') + 3
 
 
+def test_an_empty_inline_in_a_table_cell_is_dropped() -> None:
+    # A cell has vertical-align middle, which its children do not inherit: the box still goes
+    def cell(inner: str) -> str:
+        return f'<table style="border-spacing:0"><tr><td style="padding:0;font:16px \'DejaVu Sans\'">{inner}</td></tr></table>'
+
+    assert first_character_x(cell("<i></i> Car")) == pytest.approx(first_character_x(cell("Car")))
+
+
 def test_an_empty_inline_with_auto_margins_is_dropped_too() -> None:
     style = "margin:0;font:16px 'DejaVu Sans'"
     assert first_character_x(f'<p style="{style}"><i style="margin-left:auto"></i> Car</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car</p>'))
@@ -446,7 +454,7 @@ def test_an_empty_inline_that_sizes_the_line_stays() -> None:
     assert first_character_top(f'<p style="{style}"><i style="font-size:40px"></i>Car</p>') < first_character_top(f'<p style="{style}">Car</p>') - 5
 
 
-@pytest.mark.parametrize("own", ["padding-left:4px", "padding-top:4px", "border-bottom:1px solid red", "outline:2px solid red", "box-shadow:2px 2px 0 4px red", "font-family:'Liberation Serif'"])
+@pytest.mark.parametrize("own", ["vertical-align:super", "padding-left:4px", "padding-top:4px", "border-bottom:1px solid red", "outline:2px solid red", "box-shadow:2px 2px 0 4px red", "font-family:'Liberation Serif'"])
 def test_an_empty_inline_that_shows_keeps_the_space(own: str) -> None:
     # A box drawn, or with a font of its own that sets the line metrics, stays: the space after it too
     style = "margin:0;font:16px 'DejaVu Sans'"
