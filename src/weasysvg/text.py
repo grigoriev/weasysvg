@@ -254,6 +254,37 @@ def keep_nested_tails(root: ET.Element) -> None:
             _split_tails(parent)
 
 
+def _text_pieces(element: ET.Element, owner: ET.Element) -> list[tuple[ET.Element, str]]:
+    """The text of element and of its drawn descendants in document order, as the node and "text" or "tail".
+
+    A tail belongs to the parent of its node: owner is the element whose text it is.
+    """
+    pieces = [(element, "text")]
+    for child in element:
+        if local_name(child.tag) in TEXT_TAGS:
+            pieces += _text_pieces(child, child)
+        pieces.append((child, "tail"))
+    return pieces
+
+
+def drop_trailing_space(root: ET.Element) -> None:
+    """The white space that ends the content of a <text> is dropped, as xml:space="default" says.
+
+    WeasyPrint drops it from the text after the last child of a <text> only: a space at the end of the last
+    <tspan> stayed, and text-anchor counted it, "Rational thoughts " of a Mermaid note moved by half a space.
+    """
+    for outer in [element for element in root.iter() if local_name(element.tag) == "text"]:
+        if outer.get(XML_SPACE) == "preserve":
+            continue
+        for node, kind in reversed(_text_pieces(outer, outer)):
+            if kind == "text" and node.get(XML_SPACE) == "preserve":
+                break
+            value = getattr(node, kind) or ""
+            setattr(node, kind, value.rstrip(" \t\r\n") or None)
+            if value.strip():
+                break
+
+
 def drop_invalid_rotate(root: ET.Element) -> None:
     for element in root.iter():
         value = element.get("rotate")
@@ -783,6 +814,7 @@ def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = Tru
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)
     _core.add_tree_pass(17, "nested_tails", keep_nested_tails)
+    _core.add_tree_pass(18, "trailing_space", drop_trailing_space)
     _core.add_before_draw(note_fonts)
     _core.add_restyler(ex_restyle)
     _core.add_restyler(anchor_restyle)

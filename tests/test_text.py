@@ -1096,3 +1096,30 @@ def test_the_tspan_of_a_tail_matches_no_stylesheet_rule() -> None:
     sizes = font_sizes(pdf)
     assert len(sizes) == 3
     assert sizes.count(max(sizes)) == 1
+
+
+def _ink_x(body: str) -> tuple[int, int]:
+    """Left and right of the ink of the text, at 4 device pixels per pt."""
+    box = rasterize(render(svg(body, width=300)), 4).convert("L").point(lambda value: 255 if value < 128 else 0).getbbox()
+    assert box is not None
+    return box[0], box[2]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # The space that ends the content of a <text> is dropped (xml:space default): it moves no anchor
+        '<text x="150" y="40" text-anchor="middle"><tspan x="150">Rational thoughts </tspan></text>',
+        '<text x="150" y="40" text-anchor="end"><tspan>Rational <tspan>thoughts </tspan></tspan>  </text>',
+        '<text x="150" y="40" text-anchor="middle">Rational thoughts <tspan> </tspan></text>',
+    ],
+)
+def test_the_space_that_ends_a_text_moves_no_anchor(body: str) -> None:
+    trimmed = body.replace("thoughts ", "thoughts").replace("<tspan> </tspan>", "").replace("</tspan>  </text>", "</tspan></text>")
+    # A space is 7 device pixels here, half of it 3: an empty <tspan> left behind may round one pixel apart
+    assert all(abs(left - right) <= 1 for left, right in zip(_ink_x(body), _ink_x(trimmed), strict=True))
+
+
+def test_a_preserved_space_that_ends_a_text_stays() -> None:
+    body = '<text x="150" y="40" text-anchor="end" xml:space="preserve"><tspan>A </tspan></text>'
+    assert _ink_x(body) != _ink_x(body.replace("A ", "A"))
