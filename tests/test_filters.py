@@ -14,7 +14,7 @@ import pypdfium2.raw as pdfium_c
 import pytest
 import weasyprint
 from helpers import RecordingStream, content, page_html, pixel, rasterize, render, svg
-from PIL import ImageStat
+from PIL import ImageChops, ImageStat
 from weasyprint import svg as wp_svg
 
 from weasysvg import filters, shapeblur, turbulence
@@ -1075,6 +1075,34 @@ def test_a_thin_shape_is_blurred_from_all_of_its_edges(shape: str, expected: flo
     # Deviation 4. The levels grew and shrank a shape by its nearest edge: one thinner than a few
     # deviations came out dark and sharp, as the lens ring of the OpenStreetMap logo
     assert darkness(blurred_shape(shape), 100, 100) == pytest.approx(expected, abs=0.02)
+
+
+def _round(cx: float, cy: float, r: float, turn: int = 1) -> list[tuple[float, float]]:
+    """A polygon of 256 corners around a circle, counterclockwise on screen for turn -1."""
+    return [(cx + r * math.cos(turn * k * math.pi / 128), cy + r * math.sin(turn * k * math.pi / 128)) for k in range(256)]
+
+
+@pytest.mark.parametrize("even_odd", [False, True])
+def test_a_hole_takes_the_samples_its_center_holds(even_odd: bool) -> None:
+    # Each sample counts where its center lies inside. The hole grew by a sample on all of its sides: the
+    # lens ring of the OpenStreetMap logo came out a 24th of the deviation thinner, its shadow lighter
+    outer, inner = _round(50.3, 49.6, 40), _round(50.3, 49.6, 20, 1 if even_odd else -1)
+    signs = [1, 1] if even_odd else [1, -1]
+    ring = shapeblur.samples([outer, inner], signs, even_odd, (100, 100))
+    expected = ImageChops.subtract(shapeblur.samples([outer], [1], even_odd, (100, 100)), shapeblur.samples([inner], [1], even_odd, (100, 100)))
+    assert ImageChops.difference(ring, expected).getbbox() is None
+
+
+@pytest.mark.parametrize("transform", ["", ' transform="matrix(1 .06864 0 .8487 0 26.913)"'])
+def test_a_blurred_ring_keeps_its_darkness_under_a_transform(transform: str) -> None:
+    # The shadow of the OpenStreetMap lens: a ring by winding, skewed and squeezed, opacity .7, deviation
+    # 6.311. The blur is in user units: the center of the ring keeps exp(-a^2 / 2 s^2) - exp(-b^2 / 2 s^2)
+    # of the color, 0.259 (Chromium 0.267). The grown hole left 0.235
+    ring = '<path d="M92 100a8 8 0 1 0 16 0a8 8 0 1 0-16 0zM96 100a4 4 0 1 1 8 0a4 4 0 1 1-8 0z" fill="black" opacity=".7"'
+    center = (100, 118.647) if transform else (100, 100)
+    variance = 2 * 6.311**2
+    exact = 0.7 * (math.exp(-16 / variance) - math.exp(-64 / variance))
+    assert darkness(blurred_shape(f"{ring}{transform}/>", "6.311"), *center) == pytest.approx(exact, abs=0.012)
 
 
 def test_the_blur_of_a_small_drop_has_no_hole() -> None:
