@@ -140,5 +140,5 @@ def install() -> None:
 
 def set_language(language: str) -> None:
     """The language of the reader for a document or image without a lang."""
-    global DEFAULT_LANGUAGE  # noqa: PLW0603  one setting for the process, as install() sets it
+    global DEFAULT_LANGUAGE
     DEFAULT_LANGUAGE = language
