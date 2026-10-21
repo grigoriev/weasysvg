@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+from pathlib import Path
+from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
@@ -115,10 +117,10 @@ def test_without_foreign_object_the_fallback_wins(monkeypatch: pytest.MonkeyPatc
 GREETING = svg('<switch><text x="10" y="40" systemLanguage="de">Hallo</text><text x="10" y="40" systemLanguage="ru">Privet</text><text x="10" y="40" systemLanguage="en">Hello</text></switch>')
 
 
-def page(body: str, lang: str = "") -> bytes:
+def page(body: str, lang: str = "", **options: Any) -> bytes:
     attribute = f' lang="{lang}"' if lang else ""
     html = f"<!DOCTYPE html><html{attribute}><head><style>@page{{size:400px 600px;margin:0}} body{{margin:0}} img{{display:block}}</style></head><body>{body}</body></html>"
-    pdf: bytes = weasyprint.HTML(string=html).write_pdf()
+    pdf: bytes = weasyprint.HTML(string=html).write_pdf(**options)
     return pdf
 
 
@@ -169,3 +171,26 @@ def test_install_sets_the_language_without_one_in_the_document(monkeypatch: pyte
     assert text_of(page(image(GREETING))).strip() == "Privet"
     # The document wins
     assert text_of(page(image(GREETING), lang="de")).strip() == "Hallo"
+
+
+def test_one_image_in_two_languages_in_a_cache_on_disk(tmp_path: Path) -> None:
+    text = text_of(page(image(GREETING, "ru") + image(GREETING, "de"), cache=tmp_path)).split()
+    assert text == ["Privet", "Hallo"]
+
+
+def test_a_shared_cache_follows_the_language_of_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A cache kept across documents: an image built under one language is not reused under another
+    monkeypatch.setattr(conditional, "DEFAULT_LANGUAGE", conditional.DEFAULT_LANGUAGE)
+    cache: dict[Any, Any] = {}
+    weasysvg.install(language="ru")
+    assert text_of(page(image(GREETING), cache=cache)).strip() == "Privet"
+    weasysvg.install(language="de")
+    assert text_of(page(image(GREETING), cache=cache)).strip() == "Hallo"
+
+
+def test_a_background_reads_the_language_of_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(conditional, "DEFAULT_LANGUAGE", conditional.DEFAULT_LANGUAGE)
+    data = base64.b64encode(GREETING.encode()).decode()
+    body = f'<div lang="de" style="width:200px;height:100px;background:url(data:image/svg+xml;base64,{data}) no-repeat"></div>'
+    weasysvg.install(language="ru")
+    assert text_of(page(body)).strip() == "Privet"

@@ -15,7 +15,11 @@
   },
   "weasyprint.images:get_image_from_uri": {
    "fingerprint": "92a9810c10716ca3",
-   "used_by": "conditional.handle_element: the cache keyword, keyed by URL"
+   "used_by": "conditional.get_image_from_uri: a cache read by key alone, keyed by URL"
+  },
+  "weasyprint.document:Document._build_layout_context": {
+   "fingerprint": "0e5aa8b24512a1c7",
+   "used_by": "conditional.install: the partial of original_get_image_from_uri"
   },
   "weasyprint.svg:SVG.__init__": {
    "fingerprint": "1c2ceb4060c97583",

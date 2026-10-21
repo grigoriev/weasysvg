@@ -1,7 +1,8 @@
 """Conditional processing: <switch>, requiredExtensions, systemLanguage.
 
-Touches: a tree pass in ``images.SVGImage.__init__``, and ``html.handle_element``, which notes the
-language of the element an image belongs to. WeasyPrint draws every child of a <switch> and ignores
+Touches: a tree pass in ``images.SVGImage.__init__``; ``html.handle_element``, which notes the
+language of the element an image belongs to; and ``document.original_get_image_from_uri``, which keys
+the cache of images by that language. WeasyPrint draws every child of a <switch> and ignores
 the conditional attributes, so draw.io drew both its foreignObject and its fallback text.
 
 systemLanguage reads the language of the document, its ``lang`` where the image sits, as a browser reads
@@ -10,12 +11,12 @@ the language of its reader. Without one it reads DEFAULT_LANGUAGE, which ``insta
 
 from __future__ import annotations
 
-import functools
 from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any
 from xml.etree import ElementTree as ET
 
+from weasyprint import document as wp_document
 from weasyprint import html as wp_html
 
 from . import _core
@@ -29,15 +30,20 @@ DEFAULT_LANGUAGE = "en"
 # The lang of the element whose image is being built, None outside one or without a lang
 LANGUAGE: ContextVar[str | None] = ContextVar("weasysvg_language", default=None)
 _ORIGINAL_HANDLE_ELEMENT = wp_html.handle_element
+_ORIGINAL_GET_IMAGE_FROM_URI = wp_document.original_get_image_from_uri
 
 
 def local_name(tag: object) -> str | None:
     return tag.split("}", 1)[-1] if isinstance(tag, str) else None
 
 
+def reader_language() -> str:
+    return (LANGUAGE.get() or DEFAULT_LANGUAGE).strip().lower()
+
+
 def reader_languages() -> list[str]:
     """The languages of the reader, as the Accept-Language list a browser sends: "de-CH" sends "de-CH,de"."""
-    language = (LANGUAGE.get() or DEFAULT_LANGUAGE).strip().lower()
+    language = reader_language()
     return list(dict.fromkeys((language, language.split("-", 1)[0])))
 
 
@@ -93,24 +99,43 @@ def apply_conditionals(root: ET.Element) -> None:
 
 
 def handle_element(element: Any, box: Any, get_image_from_uri: Callable[..., Any], base_url: str | None) -> Any:
-    """handle_element of WeasyPrint, the image of the element built in the language of the element.
-
-    The images of a document are cached by URL: an image in another language gets a cache of its own.
-    """
-    language = box.style["lang"]
-    if language and isinstance(get_image_from_uri, functools.partial) and isinstance(get_image_from_uri.keywords.get("cache"), dict):
-        cache = get_image_from_uri.keywords["cache"].setdefault(("weasysvg language", language.lower()), {})
-        get_image_from_uri = functools.partial(get_image_from_uri, cache=cache)
-    token = LANGUAGE.set(language)
+    """handle_element of WeasyPrint, the image of the element built in the language of the element."""
+    token = LANGUAGE.set(box.style["lang"])
     try:
         return _ORIGINAL_HANDLE_ELEMENT(element, box, get_image_from_uri, base_url)
     finally:
         LANGUAGE.reset(token)
 
 
+class _ByLanguage:
+    """The cache of images, each key in the language of the reader: an SVG differs from one language to another.
+
+    WeasyPrint reads and writes the cache by key alone, a dict or a DiskCache, which takes string keys.
+    """
+
+    def __init__(self, cache: Any, language: str) -> None:
+        self._cache, self._suffix = cache, f" weasysvg-language:{language}"
+
+    def __contains__(self, key: str) -> bool:
+        return key + self._suffix in self._cache
+
+    def __getitem__(self, key: str) -> Any:
+        return self._cache[key + self._suffix]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self._cache[key + self._suffix] = value
+
+
+def get_image_from_uri(cache: Any, *args: Any, **kwargs: Any) -> Any:
+    """get_image_from_uri of WeasyPrint, its cache kept apart for each language of the reader."""
+    return _ORIGINAL_GET_IMAGE_FROM_URI(_ByLanguage(cache, reader_language()), *args, **kwargs)
+
+
 def install() -> None:
     _core.add_tree_pass(10, "conditional", apply_conditionals)
     wp_html.handle_element = handle_element
+    # document.py builds its partial from this name on each rendering
+    wp_document.original_get_image_from_uri = get_image_from_uri
 
 
 def set_language(language: str) -> None:
