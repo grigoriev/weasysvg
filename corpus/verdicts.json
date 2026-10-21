@@ -597,8 +597,8 @@
   "name": "resvg__filters-filter--on-the-root-svg",
   "reference": "both",
   "reference_why": "",
-  "verdict": "close",
-  "what": "The blurred square has mitered corners, not round ones: a blur of anything but a plain rect is drawn in levels.",
+  "verdict": "same",
+  "what": "Matches: the square and the frame blur with round corners.",
   "native_verdict": "differs",
   "native_what": "Not blurred."
  },
@@ -964,19 +964,19 @@
  },
  {
   "name": "resvg__text-text-decoration--line-through",
-  "reference": "chromium",
-  "reference_why": "resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium.",
+  "reference": "resvg",
+  "reference_why": "Chromium draws the line a tenth of the font size thick; resvg and the resvg suite take its thickness and place from the font, as WeasyPrint does for HTML text. text-decoration-thickness auto allows both; weasysvg follows the font.",
   "verdict": "same",
-  "what": "Matches, the line-through included.",
+  "what": "Matches resvg, the line-through included.",
   "native_verdict": "differs",
   "native_what": "No line-through."
  },
  {
   "name": "resvg__text-text-decoration--style-resolving-3",
-  "reference": "chromium",
-  "reference_why": "resvg and the resvg suite take the thickness and place of the line from the font, Chromium a tenth of the font size: text-decoration-thickness auto allows both. weasysvg follows Chromium.",
+  "reference": "resvg",
+  "reference_why": "Chromium draws the line a tenth of the font size thick; resvg and the resvg suite take its thickness and place from the font, as WeasyPrint does for HTML text. text-decoration-thickness auto allows both; weasysvg follows the font.",
   "verdict": "same",
-  "what": "Matches, the line-through included.",
+  "what": "Matches resvg: a yellow line-through with a green stroke.",
   "native_verdict": "differs",
   "native_what": "No line-through."
  },
@@ -991,10 +991,10 @@
  },
  {
   "name": "resvg__text-textPath--with-underline",
-  "reference": "chromium",
-  "reference_why": "resvg and the resvg suite draw a thinner underline, from the font, through the descenders; Chromium a tenth of the font size, skipping the ink.",
+  "reference": "resvg",
+  "reference_why": "Chromium draws a thicker underline that skips the ink of the descenders; resvg and the resvg suite take it from the font and run it through them, as WeasyPrint does for HTML text.",
   "verdict": "same",
-  "what": "Matches: the underline breaks around the descenders, as in Chromium.",
+  "what": "Matches resvg: the underline runs through the descenders.",
   "native_verdict": "differs",
   "native_what": "No text on the path."
  },
