@@ -7,12 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `paint-order` on shapes, markers, text and text decoration lines, as Chromium paints it: the stroke of
+  the boxes in the OSI model from Wikimedia (`paint-order: stroke`) shows its outer half only. The
+  `paint_order` argument of `install()` turns it off.
+
 ### Fixed
 
+- A translucent stroke over a fill shows the fill under it, as in Chromium. WeasyPrint filled and stroked
+  in one operator, a knockout object in PDF, so the stroke showed the white behind the shape.
+- Text laid out one character at a time draws its decoration lines character by character, as Chromium,
+  Safari and Firefox do: each character carries them over its advance and its letter-spacing, and the room
+  `textLength`, `x` and `dx` add between characters stays bare. Text with several `y` or `dy` values gets its
+  lines too, under each character on its own baseline. On a `textPath` the last character carries its
+  letter-spacing as well.
 - An arc of a zero radius in path data draws the straight line SVG asks for: WeasyPrint sent it off by the
   current point, which broke every slice of a Highcharts pie.
 - The text after a child of a `<tspan>` is drawn: WeasyPrint dropped it, so `Don<wbr/>e` in a Polarion chart
   label read "Don".
+- Text in a `<foreignObject>` sits on the line where Chromium and Safari put it: Blink rounds the font
+  metrics to whole px and paints the baseline on a whole px. Mermaid labels sat up to 1 px lower.
+- The noise of `feTurbulence` is computed at 2 px per CSS px: at 1 it came out blurred once printed or
+  viewed at 2x.
+- A blurred rect leaves no seam where its blurred edges meet its middle.
+- The space that ends a text moves no anchor: `text-anchor="end"` put the text a space too far left.
+- A wide arc in path data is drawn as curves of at most 90 degrees: WeasyPrint drew a half circle as one
+  curve, which bulged the band of the flag of Brazil.
+- `text-anchor` places each text chunk of SVG 2 as one: a chunk starts only at a character with an absolute
+  `x` or `y`, and the text after a positioned `<tspan>` belongs to it. WeasyPrint anchored that text with the
+  `<text>`, so the second line of a label in a Wikimedia OSI model diagram sat off its center.
+- A blurred filled shape other than a plain rect fades as in Chromium: its coverage is blurred and drawn
+  as a mesh of shaded triangles. The levels of the nearest edge left rings in the tail, made a shape
+  thinner than a few deviations dark and sharp (the lens ring of the OpenStreetMap logo, the chest of
+  Tux) and left white glints where the grown paint had holes (the Inkscape logo).
+- The blurred edge of a plain rect follows the Gaussian to about one level of 255, its tail included:
+  one shading over 8 deviations showed bands in PDFium, and the paint stopped at 2.15 deviations.
 
 ## [0.1.0] - 2026-10-21
 

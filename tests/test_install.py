@@ -15,9 +15,9 @@ from weasyprint import svg as wp_svg
 from weasyprint.matrix import Matrix
 
 import weasysvg
-from weasysvg import _core
+from weasysvg import _core, paint_order
 
-ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object", "markers"}
+ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object", "markers", "paint_order"}
 
 
 def test_install_returns_every_feature() -> None:
@@ -38,7 +38,8 @@ def test_hooks_are_in_place() -> None:
     assert wp_svg.SVG.draw_node is _core._draw_node
     assert wp_images.SVGImage.__init__ is _core._svgimage_init
     assert _core.original_draw_node() is _core._ORIGINAL_DRAW_NODE
-    assert [name for _, name, _ in _core._TREE_PASSES] == ["conditional", "nested_text", "invalid_rotate", "nested_tails", "empty_presentation", "zero_radius_arcs", "foreign_object"]
+    assert [name for _, name, _ in _core._TREE_PASSES] == ["conditional", "nested_text", "invalid_rotate", "nested_tails", "trailing_space", "empty_presentation", "arcs", "paint_order", "foreign_object"]
+    assert wp_svg.SVG.fill_stroke is paint_order.fill_stroke
 
 
 def test_tree_pass_and_wrapper_are_added_once() -> None:

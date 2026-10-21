@@ -305,10 +305,15 @@ def test_decoration_lines_follow_the_scale_of_the_svg(decoration: str) -> None:
     assert scaled == [pytest.approx(value / 10, abs=1e-3) for value in plain]
 
 
+def line_rects(pdf: bytes) -> list[tuple[float, float, float, float]]:
+    """The left end, top, right end and height of each thin rectangle: the pieces of the decoration lines."""
+    found = re.findall(r"([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) re", content(pdf))
+    return sorted((float(x), float(y), float(x) + float(width), float(height)) for x, y, width, height in found if 0 < float(height) < 10)
+
+
 def line_pieces(pdf: bytes) -> list[tuple[float, float]]:
     """The left and right end of each thin rectangle: the pieces of the decoration lines."""
-    found = re.findall(r"([-\d.]+) [-\d.]+ ([-\d.]+) ([-\d.]+) re", content(pdf))
-    return sorted((float(x), float(x) + float(width)) for x, width, height in found if 0 < float(height) < 10)
+    return [(left, right) for left, _, right, _ in line_rects(pdf)]
 
 
 @pytest.mark.parametrize(("decoration", "pieces"), [("underline", 2), ("overline", 1), ("line-through", 1)])
@@ -327,12 +332,23 @@ def test_a_line_all_under_ink_paints_no_empty_path(body: str) -> None:
     assert all(line.endswith((" re", " l", " c", " m", "h")) for line in painted)
 
 
-@pytest.mark.parametrize("attributes", ['x="10" textLength="140"', 'x="10 35 60 85"', 'x="10" textLength="60" lengthAdjust="spacingAndGlyphs"'])
+@pytest.mark.parametrize("attributes", ['x="10" textLength="60" lengthAdjust="spacingAndGlyphs"', 'x="10" rotate="0 0 0 0.1"'])
 def test_text_laid_out_by_character_skips_ink_too(attributes: str) -> None:
-    # WeasyPrint lays out such text one character at a time: its glyphs still cut the underline, in two
-    # places when the letters are spread far enough apart
-    pdf = render(svg(f'<text y="60" font-size="40" text-decoration="underline" {attributes}>agya</text>', height=100))
-    assert len(line_pieces(pdf)) in (2, 3)
+    # WeasyPrint lays out such text one character at a time: its glyphs still cut the underline. Squeezed
+    # or turned, the pieces of the characters meet, and the descenders of g and y cut one gap
+    pdf = render(svg(f'<text y="60" font-size="40" font-family="DejaVu Sans" text-decoration="underline" {attributes}>agya</text>', height=100))
+    assert len(line_pieces(pdf)) == 2
+
+
+def test_spread_characters_skip_their_own_ink() -> None:
+    # Each character carries its own piece, which its own descender cuts, as in Chromium: the pieces of the
+    # a stay whole, nothing runs between the characters
+    pdf = render(svg('<text y="60" font-size="40" font-family="DejaVu Sans" text-decoration="underline" x="10 50 90 130">agya</text>', height=100))
+    pieces = line_pieces(pdf)
+    assert pieces[0] == pytest.approx((10, 34.51), abs=0.01)
+    assert pieces[-1] == pytest.approx((130, 154.51), abs=0.01)
+    assert len(pieces) > 3
+    assert all(any(start <= left < right <= start + 30 for start in (10, 50, 90, 130)) for left, right in pieces)
 
 
 def test_text_of_a_pattern_fill_cuts_no_underline() -> None:
@@ -341,7 +357,9 @@ def test_text_of_a_pattern_fill_cuts_no_underline() -> None:
     pattern = '<pattern id="p" width="200" height="100" patternUnits="userSpaceOnUse"><text x="70" y="30" font-size="30">g</text></pattern>'
     plain = render(svg('<text x="10" y="60" font-size="40" textLength="140" text-decoration="underline">aaaa</text>', height=100))
     filled = render(svg(f'<defs>{pattern}</defs><text x="10" y="60" font-size="40" textLength="140" text-decoration="underline" fill="url(#p)">aaaa</text>', height=100))
-    assert len(line_pieces(filled)) == len(line_pieces(plain)) == 1
+    # One whole piece under each a
+    assert line_pieces(filled) == line_pieces(plain)
+    assert len(line_pieces(plain)) == 4
 
 
 def test_rotated_characters_skip_no_ink() -> None:
@@ -415,9 +433,70 @@ def test_a_character_no_font_has_cuts_nothing() -> None:
     assert len(line_pieces(pdf)) == 1
 
 
-def test_decoration_skips_positioned_glyphs_and_blank_runs() -> None:
-    pdf = render(svg('<text x="10" y="50 60" text-decoration="underline">AB</text><text x="10" y="80" dy="1 2" text-decoration="underline">CD</text><text x="10" y="90" text-decoration="underline"> </text>'))
+def test_decoration_skips_blank_runs() -> None:
+    pdf = render(svg('<text x="10" y="90" text-decoration="underline"> </text>'))
     assert rectangles(pdf) == 0
+
+
+# Measured in Chromium, which Safari and Firefox match: text laid out one character at a time draws its
+# decoration lines character by character. Each character carries them over its own advance and the
+# letter-spacing after it; the room textLength, x, and dx add between characters stays bare. DejaVu Sans at
+# 20 px: n and u advance by 12.69, a space by 6.36.
+NUN = 'font-family="DejaVu Sans" font-size="20"'
+ADVANCE = 12.69
+
+
+@pytest.mark.parametrize("decoration", ["underline", "overline", "line-through"])
+def test_text_length_spacing_leaves_the_added_room_bare(decoration: str) -> None:
+    pdf = render(svg(f'<text x="10" y="50" {NUN} textLength="180" text-decoration="{decoration}">nun</text>'))
+    pieces = line_pieces(pdf)
+    assert len(pieces) == 3
+    # Chromium: 10 to 22.69, 93.66 to 106.34, 177.31 to 190
+    assert [round(value, 1) for piece in pieces for value in piece] == [10.0, 22.7, 93.7, 106.3, 177.3, 190.0]
+
+
+def test_text_length_spacing_gives_a_space_its_own_piece() -> None:
+    pdf = render(svg(f'<text x="10" y="50" {NUN} textLength="180" text-decoration="underline">n n</text>'))
+    widths = [round(right - left, 1) for left, right in line_pieces(pdf)]
+    assert widths == [round(ADVANCE, 1), 6.4, round(ADVANCE, 1)]
+
+
+@pytest.mark.parametrize(("attributes", "starts"), [('x="10 60 110"', [10, 60, 110]), ('x="10" dx="0 30 30"', [10, 52.69, 95.38]), ('x="10 60"', [10, 60])])
+def test_positioned_characters_leave_the_room_between_them_bare(attributes: str, starts: list[float]) -> None:
+    pdf = render(svg(f'<text y="50" {NUN} {attributes} text-decoration="underline">nun</text>'))
+    pieces = line_pieces(pdf)
+    assert [round(left, 1) for left, _ in pieces] == [round(start, 1) for start in starts]
+    # The u and n after x="60" share one chunk: their pieces meet and merge
+    assert round(pieces[-1][1] - pieces[-1][0], 1) == round(ADVANCE * (4 - len(starts)), 1)
+
+
+def test_positioned_characters_carry_the_line_under_their_letter_spacing() -> None:
+    pdf = render(svg(f'<text x="10 60 110" y="50" {NUN} letter-spacing="10" text-decoration="underline">nun</text>'))
+    # Chromium: 10 to 32.69, 60 to 82.69, 110 to 132.69
+    assert [round(right - left, 1) for left, right in line_pieces(pdf)] == [round(ADVANCE + 10, 1)] * 3
+
+
+@pytest.mark.parametrize("spacing", ["0", "4"])
+def test_spacing_and_glyphs_draws_one_line(spacing: str) -> None:
+    # The glyphs stretch to fill textLength: no room is left between them, and the line ends where textLength does
+    pdf = render(svg(f'<text x="10" y="50" {NUN} textLength="180" lengthAdjust="spacingAndGlyphs" letter-spacing="{spacing}" text-decoration="underline">nun</text>'))
+    ((left, right),) = line_pieces(pdf)
+    assert (left, right) == pytest.approx((10, 190))
+
+
+def test_turned_characters_draw_one_line() -> None:
+    # rotate lays the text out one character at a time, but adds no room: the pieces meet
+    pdf = render(svg(f'<text x="10" y="50" {NUN} rotate="0 10 0" text-decoration="underline">nun</text>'))
+    ((left, right),) = line_pieces(pdf)
+    assert (left, right) == pytest.approx((10, 10 + 3 * ADVANCE), abs=0.05)
+
+
+@pytest.mark.parametrize("attributes", ['y="50" dy="0 5 5"', 'y="50 55 60"'])
+def test_each_character_draws_its_line_on_its_own_baseline(attributes: str) -> None:
+    pdf = render(svg(f'<text x="10" {attributes} {NUN} text-decoration="underline">nun</text>'))
+    rects = line_rects(pdf)
+    # Chromium: each piece 1 px below the baseline of its character, 2 px thick
+    assert [(round(left, 1), round(top, 1)) for left, top, _, _ in rects] == [(10.0, 51.0), (round(10 + ADVANCE, 1), 56.0), (round(10 + 2 * ADVANCE, 1), 61.0)]
 
 
 def test_font_weight_values() -> None:
@@ -570,6 +649,13 @@ def test_text_path_decorations(decoration: str) -> None:
     pdf = render(svg(body))
     # One rectangle per character, the space included, each a closed path of four corners
     assert len(re.findall(r" l\n[-\d. ]+ l\n[-\d. ]+ l\nh", content(pdf))) == 3
+
+
+def test_the_last_character_on_a_path_carries_its_letter_spacing() -> None:
+    # Chromium: each n and u carries the line over its advance and the letter-spacing after it, the last too
+    body = f'<text {NUN} letter-spacing="10" text-decoration="underline"><textPath path="M 10 50 H 190">nun</textPath></text>'
+    corners = re.findall(r"([-\d.]+) [-\d.]+ m\n([-\d.]+) [-\d.]+ l\n", content(render(svg(body))))
+    assert [round(float(right) - float(left), 1) for left, right in corners] == [round(ADVANCE + 10, 1)] * 3
 
 
 def test_anchor_restyle_skips_plain_text() -> None:
@@ -743,10 +829,10 @@ class TextNode(list[Any]):
 @pytest.mark.parametrize("extra", ["", '<tspan x="150" font-size="10pt" dy="16">and more</tspan>'])
 def test_the_space_after_a_chunk_belongs_to_that_chunk(extra: str) -> None:
     # The white space between the tspans of a chunk, after it, must not widen the chunk before it: the
-    # title is anchored alike with one line under it or two
+    # title, drawn first, is anchored alike with one line under it or two
     def title_shift(lines: tuple[str, ...]) -> str:
         body = '<text y="40" x="150" text-anchor="middle">\n  ' + "\n  ".join(lines) + "\n</text>"
-        return str(re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))[-1])
+        return str(re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))[0])
 
     two = ("<tspan>Transport</tspan>", '<tspan x="150" font-size="10pt" dy="16">End-to-End</tspan>')
     assert title_shift((*two, extra) if extra else two) == title_shift(two[:1] + ('<tspan x="150" font-size="10pt" dy="16">End</tspan>',))
@@ -799,6 +885,86 @@ def test_the_box_of_a_text_lies_where_its_anchor_puts_it(anchor: str, direction:
     node = TextNode("text", (50, 20, 20, 25), attrib={"text-anchor": anchor, "direction": direction})
     text.chunk_boxes(None, node)
     assert node.text_bounding_box == (x, 20, 20, 25)
+
+
+INK_SCALE = 4  # px per CSS px
+
+
+def ink_lines(pdf: bytes) -> list[list[tuple[float, float]]]:
+    """The ink of each line of text, top down, as runs along x in CSS px: a gap wider than 12 px splits a run."""
+    image = rasterize(pdf, INK_SCALE / 0.75).convert("L")
+    pixels = image.tobytes()
+    width, height = image.size
+    dark = [[pixels[y * width + x] < 200 for x in range(width)] for y in range(height)]
+    lines, y = [], 0
+    while y < height:
+        if not any(dark[y]):
+            y += 1
+            continue
+        top = y
+        while y < height and any(dark[y]):
+            y += 1
+        columns = [x for x in range(width) if any(dark[row][x] for row in range(top, y))]
+        runs = [[columns[0], columns[0]]]
+        for x in columns[1:]:
+            if x - runs[-1][1] > 12 * INK_SCALE:
+                runs.append([x, x])
+            runs[-1][1] = x
+        lines.append([(start / INK_SCALE, (end + 1) / INK_SCALE) for start, end in runs])
+    return lines
+
+
+DEJAVU = 'font-family="DejaVu Sans" font-size="20"'
+
+
+def test_an_effect_measures_a_chunked_text_where_it_is_drawn() -> None:
+    # The clip in objectBoundingBox units spans the box of the text: measured before it draws, the box
+    # must lie where the chunks are drawn, or the clip cuts the text
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="1" height="1"/></clipPath>'
+    body = f'{clip}<text clip-path="url(#c)" x="10" y="50" text-anchor="middle" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>'
+    [[(start, end)]] = ink_lines(render(svg(body, width=300, height=150)))
+    assert start == pytest.approx(108.5, abs=1)
+    assert end == pytest.approx(190.25, abs=1)
+
+
+# The ink Chromium draws, read from its PDF at 4x: a text chunk runs from a character with an absolute x or y
+# to the next one, across elements, and text-anchor places each chunk as one
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        # The text after a positioned tspan, in the <text> or in a tspan without x, continues its chunk
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(108.5, 190.25)]]),
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}><tspan x="150">AAA</tspan><tspan>BBB</tspan></text>', [[(108.5, 190.25)]]),
+        (f'<text x="10" y="50" text-anchor="end" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(66.75, 148.75)]]),
+        (f'<text x="10" y="50" direction="rtl" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(66.75, 148.75)]]),
+        # "CC" alone at 10, off the left edge, "AAABBB" at 150, "DD E" at 150 on the second line
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}>CC<tspan x="150">AAA</tspan>BBB<tspan x="150" dy="30">DD</tspan> E</text>', [[(0, 23), (108.5, 190.25)], [(127, 173.75)]]),
+        # The chunk out of a nested tspan, and a chunk that starts inside one
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}><tspan><tspan x="150">AAA</tspan>BB</tspan>CC</text>', [[(101.5, 197.5)]]),
+        (f'<text x="10" y="50" text-anchor="middle" {DEJAVU}>XX<tspan>AA<tspan x="150">BB</tspan>CC</tspan>DD</text>', [[(0, 37.5), (109, 191.75)]]),
+        # The anchor of a chunk is the anchor of the element of its first character
+        (f'<text x="150" y="50" {DEJAVU}><tspan text-anchor="middle">AAA</tspan>BBB</text>', [[(108.5, 190.25)]]),
+        (f'<text x="10" y="50" {DEJAVU}>CC<tspan x="150" text-anchor="middle">AAA</tspan>BBB</text>', [[(11, 37), (108.5, 190.25)]]),
+        (f'<text x="150" y="50" text-anchor="middle" {DEJAVU}>AAA<tspan text-anchor="end">BBB</tspan></text>', [[(108.5, 190.25)]]),
+        # The letter-spacing after the last character of a chunk widens it
+        (f'<text x="150" y="50" text-anchor="middle" letter-spacing="3" {DEJAVU}><tspan x="150">AAA</tspan>BBB</text>', [[(99.5, 196.25)]]),
+        # Each value of a list of x starts a chunk of its own
+        (f'<text x="100 200" y="50" text-anchor="middle" {DEJAVU}>AB<tspan>CC</tspan></text>', [[(93.25, 106.75), (181.25, 219.75)]]),
+        # The collapsed space between two lines belongs to the first: it widens that line, the last line has none
+        (
+            f'<text x="150" y="40" text-anchor="middle" {DEJAVU}>\n <tspan>Top</tspan>\n <tspan x="150" font-size="14" dy="25">Second line</tspan>\n <tspan x="150" font-size="14" dy="25">Third</tspan>\n </text>',
+            [[(129.75, 162.75)], [(107, 186.75)], [(132, 166.75)]],
+        ),
+    ],
+)
+def test_text_anchor_places_each_text_chunk_as_chromium(body: str, expected: list[list[tuple[float, float]]]) -> None:
+    found = ink_lines(render(svg(body, width=300, height=150)))
+    assert len(found) == len(expected)
+    for line, runs in zip(found, expected, strict=True):
+        assert len(line) == len(runs), found
+        for (start, end), (want_start, want_end) in zip(line, runs, strict=True):
+            assert start == pytest.approx(want_start, abs=1), found
+            assert end == pytest.approx(want_end, abs=1), found
 
 
 # ---------------- leading shifts ----------------
@@ -1096,3 +1262,41 @@ def test_the_tspan_of_a_tail_matches_no_stylesheet_rule() -> None:
     sizes = font_sizes(pdf)
     assert len(sizes) == 3
     assert sizes.count(max(sizes)) == 1
+
+
+def _ink_x(body: str) -> tuple[int, int]:
+    """Left and right of the ink of the text, at 4 device pixels per pt."""
+    box = rasterize(render(svg(body, width=300)), 4).convert("L").point(lambda value: 255 if value < 128 else 0).getbbox()
+    assert box is not None
+    return box[0], box[2]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # The space that ends the content of a <text> is dropped (xml:space default): it moves no anchor
+        '<text x="150" y="40" text-anchor="middle"><tspan x="150">Rational thoughts </tspan></text>',
+        '<text x="150" y="40" text-anchor="end"><tspan>Rational <tspan>thoughts </tspan></tspan>  </text>',
+        '<text x="150" y="40" text-anchor="middle">Rational thoughts <tspan> </tspan></text>',
+    ],
+)
+def test_the_space_that_ends_a_text_moves_no_anchor(body: str) -> None:
+    trimmed = body.replace("thoughts ", "thoughts").replace("<tspan> </tspan>", "").replace("</tspan>  </text>", "</tspan></text>")
+    # A space is 7 device pixels here, half of it 3: an empty <tspan> left behind may round one pixel apart
+    assert all(abs(left - right) <= 1 for left, right in zip(_ink_x(body), _ink_x(trimmed), strict=True))
+
+
+def test_a_preserved_space_that_ends_a_text_stays() -> None:
+    body = '<text x="150" y="40" text-anchor="end" xml:space="preserve"><tspan>A </tspan></text>'
+    assert _ink_x(body) != _ink_x(body.replace("A ", "A"))
+
+
+def test_the_text_of_a_pattern_stays_out_of_the_chunks_it_paints() -> None:
+    # A pattern draws its own content while the node sets its fill: its text must not count as a piece of
+    # the chunk, or the chunk is anchored by the wrong width
+    def shifts(fill: str) -> list[str]:
+        pattern = '<pattern id="p" width="40" height="40" patternUnits="userSpaceOnUse"><text y="20" font-size="20">pattern text</text></pattern>'
+        body = f'<defs>{pattern}</defs><text y="40" x="150" text-anchor="middle" fill="{fill}"><tspan x="150">one</tspan> two<tspan x="150" dy="20">three</tspan></text>'
+        return re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))
+
+    assert shifts("url(#p)") == shifts("black")

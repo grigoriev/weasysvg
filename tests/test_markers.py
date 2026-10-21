@@ -191,16 +191,44 @@ def test_marker_on_a_polyline_and_without_markers() -> None:
     ],
 )
 def test_arcs_of_no_radius_become_lines(data: str, expected: str) -> None:
-    assert pathdata.without_zero_radius_arcs(data) == expected
+    assert pathdata.rewritten_arcs(data) == expected
 
 
-@pytest.mark.parametrize("data", ["M0 0 A 5 5 0 0 1 10 0", "M0 0 L10 10", "", "A 0 0 0 0 1 5 5"])
+@pytest.mark.parametrize("data", ["M0 0 A 10 10 0 0 1 10 0", "M0 0 L10 10", "", "A 0 0 0 0 1 5 5"])
 def test_path_data_without_arcs_of_no_radius_stays(data: str) -> None:
-    assert pathdata.without_zero_radius_arcs(data) is None
+    assert pathdata.rewritten_arcs(data) is None
 
 
 @pytest.mark.parametrize("data", ["M0 0 A1e-200 1 0 0 1 10 10", "M0 0 A1e-200 1 0 0 1 10 10 A0 0 0 0 1 5 5"])
 def test_a_radius_whose_square_underflows_is_read(data: str) -> None:
     # rx * rx is 0 for such a radius: the arc is the line it degenerates to, not a division by zero
     assert [segment.kind for segment in pathdata.parse(data)][-1] == "line"
-    pathdata.without_zero_radius_arcs(data)
+    pathdata.rewritten_arcs(data)
+
+
+def test_a_wide_arc_becomes_curves_of_90_degrees() -> None:
+    # Half a circle of radius 10 from (0, 0) to (20, 0): two quarters
+    data = pathdata.rewritten_arcs("M0 0 A 10 10 0 0 1 20 0")
+    assert data is not None
+    assert data.count("C") == 2
+    assert data.endswith(" 20 0")
+    # A narrow arc stays as it is, and a smooth curve after a wide one reflects no control point of it
+    assert pathdata.rewritten_arcs("M0 0 A 10 10 0 0 1 5 0") is None
+    smooth = pathdata.rewritten_arcs("M0 0 A 10 10 0 0 1 20 0 S 30 10 40 0")
+    assert smooth is not None
+    assert " L20 0 S30 10 40 0" in smooth
+
+
+def test_the_markers_of_a_rewritten_arc_see_the_arc() -> None:
+    # A mid marker sits on the vertices of the path as written, not on the joints of its curves
+    marker = '<marker id="m" markerWidth="4" markerHeight="4" refX="2" refY="2"><circle cx="2" cy="2" r="2" fill="red"/></marker>'
+    pdf = render(svg(marker + '<path d="M 20 50 A 40 40 0 0 1 100 50 L 140 50" fill="none" stroke="black" marker-mid="url(#m)"/>', height=100))
+    assert pixel(pdf, 100 * 3 // 4, 50 * 3 // 4)[0] > 200
+    assert pixel(pdf, 60 * 3 // 4, 10 * 3 // 4) != (255, 0, 0)
+
+
+def test_an_arc_that_ends_where_it_starts_after_a_wide_arc_draws_nothing() -> None:
+    # The second arc adds no segment: the curves of the first must not be written again
+    data = pathdata.rewritten_arcs("M0 0 A 50 50 0 0 1 100 0 A 50 50 0 0 1 100 0 Z")
+    assert data is not None
+    assert data.count("C") == 2

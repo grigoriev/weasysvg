@@ -6,6 +6,7 @@ the patch to remove, with its tests. Run them in a process of their own: make up
 
 from __future__ import annotations
 
+import math
 import re
 
 from native import RED, WHITE, content, lost, near, pixel, render, still_broken, svg, text_matrices
@@ -169,7 +170,14 @@ def test_empty_fill_paints_nothing() -> None:
 def test_an_arc_of_no_radius_runs_off() -> None:
     # A relative line to the absolute end: the triangle runs out to (120, 80) instead of (60, 60)
     pdf, _ = render(svg('<path d="M 20 20 L 60 20 A 0 0 0 0 1 60 60 Z" fill="black"/>'))
-    still_broken(near(pixel(pdf, 100 * 3 // 4, 64 * 3 // 4), (0, 0, 0)), "an arc of a zero radius", "paint.fix_zero_radius_arcs")
+    still_broken(near(pixel(pdf, 100 * 3 // 4, 64 * 3 // 4), (0, 0, 0)), "an arc of a zero radius", "paint.fix_arcs")
+
+
+def test_half_a_circle_bulges() -> None:
+    # One Bezier curve for 180 degrees: at 30 degrees the edge of a circle of radius 100 lies 1.7 units out
+    pdf, _ = render(svg('<path d="M 50 150 A 100 100 0 0 1 250 150 Z" fill="black"/>', width=300, height=200))
+    x, y = 150 - 101 * math.cos(math.radians(30)), 150 - 101 * math.sin(math.radians(30))
+    still_broken(near(pixel(pdf, round(x * 3 / 4), round(y * 3 / 4)), (0, 0, 0), 120), "an arc of 180 degrees in one curve", "paint.fix_arcs")
 
 
 def test_clip_rule_is_ignored() -> None:
@@ -230,6 +238,29 @@ def test_circle_outline_is_too_long() -> None:
 def test_opacity_group_clips_anchored_text() -> None:
     pdf, _ = render(svg('<text x="100" y="60" font-size="40" text-anchor="end" opacity="0.5">WWWW</text>'))
     still_broken(near(pixel(pdf, 15, 35), WHITE, 3), "the box of opacity groups", "_core (opacity group)")
+
+
+# ---------------- paint-order ----------------
+
+PAINTED = '<rect x="40" y="40" width="120" height="120" fill="lime" stroke="blue" stroke-width="40" {}/>'
+
+
+def test_paint_order_is_ignored() -> None:
+    # Chromium strokes first, the fill covers the inner half of the stroke
+    pdf, _ = render(svg(PAINTED.format('paint-order="stroke"'), height=200))
+    still_broken(near(pixel(pdf, 37, 75), (0, 0, 255), 3), "paint-order", "paint_order (shapes)")
+
+
+def test_paint_order_of_text_is_ignored() -> None:
+    body = '<text x="20" y="180" font-size="160" font-weight="bold" fill="lime" stroke="blue" stroke-width="24" paint-order="stroke">I</text>'
+    pdf, _ = render(svg(body, height=200))
+    still_broken("2 Tr" in content(pdf), "paint-order of text", "paint_order.split_text")
+
+
+def test_translucent_stroke_knocks_out_the_fill() -> None:
+    # B paints fill and stroke as one knockout object: the white under the fill shows through the stroke
+    pdf, _ = render(svg(PAINTED.format('stroke-opacity=".4"'), height=200))
+    still_broken(near(pixel(pdf, 37, 75), (153, 153, 255), 3), "the knockout of a translucent stroke", "paint_order (translucent_stroke)")
 
 
 # ---------------- markers ----------------
@@ -293,6 +324,16 @@ def test_text_chunk_is_anchored_with_its_parent() -> None:
     still_broken(sorted(shift.findall(content(chunked))) != sorted(shift.findall(content(alone))), "text-anchor per text chunk", "text.chunk_boxes")
 
 
+def test_text_after_a_chunk_is_anchored_with_its_parent() -> None:
+    # The text after a tspan with its own x continues the chunk of that tspan, but takes the anchor of the <text>
+    def ink(body: str) -> list[int]:
+        pdf, _ = render(svg(f'<text x="10" y="50" font-size="40" fill="red" text-anchor="middle">{body}</text>'))
+        return [x for x in range(150) if not near(pixel(pdf, x, 28), WHITE)]
+
+    chunked, alone = ink('<tspan x="100">AAA</tspan>BBB'), ink('<tspan x="100">AAABBB</tspan>')
+    still_broken(abs(chunked[0] - alone[0]) > 2, "text after a text chunk", "text.chunk_restyle")
+
+
 def test_text_is_laid_out_one_character_at_a_time() -> None:
     pdf, _ = render(svg(f'<text x="10" y="50" font-size="20">{ARABIC}</text>'))
     still_broken(len(text_matrices(pdf)) >= len(ARABIC.replace(" ", "")), "whole-run text layout", "text._draw_run")
@@ -331,3 +372,18 @@ def test_space_after_an_empty_inline_starts_a_line() -> None:
         return float(next(textpage.get_charbox(index)[0] for index in range(textpage.count_chars()) if textpage.get_text_range(index, 1).strip()))
 
     still_broken(first_x("<i></i> Car") > first_x("Car") + 1, "space after an empty inline at the start of a line", "foreign_object._element_to_box")
+
+
+def test_lines_keep_fractional_font_metrics() -> None:
+    import ctypes
+
+    import pypdfium2 as pdfium
+    import pypdfium2.raw as pdfium_c
+    import weasyprint
+
+    # Chromium puts this baseline at 17 px: the ascent 14.484 rounds to 14, the half leading of 24 - 14 - 3 px rounds down to 3
+    pdf = weasyprint.HTML(string="<style>@page{size:200px 40px;margin:0}</style><div style=\"margin:0;font:16px/1.5 'Liberation Sans'\">Car</div>").write_pdf()
+    page = pdfium.PdfDocument(pdf)[0]
+    x, y = ctypes.c_double(), ctypes.c_double()
+    pdfium_c.FPDFText_GetCharOrigin(page.get_textpage().raw, 0, x, y)
+    still_broken(abs((page.get_height() - y.value) / 0.75 - 17) > 0.25, "line metrics rounded to whole px", "foreign_object._strut and _split_text_box")

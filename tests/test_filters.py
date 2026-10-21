@@ -5,14 +5,19 @@ from __future__ import annotations
 import logging
 import math
 import re
+from statistics import NormalDist
 from types import SimpleNamespace
 from typing import Any, cast
 
+import pypdfium2 as pdfium
+import pypdfium2.raw as pdfium_c
 import pytest
-from helpers import RecordingStream, content, pixel, rasterize, render, streams, svg
+import weasyprint
+from helpers import RecordingStream, content, page_html, pixel, rasterize, render, svg
 from PIL import ImageStat
+from weasyprint import svg as wp_svg
 
-from weasysvg import filters, turbulence
+from weasysvg import filters, shapeblur, turbulence
 from weasysvg.filters import HIDDEN, Layer, Restyle, Unsupported
 
 RED = (255, 0, 0)
@@ -896,7 +901,7 @@ def test_pixel_work_is_bounded_per_svg(monkeypatch: pytest.MonkeyPatch, caplog: 
 
 def test_pixel_work_is_counted_once_per_image(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     # The same noise and recolor in many elements are computed once
-    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 120_000)
     shapes = "".join(f'<rect x="{x}" y="20" width="10" height="10" filter="url(#f)"/>' for x in range(0, 200, 20))
     primitives = '<feTurbulence baseFrequency="0.05"/><feColorMatrix type="saturate" values="0"/>'
     body = f'<defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">{primitives}</filter></defs>{shapes}'
@@ -907,7 +912,7 @@ def test_pixel_work_is_counted_once_per_image(monkeypatch: pytest.MonkeyPatch, c
 
 def test_a_recolored_silhouette_is_computed_once(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     # Each draw evaluates the chain again: the silhouette must be the same image, or its recolor counts again
-    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 120_000)
     shapes = "".join(f'<rect x="{x}" y="20" width="10" height="10" filter="url(#f)"/>' for x in range(0, 200, 20))
     primitives = '<feTurbulence baseFrequency="0.05" result="t"/><feFlood flood-color="blue"/><feComposite in2="t" operator="in"/><feColorMatrix type="saturate" values="0"/>'
     body = f'<defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">{primitives}</filter></defs>{shapes}'
@@ -975,7 +980,7 @@ def test_a_rect_in_one_paint_is_blurred_exactly(stroke: str, exact: bool) -> Non
     # A stroke in the paint of the fill widens the rect by half its width: still one rectangle
     filters_ = '<filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>'
     pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="50" width="100" height="100" fill="black" {stroke} filter="url(#f)"/>', height=200))
-    assert (" sh" in "".join(streams(pdf))) == exact
+    assert ("/ShadingType 2" in pdf.decode("latin-1")) == exact
     if exact:
         assert gray_at(pdf, 45, 45) == pytest.approx(0.25, abs=0.06)
 
@@ -989,3 +994,211 @@ def test_a_filter_on_anchored_text_covers_the_drawn_text() -> None:
     black = [x for x in range(200) if cast(int, image.getpixel((x, 65))) < 26]
     assert black, "the filter is drawn"
     assert abs((black[0] + black[-1]) / 2 - 100) < 3
+
+
+def test_a_blurred_rect_has_no_seam_where_its_edges_meet_its_middle() -> None:
+    # 4 deviations in from each side the shading of an edge meets the flat middle. Side by side, the two
+    # left a device pixel unpainted at 192 dpi in PDFium: the shadow of blockdiag had a light line there
+    filtered = '<filter id="b" height="1.504" width="1.1575" x="-0.07875" y="-0.252"><feGaussianBlur stdDeviation="4.2"/></filter>'
+    body = filtered + '<rect fill="black" stroke="black" style="filter:url(#b);opacity:0.7" x="259" y="46" width="128" height="40"/>'
+    scale = 8 / 3  # 192 dpi
+    image = rasterize(render(svg(body, width=420, height=120)), scale).convert("L")
+    k = scale * 0.75  # device pixels per CSS px
+    row = [cast("int", image.getpixel((x, round(80 * k)))) for x in range(round(360 * k), round(380 * k))]
+    column = [cast("int", image.getpixel((round(320 * k), y))) for y in range(round(52 * k), round(68 * k))]
+    for line in (row, column):
+        # The shadow changes smoothly there: no pixel lighter than both of its neighbors
+        spikes = [middle - max(before, after) for before, middle, after in zip(line, line[1:], line[2:], strict=False)]
+        assert max(spikes) <= 2, line
+
+
+def test_turbulence_is_computed_at_twice_the_css_resolution() -> None:
+    # Noise upscaled from one pixel per CSS px blurs at print resolution
+    document = pdfium.PdfDocument(render(filtered('<feTurbulence baseFrequency="0.05"/>')))
+    found = document[0].get_objects(filter=[pdfium_c.FPDF_PAGEOBJ_IMAGE], max_depth=50)
+    assert [picture.get_px_size() for picture in found] == [(2 * 72, 2 * 48)]
+
+
+def test_a_blurred_rect_edge_follows_the_gaussian_to_one_level() -> None:
+    # PDFium looks a shading up in 256 steps over its whole axis: one shading over 8 deviations lagged the
+    # profile by up to 4 levels, in runs of one slope that showed as bands down the edge. The paint, grown
+    # by 2.15 deviations only, cut the tail of the mask off.
+    filters_ = '<filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0 5"/></filter>'
+    pdf = render(svg(f'<defs>{filters_}</defs><rect x="50" y="40" width="100" height="120" fill="black" filter="url(#f)"/>', height=200))
+    image = rasterize(pdf, 8 / 3).convert("L")  # 192 dpi, 2 device pixels per unit
+    gauss = NormalDist()
+    # PDFium samples a shading at the corner of a device pixel
+    errors = [abs(cast(int, image.getpixel((200, row))) - 255 * (1 - gauss.cdf((row / 2 - 40) / 5))) for row in range(40, 120)]
+    assert max(errors) <= 1.5, [round(e, 1) for e in errors]
+
+
+# ---------------- shapes blurred from their coverage ----------------
+
+
+def blurred_shape(shape: str, deviation: str = "4", defs: str = "", primitive: str = "feGaussianBlur") -> Any:
+    """One shape under a blur of deviation, rasterized at 2 device pixels per unit, in gray."""
+    filter_ = f'<filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="200" height="200"><{primitive} stdDeviation="{deviation}"/></filter>'
+    pdf = render(svg(f'<defs>{defs}{filter_}</defs>{shape.removesuffix("/>")} filter="url(#f)"/>', height=200))
+    return rasterize(pdf, 8 / 3)
+
+
+def darkness(image: Any, x: float, y: float) -> float:
+    """The darkness at a point in user units, 0 white to 1 black."""
+    return 1 - cast(int, image.convert("L").getpixel((round(2 * x), round(2 * y)))) / 255
+
+
+def test_a_blurred_circle_fades_smoothly() -> None:
+    # The levels of the nearest edge were flat grays: rings in the tail, 239 239 239 247 247 247 255
+    image = blurred_shape('<circle cx="100" cy="100" r="60" fill="black"/>', "6").convert("L")
+    row = [cast(int, image.getpixel((x, 200))) for x in range(320, 400)]
+    assert row == sorted(row), row
+    steps = [b - a for a, b in zip(row, row[1:], strict=False)]
+    assert max(abs(b - a) for a, b in zip(steps, steps[1:], strict=False)) <= 2, row
+    # The tail goes on past the paint that was grown by 2.15 deviations
+    assert darkness(image, 173.5, 100) > 0.002, row
+
+
+@pytest.mark.parametrize(
+    ("shape", "expected"),
+    [
+        # A bar 2 units wide: Phi(0.25) - Phi(-0.25) of the color in its middle
+        ('<path d="M99 20h2v160h-2z" fill="black"/>', 0.197),
+        # A dot of radius 2: 1 - exp(-r^2 / 2 s^2) in its center
+        ('<circle cx="100" cy="100" r="2" fill="black"/>', 0.118),
+        # A ring from 4 to 8: exp(-a^2 / 2 s^2) - exp(-b^2 / 2 s^2) in its hole, by even-odd and by winding
+        ('<path d="M92 100a8 8 0 1 0 16 0a8 8 0 1 0-16 0zM96 100a4 4 0 1 0 8 0a4 4 0 1 0-8 0z" fill="black" fill-rule="evenodd"/>', 0.471),
+        ('<path d="M92 100a8 8 0 1 0 16 0a8 8 0 1 0-16 0zM96 100a4 4 0 1 1 8 0a4 4 0 1 1-8 0z" fill="black"/>', 0.471),
+    ],
+)
+def test_a_thin_shape_is_blurred_from_all_of_its_edges(shape: str, expected: float) -> None:
+    # Deviation 4. The levels grew and shrank a shape by its nearest edge: one thinner than a few
+    # deviations came out dark and sharp, as the lens ring of the OpenStreetMap logo
+    assert darkness(blurred_shape(shape), 100, 100) == pytest.approx(expected, abs=0.02)
+
+
+def test_the_blur_of_a_small_drop_has_no_hole() -> None:
+    # The paint, grown by a stroke wider than the drop, left the inside of the stroke unpainted in PDFium:
+    # a white glint in the shadow of the Inkscape logo
+    image = blurred_shape('<path d="M99.4 98.69c-4.6 4.2.8 8.6 5.3 5.7 1.2-.8-.1-4.7-5.3-5.7z" fill="black"/>', "6")
+    around = [darkness(image, 102 + 6 * math.cos(k * math.pi / 16), 101.5 + 6 * math.sin(k * math.pi / 16)) for k in range(32)]
+    assert min(around) > 0.05, around
+
+
+def test_a_blurred_shape_keeps_its_gradient() -> None:
+    # The paint covers all the mask, the gradient placed on the box of the shape
+    gradient = '<linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>'
+    image = blurred_shape('<circle cx="100" cy="100" r="40" fill="url(#g)"/>', "2", defs=gradient)
+    left, right = image.getpixel((140, 200)), image.getpixel((260, 200))
+    assert left[0] > 200 > left[2], left
+    assert right[2] > 200 > right[0], right
+
+
+def test_the_drop_shadow_of_a_shape_is_its_blurred_coverage() -> None:
+    image = blurred_shape('<circle cx="100" cy="100" r="2" fill="red"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
+    # Beside the dot only its shadow: a dot of radius 2 blurred by 4, seen 4 from its center
+    assert darkness(image, 104, 100) == pytest.approx(0.073, abs=0.015)
+
+
+def test_a_compressed_mesh_draws_the_same() -> None:
+    # Compressed, the rows of the mesh go through the PNG predictor Up
+    document = svg('<defs><filter id="f"><feGaussianBlur stdDeviation="4"/></filter></defs><circle cx="100" cy="50" r="20" fill="black" filter="url(#f)"/>')
+    compressed = weasyprint.HTML(string=page_html(document)).write_pdf()
+    assert b"/Predictor 12" in compressed
+    plain, packed = rasterize(render(document), 8 / 3), rasterize(compressed, 8 / 3)
+    assert [plain.getpixel((x, 100)) for x in range(100, 300)] == [packed.getpixel((x, 100)) for x in range(100, 300)]
+
+
+@pytest.mark.parametrize(
+    ("shape", "deviation", "limits"),
+    [
+        ('<circle cx="100" cy="100" r="20" fill="black" stroke="red"/>', "2", {}),
+        ('<path d="M80 80h40v40z" fill="black" marker-start="url(#m)"/>', "2", {}),
+        ('<circle cx="100" cy="100" r="20" fill="black"/>', "2 0", {}),
+        ('<path d="M80 80L120 120" fill="black"/>', "2", {}),
+        ('<circle cx="100" cy="100" r="20" fill="black"/>', "2", {"MAX_CELLS": 10}),
+        ('<circle cx="100" cy="100" r="20" fill="black"/>', "2", {"MAX_PIXEL_WORK": 10}),
+    ],
+)
+def test_a_shape_the_coverage_cannot_take_keeps_the_levels(shape: str, deviation: str, limits: dict[str, int], monkeypatch: pytest.MonkeyPatch) -> None:
+    # A stroke or markers paint more than the outline, a deviation along one axis only has no grid, a path
+    # without area has no outline: those, and a grid past its limits, keep the levels of the nearest edge
+    for name, value in limits.items():
+        monkeypatch.setattr(shapeblur if name == "MAX_CELLS" else filters, name, value)
+    calls: list[int] = []
+    original = filters._blur_mask
+
+    def counted(*args: Any) -> None:
+        calls.append(1)
+        original(*args)
+
+    monkeypatch.setattr(filters, "_blur_mask", counted)
+    blurred_shape(shape, deviation, defs='<marker id="m"><circle r="1"/></marker>')
+    assert calls == [1]
+
+
+def test_the_recorder_starts_a_subpath_where_the_path_does() -> None:
+    # Path data without a moveto starts at its first point; a second close adds nothing
+    recorder = shapeblur._Recorder(1.0)
+    recorder.line_to(0, 0)
+    recorder.line_to(10, 0)
+    recorder.close()
+    recorder.current = []
+    recorder.close()
+    recorder.curve_to(0, 10, 10, 10, 10, 20)
+    assert recorder.rings[0] == [(0, 0), (10, 0)]
+    assert recorder.rings[-1][0] == (0, 10)
+    assert recorder.rings[-1][-1] == pytest.approx((10, 20))
+
+
+def test_a_rect_with_a_stroke_of_no_width_is_blurred_from_its_coverage() -> None:
+    # Not a plain rect, as its stroke has another paint, but the stroke paints nothing
+    image = blurred_shape('<rect x="99" y="20" width="2" height="160" fill="black" stroke="red" stroke-width="0"/>')
+    assert darkness(image, 100, 100) == pytest.approx(0.197, abs=0.02)
+
+
+def test_the_drop_shadow_of_a_stroked_shape_keeps_the_levels() -> None:
+    image = blurred_shape('<circle cx="100" cy="100" r="20" fill="none" stroke="red" stroke-width="4"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
+    # The shadow inside the ring, faint
+    assert 0.02 < darkness(image, 100, 100 - 12) < 0.6
+
+
+def test_painting_a_box_in_two_threads_leaves_every_shape_drawn_as_itself(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Two blurs of the same tag at once: the one that started first ends first. The shape table must not
+    # keep the box of either, or the source of a drop shadow is painted as its whole region.
+    import threading
+
+    drawn: list[Any] = []
+    monkeypatch.setitem(wp_svg.TAGS, "rect", lambda _svg, node, _size: drawn.append(node))
+    first_inside, second_inside, first_done = threading.Event(), threading.Event(), threading.Event()
+    nodes = [SimpleNamespace(tag="rect"), SimpleNamespace(tag="rect")]
+
+    def draw_into(svg: Any, _original: Any, node: Any, *_args: Any) -> None:
+        if node is nodes[0]:
+            first_inside.set()
+            second_inside.wait(5)
+        else:
+            second_inside.set()
+            first_done.wait(5)
+        wp_svg.TAGS["rect"](svg, node, 0)
+
+    monkeypatch.setattr(filters, "_draw_into", draw_into)
+    svg_ = SimpleNamespace(stream=SimpleNamespace(rectangle=lambda *_box: None))
+
+    def paint(node: Any) -> None:
+        filters._paint_box(svg_, lambda *_args: None, node, 0, None, None, (0, 0, 1, 1), ())
+
+    first = threading.Thread(target=paint, args=(nodes[0],))
+
+    def paint_second() -> None:
+        first_inside.wait(5)
+        paint(nodes[1])
+
+    second = threading.Thread(target=paint_second)
+    first.start()
+    second.start()
+    first.join(5)
+    first_done.set()
+    second.join(5)
+    drawn.clear()
+    wp_svg.TAGS["rect"](svg_, nodes[0], 0)
+    assert drawn == [nodes[0]]

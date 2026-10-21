@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import threading
 from pathlib import Path
@@ -713,3 +714,15 @@ def test_an_arc_of_no_radius_is_a_line_to_its_end(arc: str) -> None:
     pdf = render(svg(f'<path d="M 20 20 L 60 20 {arc} Z" fill="black"/>'))
     assert pixel(pdf, 50 * 3 // 4, 30 * 3 // 4) == (0, 0, 0)
     assert pixel(pdf, 100 * 3 // 4, 64 * 3 // 4) == (255, 255, 255)
+
+
+@pytest.mark.parametrize("arc", ["A 100 100 0 0 1 250 150", "A 100 100 0 1 1 250 150", "a 100 100 0 0 1 200 0"])
+def test_a_half_circle_arc_is_round(arc: str) -> None:
+    # WeasyPrint drew an arc of up to 180 degrees as one Bezier curve: half a circle bulged by 1.8 % of
+    # its radius at 45 degrees, the band of the flag of Brazil ran thicker at its ends
+    image = rasterize(render(svg(f'<path d="M 50 150 {arc} Z" fill="black"/>', width=300, height=200)), 4).convert("L")
+    scale = 3  # device pixels per CSS px at 4 x 72 dpi
+    for degrees in (30, 45, 60, 120, 135, 150):
+        angle = math.radians(degrees)
+        inside = [r for r in range(80 * scale, 120 * scale) if cast("int", image.getpixel((round((150 - r / scale * math.cos(angle)) * scale), round((150 - r / scale * math.sin(angle)) * scale)))) < 128]
+        assert abs(max(inside) / scale - 100) <= 0.5, degrees

@@ -466,3 +466,89 @@ def test_an_empty_inline_that_shows_keeps_the_space(own: str) -> None:
     # A box drawn, or with a font of its own that sets the line metrics, stays: the space after it too
     style = "margin:0;font:16px 'DejaVu Sans'"
     assert first_character_x(f'<p style="{style}"><i style="{own}"></i> Car</p>') > first_character_x(f'<p style="{style}">Car</p>') + 3
+
+
+# ---------------- line metrics ----------------
+
+
+def baselines(document: str, html: bool = False) -> list[float]:
+    """The baselines of the text on the page, in CSS px from the top, one per line."""
+    import ctypes
+
+    import pypdfium2 as pdfium
+    import pypdfium2.raw as pdfium_c
+
+    pdf = weasyprint.HTML(string=f"<style>@page{{size:600px 600px;margin:0}} body{{margin:0}}</style>{document}").write_pdf() if html else render(document)
+    page = pdfium.PdfDocument(pdf)[0]
+    textpage = page.get_textpage()
+    found = set()
+    try:
+        for index in range(textpage.count_chars()):
+            if textpage.get_text_range(index, 1).strip():
+                x, y = ctypes.c_double(), ctypes.c_double()
+                pdfium_c.FPDFText_GetCharOrigin(textpage.raw, index, x, y)
+                found.add(round((page.get_height() - y.value) / 0.75, 3))
+    finally:
+        close(textpage, page)
+    return sorted(found)
+
+
+def lines(style: str, text: str = "Car", y: float = 0, width: int = 160) -> list[float]:
+    body = f'<foreignObject y="{y}" width="{width}" height="100"><div xmlns="{XHTML_NS}" style="{style}">{text}</div></foreignObject>'
+    return baselines(svg(body, width=200, height=120))
+
+
+# Measured in Chromium (Playwright Chromium 1.59, print to PDF): Blink rounds the ascent, the descent and the
+# line gap of the font to whole px, gives the line the half leading rounded down, and paints the baseline on a
+# whole px of the HTML. WeasyPrint keeps the fractions: 17.547 px for the first of these
+@pytest.mark.parametrize(
+    ("style", "expected"),
+    [
+        ("font:16px/1.5 'Liberation Sans'", [17]),
+        ("font:14px/1.5 'Liberation Sans'", [15]),
+        ("font:16px/1.5 'DejaVu Sans'", [17]),
+        ("font:16px/1.55 'Liberation Sans';width:60px", [17, 42, 67]),
+        ("font:13px/1.2 'Liberation Sans';width:60px", [12, 28]),
+        ("font:16px/20.5px 'Liberation Sans';width:60px", [15, 36, 56]),
+        ("font:16px/10px 'Liberation Sans';width:60px", [10, 20, 30]),
+    ],
+)
+def test_a_line_sits_on_the_rounded_metrics_of_chromium(style: str, expected: list[float]) -> None:
+    assert lines(style, "AAA BBB CCC" if len(expected) > 1 else "Car") == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("family", "expected"),
+    [("Liberation Sans", [14, 32, 50]), ("DejaVu Sans", [15, 34, 53])],
+)
+def test_a_normal_line_height_is_the_rounded_line_spacing(family: str, expected: list[float]) -> None:
+    # Liberation Sans: ascent 14.484, descent 3.391, line gap 0.523 px at 16 px: lines of 14 + 3 + 1 px
+    assert lines(f"font:16px '{family}';width:60px", "AAA BBB CCC") == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(("padding", "expected"), [(0.4, 17), (0.5, 18), (1.25, 18)])
+def test_the_baseline_lands_on_a_whole_px_of_the_html(padding: float, expected: float) -> None:
+    assert lines(f"font:16px/24px 'Liberation Sans';padding-top:{padding}px") == pytest.approx([expected])
+
+
+def test_the_object_itself_keeps_its_fraction() -> None:
+    # The SVG places the object at y 10.3: Chromium draws its baseline at 27.3
+    assert lines("font:16px/1.5 'Liberation Sans'", y=10.3) == pytest.approx([27.3])
+
+
+def test_a_mermaid_label_sits_where_chromium_puts_it() -> None:
+    label = (
+        '<g transform="translate(10,10)"><foreignObject width="77.015625" height="24">'
+        f'<div xmlns="{XHTML_NS}" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 120px; text-align: center;'
+        ' font-family: \'Liberation Sans\'; font-size: 16px"><span><p style="margin:0">CUSTOMER</p></span></div></foreignObject></g>'
+    )
+    assert baselines(svg(label)) == pytest.approx([27])
+
+
+def test_a_larger_span_sets_the_line_as_in_chromium() -> None:
+    # The span: ascent 21.727 and descent 5.086 px round to 22 and 5, leading 9 px of 36 puts 4 above
+    assert lines("font:16px/1.5 'Liberation Sans'", 'AAA <span style="font-size:24px">BBB</span>') == pytest.approx([26])
+
+
+def test_html_outside_a_foreign_object_keeps_its_metrics() -> None:
+    assert baselines("<div style=\"font:16px/1.5 'Liberation Sans'\">Car</div>", html=True) == pytest.approx([17.547], abs=0.01)

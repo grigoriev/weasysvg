@@ -30,8 +30,8 @@
   "name": "diagrams__kroki-d2-arch",
   "reference": "chromium",
   "reference_why": "resvg ignores the @font-face fonts the SVG embeds and falls back to a serif.",
-  "verdict": "same",
-  "what": "Matches, with the embedded fonts.",
+  "verdict": "close",
+  "what": "Matches, with the embedded fonts, as Firefox draws it. Chromium on Linux widens the glyphs of the unhinted embedded fonts by 5 to 13 %, so its bold labels run wider; weasysvg keeps the advances of the font.",
   "native_verdict": "differs",
   "native_what": "Nothing but a black rectangle: the SVG is lost."
  },
@@ -39,8 +39,8 @@
   "name": "diagrams__kroki-d2",
   "reference": "chromium",
   "reference_why": "resvg ignores the embedded @font-face fonts.",
-  "verdict": "same",
-  "what": "Matches.",
+  "verdict": "close",
+  "what": "Matches, as Firefox draws it. Chromium on Linux widens the glyphs of the unhinted embedded fonts, so its labels run a little wider; weasysvg keeps the advances of the font.",
   "native_verdict": "differs",
   "native_what": "Two black bars instead of the diagram."
  },
@@ -57,8 +57,8 @@
   "name": "diagrams__kroki-excalidraw",
   "reference": "chromium",
   "reference_why": "resvg ignores the embedded hand-drawn font.",
-  "verdict": "same",
-  "what": "Matches, hand-drawn font included.",
+  "verdict": "close",
+  "what": "Matches, hand-drawn font included, as Firefox draws it. Chromium on Linux widens the glyphs of the unhinted embedded font, so its label runs a little wider; weasysvg keeps the advances of the font.",
   "native_verdict": "close",
   "native_what": "Wider gap between the words."
  },
@@ -219,8 +219,8 @@
   "name": "diagrams__mermaid-ink-journey",
   "reference": "chromium",
   "reference_why": "The title has fill=\"\", which browsers ignore: it takes #333 from the CSS of the root, as in Chromium. resvg draws it black.",
-  "verdict": "same",
-  "what": "Matches, the title sized 4ex from the x-height of the font, as in Chromium.",
+  "verdict": "close",
+  "what": "Matches, as Safari and Firefox draw it: the title is 4ex from the x-height of Trebuchet MS, 33.5 px. Chromium on Linux takes the x-height of the hinted x, 9 px, and draws the title at 36 px.",
   "native_verdict": "differs",
   "native_what": "The title, with fill=\"\", and the labels of the two sections are missing."
  },
@@ -310,7 +310,7 @@
   "reference": "chromium",
   "reference_why": "resvg shows 'Not supported by viewer' fallbacks.",
   "verdict": "close",
-  "what": "One AsciiMath label breaks its line at another word.",
+  "what": "One AsciiMath label too wide for its box breaks at another place: Chromium (ICU) after the hyphen of 'b^2-4ac', Pango after the slash. The rest matches.",
   "native_verdict": "differs",
   "native_what": "Fallback texts in place of the labels."
  },
@@ -408,8 +408,8 @@
   "name": "real__wm-Openstreetmap_logo",
   "reference": "both",
   "reference_why": "",
-  "verdict": "close",
-  "what": "The shadow of the lens ring is darker and sharper than in Chromium: the ring is a filled shape thinner than two deviations, and the levels of a blur know only the nearest edge.",
+  "verdict": "same",
+  "what": "Matches: the shadows of the lens ring and of the map are soft, as in Chromium.",
   "native_verdict": "differs",
   "native_what": "No shadows, and the handle is a flat dark shape."
  },

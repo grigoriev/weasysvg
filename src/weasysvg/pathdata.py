@@ -363,28 +363,84 @@ def _tail(data: str, mark: int, command: str | None) -> list[str]:
     return [tail] if tail else []
 
 
-def without_zero_radius_arcs(data: str | None) -> str | None:
-    """The path data with each arc of a zero radius written as the line to its end, None when it has none.
+# The path data as written, kept by paint.fix_arcs for the markers: the curves of a rewritten arc add
+# vertices a marker must not see
+ORIGINAL_D = "{https://github.com/grigoriev/weasysvg}d"
+# An arc spanning more than this is split into curves of no more than it: one cubic Bezier strays from a
+# circle by 0.03 % of its radius over 90 degrees, by 1.8 % over 180
+ARC_PIECE = math.pi / 2
 
-    SVG draws such an arc as a straight line, and omits it where it ends at the current point. WeasyPrint 70
-    writes it as a relative line to the absolute end point, so the line runs off by the current point:
-    Highcharts closes every slice of a pie with one. Data past an error stays as it is, for WeasyPrint to
-    stop at.
+
+def _wide_arc(segment: Segment) -> bool:
+    return segment.kind == "arc" and segment.arc is not None and abs(segment.arc[6]) > ARC_PIECE + 1e-9
+
+
+def _as_curves(segment: Segment, smooth_next: bool) -> list[str]:
+    """An elliptical arc as cubic Bezier curves of at most ARC_PIECE each, absolute.
+
+    Before a smooth curve a line of no length follows: S and T reflect no control point of an arc.
+    """
+    assert segment.arc is not None
+    cx, cy, rx, ry, phi, theta1, dtheta = segment.arc
+    count = math.ceil(abs(dtheta) / ARC_PIECE - 1e-9)
+    step = dtheta / count
+    alpha = 4 / 3 * math.tan(step / 4)
+    cos, sin = math.cos(phi), math.sin(phi)
+
+    def point(theta: float) -> Point:
+        x, y = rx * math.cos(theta), ry * math.sin(theta)
+        return cx + cos * x - sin * y, cy + sin * x + cos * y
+
+    def slope(theta: float) -> Point:
+        x, y = -rx * math.sin(theta), ry * math.cos(theta)
+        return cos * x - sin * y, sin * x + cos * y
+
+    curves = []
+    for index in range(count):
+        start, end = theta1 + index * step, theta1 + (index + 1) * step
+        (x0, y0), (dx0, dy0) = point(start), slope(start)
+        (x3, y3), (dx3, dy3) = point(end), slope(end)
+        if index == count - 1:
+            x3, y3 = segment.points[-1]  # the end point as written, not as computed
+        numbers = (x0 + alpha * dx0, y0 + alpha * dy0, x3 - alpha * dx3, y3 - alpha * dy3, x3, y3)
+        curves.append("C" + " ".join(_number(value) for value in numbers))
+    if smooth_next:
+        curves.append(f"L{_number(segment.points[-1][0])} {_number(segment.points[-1][1])}")
+    return curves
+
+
+def rewritten_arcs(data: str | None) -> str | None:
+    """The path data with the arcs WeasyPrint draws wrong written out, None when it has none.
+
+    - An arc of a zero radius is the line to its end, as SVG says, and is omitted where it ends at the
+      current point. WeasyPrint 70 writes it as a relative line to the absolute end point, so the line runs
+      off by the current point: Highcharts closes every slice of a pie with one.
+    - An arc wider than ARC_PIECE becomes curves of ARC_PIECE at most. WeasyPrint draws an arc of up to 180
+      degrees as one curve, which bulges by 1.8 % of its radius: the band of the flag of Brazil.
+
+    Data past an error stays as it is, for WeasyPrint to stop at.
     """
     commands, mark, command = _read(data)
-    if not any(_zero_radius(name, values) for name, values in commands):
-        return None
     builder = _Builder()
     written: list[str] = []
+    changed = False
     for index, (name, values) in enumerate(commands):
+        smooth_next = index + 1 < len(commands) and commands[index + 1][0] in "SsTt"
         if _zero_radius(name, values):
-            smooth_next = index + 1 < len(commands) and commands[index + 1][0] in "SsTt"
+            changed = True
             line = _as_line(name, values, builder.current, smooth_next)
             written.extend([line] if line else [])
+            builder.add(name, values)
+            continue
+        count = len(builder.segments)
+        builder.add(name, values)
+        # An arc that ends where it starts adds no segment: the last one is still the one before
+        if name in "Aa" and len(builder.segments) > count and _wide_arc(builder.segments[-1]):
+            changed = True
+            written.extend(_as_curves(builder.segments[-1], smooth_next))
         else:
             written.append(name + " ".join(_number(value) for value in values))
-        builder.add(name, values)
-    return " ".join(written + _tail(data or "", mark, command))
+    return " ".join(written + _tail(data or "", mark, command)) if changed else None
 
 
 class Polyline:

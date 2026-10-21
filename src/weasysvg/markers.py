@@ -91,7 +91,7 @@ def _points(node: Any) -> list[Point]:
 def segments_of(svg: Any, node: Any, font_size: float) -> list[Segment]:
     """The segments of a path, line, polyline or polygon."""
     if node.tag == "path":
-        return pathdata.parse(node.get("d"))
+        return pathdata.parse(node.get(pathdata.ORIGINAL_D) or node.get("d"))
     if node.tag == "line":
         x1, y1 = svg.point(node.get("x1"), node.get("y1"), font_size)
         x2, y2 = svg.point(node.get("x2"), node.get("y2"), font_size)

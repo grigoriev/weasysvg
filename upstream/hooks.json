@@ -31,7 +31,7 @@
   },
   "weasyprint.svg:SVG.draw_node": {
    "fingerprint": "3e14b48840ec2684",
-   "used_by": "_core._draw_node and _draw_with_effects mirror its order of effects"
+   "used_by": "_core._draw_node and _draw_with_effects mirror its order of effects; text._record lays a text out through it with fill_stroke=False"
   },
   "weasyprint.svg:SVG.set_graphical_state": {
    "fingerprint": "64e852909af7633d",
@@ -39,7 +39,11 @@
   },
   "weasyprint.svg:SVG.draw_markers": {
    "fingerprint": "b3bdac61521dd31b",
-   "used_by": "markers.vertices writes the form it reads"
+   "used_by": "markers.vertices writes the form it reads; paint_order.fill_stroke calls it between the paints"
+  },
+  "weasyprint.svg:SVG.fill_stroke": {
+   "fingerprint": "6c130641cc424b45",
+   "used_by": "paint_order.fill_stroke replaces it; it reads the path draw_node left in the stream"
   },
   "weasyprint.svg:Node.cascade": {
    "fingerprint": "3918fd436da24f7d",
@@ -111,7 +115,11 @@
   },
   "weasyprint.svg.text:text": {
    "fingerprint": "388f5046ffe009d3",
-   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge; text.recorded_draw_first_line reads the matrix it passes for each character"
+   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge; text.recorded_draw_first_line its matrices, text._draw_planned its cursor; paint_order.split_text its 2 Tr"
+  },
+  "weasyprint.svg.css:parse_declarations": {
+   "fingerprint": "55a5890696d6d514",
+   "used_by": "paint_order._valid_style reads a style attribute as the cascade does"
   },
   "weasyprint.svg.text:TextBox": {
    "fingerprint": "af3cf2f8fbba9a1c",
@@ -157,6 +165,26 @@
    "fingerprint": "4a83d21e55ea983d",
    "used_by": "foreign_object._element_to_box drops empty inline boxes"
   },
+  "weasyprint.text.line_break:strut": {
+   "fingerprint": "90f46feb57839dca",
+   "used_by": "foreign_object._strut wraps it through layout.inline"
+  },
+  "weasyprint.text.line_break:_font_style_cache_key": {
+   "fingerprint": "bae00df32a77a32b",
+   "used_by": "foreign_object._rounded_metrics keys its cache with it"
+  },
+  "weasyprint.layout.inline:split_text_box": {
+   "fingerprint": "af455a24b6afd40c",
+   "used_by": "foreign_object._split_text_box resets the margins and the baseline it sets"
+  },
+  "weasyprint.layout.inline:_adjust_line_height": {
+   "fingerprint": "cc82ea5d2410a45c",
+   "used_by": "foreign_object._strut sets the baseline it reads"
+  },
+  "weasyprint.draw.text:draw_text": {
+   "fingerprint": "74e0b88db0fe87e2",
+   "used_by": "foreign_object._snap_baselines moves position_y, where it draws the baseline"
+  },
   "weasyprint.formatting_structure.build:marker_to_box": {
    "fingerprint": "a657195c9f6fe508",
    "used_by": "foreign_object._marker_to_box draws symbol markers as Chromium does"
@@ -199,7 +227,7 @@
   },
   "weasyprint.pdf.stream:Stream.add_group": {
    "fingerprint": "d8781b7b3242be5e",
-   "used_by": "_core._add_group keeps the absolute matrix; _core.measure_text removes its scratch group from _resources; _core, filters, paint groups"
+   "used_by": "_core._add_group keeps the absolute matrix; _core.measure_text and text._record remove their scratch group from _resources; _core, filters, paint groups"
   },
   "weasyprint.pdf.stream:Stream.set_alpha_state": {
    "fingerprint": "1c570e0b507a14dd",

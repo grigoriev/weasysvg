@@ -78,6 +78,7 @@ weasysvg.install(filters=False, fonts=False)
 | `fonts` | `True` | font family selection as Chromium does it |
 | `fetch_cache` | `True` | one fetch per URL and SVG |
 | `markers` | `True` | marker orientation as in Chromium |
+| `paint_order` | `True` | `paint-order` of shapes and text |
 | `language` | `"en"` | the language `systemLanguage` reads where the document has no `lang` |
 
 weasysvg targets WeasyPrint 70.x and warns on any other major version: it patches internals that
@@ -87,17 +88,18 @@ change between releases.
 
 | Area | What weasysvg adds |
 |---|---|
-| `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. Disc, circle and square list markers are the shapes Chromium paints, placed from the ascent of the font. |
+| `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. Disc, circle and square list markers are the shapes Chromium paints, placed from the ascent of the font. Lines take the font metrics rounded to whole px and the baseline on a whole px, as in Chromium and Safari: a Mermaid label no longer sits up to 1 px low. |
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. `systemLanguage` reads the `lang` of the element that holds the image (`<html lang="de">`), else the `language` of `install()`, and matches as Chromium does with the Accept-Language list of that language (`de-CH` reads `de-CH,de`). An SVG from CSS (`background-image`, `list-style-image`, `content: url()`) reads `language`. |
-| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, and in steps through the profile for other shapes. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
+| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, a mesh of shaded triangles through the blurred coverage for another filled shape, and in steps through the profile for the rest. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
-| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright from the vertical origin of the font (`VORG`, `vmtx`), other scripts sideways, `rotate` about the origin of each glyph as in resvg. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; laid out one character at a time, on a path or down a column, Arabic in one text node still takes its joining forms and runs right to left; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, underlines and overlines skip the ink of the glyphs, font-size keywords, a relative font size inherited as computed and `ex` from the x-height of the font, nested `<text>` ignored, the text after a child of a `<tspan>` drawn (`Don<wbr/>e` in a Polarion chart label), `text-anchor` per text chunk. A filter, mask or clip on text uses the box of the text as drawn. |
+| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright from the vertical origin of the font (`VORG`, `vmtx`), other scripts sideways, `rotate` about the origin of each glyph as in resvg. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; laid out one character at a time, on a path or down a column, Arabic in one text node still takes its joining forms and runs right to left; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, underlines and overlines skip the ink of the glyphs, text laid out one character at a time (`textLength`, `x`, `y`, `dx`, `dy` lists) carries the lines under each character on its own baseline and leaves the room added between characters bare, font-size keywords, a relative font size inherited as computed and `ex` from the x-height of the font, nested `<text>` ignored, the text after a child of a `<tspan>` drawn (`Don<wbr/>e` in a Polarion chart label), `text-anchor` per text chunk. A filter, mask or clip on text uses the box of the text as drawn. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
+| Paint order | `paint-order` (`normal` or any order of `fill`, `stroke` and `markers`, attribute or CSS, inherited) on shapes, their markers, text and its decoration lines, as in Chromium. Each paint is a pass of its own in one graphics state, inside the opacity group, mask, filter and clip of the element. An invalid value is ignored, so the parent value inherits. A translucent stroke over a fill shows the fill under it: WeasyPrint painted both as one knockout object, which showed the backdrop. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
-| Path data | An arc of a zero radius draws a straight line to its end, as SVG says: Highcharts closes each slice of a pie with one. |
+| Path data | An arc of a zero radius draws a straight line to its end, as SVG says: Highcharts closes each slice of a pie with one. An arc wider than 90 degrees is drawn as curves of 90 degrees at most: WeasyPrint drew up to half a circle as one curve, which bulged by 1.8 % of its radius. |
 
 ## How it compares to Chromium
 
@@ -130,15 +132,16 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 - An underline or overline skips no ink under a turned character (`rotate`) or on vertical text.
 - The text after a child of a nested `<tspan>` is drawn as a `<tspan>` of its own, which counts as a sibling for
   structural selectors (`:last-child`, `:nth-child`, `+`). WeasyPrint does the same for the children of a `<text>`.
-- Text with several `y` or `dy` values draws no decoration line.
-- A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
-  edge, which knows nothing of the far edge: a filled shape thinner than about two deviations comes out
-  darker and sharper than in Chromium, and corners come out mitered inside the shape.
+- A plain rect is blurred exactly. A filled shape without stroke or markers is blurred from its coverage,
+  sampled on a grid of a third of a deviation, within some 3 levels of 255. Anything else (strokes, text,
+  groups, a grid past its limits) is blurred in levels by the distance to its nearest edge, which knows
+  nothing of the far edge: a shape thinner than about two deviations comes out darker and sharper than in
+  Chromium, and the tail shows steps.
 - Lighting, morphology, convolution and displacement have no vector form: the element draws
   unfiltered, with a warning.
 - `feComposite` arithmetic needs one input to be a flood of the whole filter region, or both inputs to
   be the same. A translucent result composites over the value of the formula on nothing.
-- Except on a plain rect, a blur with two different deviations uses their mean.
+- Except on a plain rect or a filled shape, a blur with two different deviations uses their mean.
 
 ## Development
 

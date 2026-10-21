@@ -39,7 +39,7 @@ uv build                # wheel and sdist
 once.
 
 - `_core.py`: the two shared hooks. `images.SVGImage.__init__` runs the tree passes on the parsed
-  XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, empty_presentation 20, zero_radius_arcs 20, foreign_object 30) and wraps the URL
+  XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, trailing_space 18, empty_presentation 20, arcs 20, paint_order 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
   A node that holds text and has a filter, mask or clip is drawn once into a scratch group first
   (`measure_text`): WeasyPrint knows the box of a text only after drawing it. The text box is kept
@@ -47,15 +47,22 @@ once.
 - `conditional.py`: `<switch>`, `requiredExtensions`, `systemLanguage`.
 - `foreign_object.py`: stashes the XHTML in an attribute, lays all objects of one SVG out as one
   WeasyPrint document (one page each), draws each page into the SVG stream. Also patches
-  `layout.block.table_layout` inside a foreignObject.
-- `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask built in
-  levels: the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
+  `layout.block.table_layout` inside a foreignObject, and `layout.inline.strut` and `split_text_box`: lines take
+  the font metrics rounded to whole px as Blink does, and each baseline lands on a whole px of the HTML.
+- `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask: axial
+  shadings for a plain rect, the mesh of `shapeblur.py` for another filled shape, else built in levels:
+  the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
   and transfer functions recolor every parsed color (`RECOLOR`). feComposite arithmetic with a constant
   input is a recolor too. `turbulence.py` computes the noise of feTurbulence as an image layer.
+- `shapeblur.py`: the blur of one filled shape from its coverage, sampled on a grid and blurred with Pillow;
+  `filters.py` draws the grid as a lattice mesh shading (type 5) in the mask and paints the whole region.
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
 - `pathdata.py`: path data as segments with tangents and points along them.
+- `paint_order.py`: `paint-order` and translucent strokes. `fill_stroke` paints the path left in the stream once
+  per paint, markers in between; `text.draw_text` splits each mode 2 text object into two passes.
 - `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.
-- `text.py`, `fonts.py`: SVG text, Chromium font selection.
+- `text.py`, `fonts.py`: SVG text, Chromium font selection. A text with more than one chunk is laid out
+  once into a scratch group (`ChunkPlan`), then each chunk draws moved by its own `text-anchor`.
 - `textpath.py`: characters placed along a `pathdata.Polyline`, for `<textPath>` and its `<tspan>`.
 - `vertical.py`: vertical `writing-mode`, characters placed down the y axis.
 - `glyphs.py`: characters drawn one at a time at their own origin and angle, for the two above.

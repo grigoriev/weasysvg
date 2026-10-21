@@ -46,6 +46,8 @@ AfterDraw = Callable[[Any, Any], None]
 _AFTER_DRAW: list[AfterDraw] = []
 # Called with the SVG and the node before the node draws
 _BEFORE_DRAW: list[AfterDraw] = []
+# The node draw_node draws, innermost, with the font size it got: fill_stroke knows no node
+_DRAWING: ContextVar[tuple[Any, float] | None] = ContextVar("weasysvg_drawing", default=None)
 # The clip paths being drawn, per thread and task
 _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
@@ -201,6 +203,11 @@ def _effects(svg: Any, node: Any, font_size: float) -> _Effects:
     return _Effects(local_font_size, blend, mask, clip, plan, opacity)
 
 
+def drawing() -> tuple[Any, float] | None:
+    """The node being drawn, innermost, and the font size of its parent; None outside draw_node."""
+    return _DRAWING.get()
+
+
 def _clip_of(svg: Any, node: Any) -> Any:
     value = node.get("clip-path")
     if not value or not value.strip().startswith("url("):
@@ -219,6 +226,7 @@ def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True,
     # closes a cycle. A child that reuses the clip of its parent closes none.
     active = (*_ACTIVE_CLIPS.get(), node) if _is_clip_path(self, node) else _ACTIVE_CLIPS.get()
     token = _ACTIVE_CLIPS.set(active)
+    current = _DRAWING.set((node, font_size))
     saved_clip = None
     restyled: list[dict[str, str | None]] = []
     try:
@@ -236,6 +244,7 @@ def _draw_node(self: Any, node: Any, font_size: float, fill_stroke: bool = True,
             function(self, node)
     finally:
         unrestyle(node, restyled)
+        _DRAWING.reset(current)
         _ACTIVE_CLIPS.reset(token)
         if saved_clip is not None:
             node.attrib["clip-path"] = saved_clip
