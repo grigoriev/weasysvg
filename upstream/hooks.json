@@ -9,6 +9,14 @@
    "fingerprint": "3b9638a1dd917a25",
    "used_by": "_core: tree passes and fetcher wrappers run before it"
   },
+  "weasyprint.html:handle_element": {
+   "fingerprint": "04e1a2763f1f9818",
+   "used_by": "conditional.handle_element: the lang of the element an image belongs to"
+  },
+  "weasyprint.images:get_image_from_uri": {
+   "fingerprint": "92a9810c10716ca3",
+   "used_by": "conditional.handle_element: the cache keyword, keyed by URL"
+  },
   "weasyprint.svg:SVG.__init__": {
    "fingerprint": "1c2ceb4060c97583",
    "used_by": "_core, paint: svg.paths, svg.masks, svg.filters, cursor state"
