@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A hole in a blurred shape keeps its size: it grew by one sample on each side, so the ring of the lens in
+  the OpenStreetMap logo came out thinner and its shadow lighter than in Chromium.
+
 ## [0.2.0] - 2026-10-21
 
 ### Added
