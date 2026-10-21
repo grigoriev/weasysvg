@@ -118,8 +118,9 @@ run in a process of their own: `tests/helpers.py` installs weasysvg on import.
 - **CI** (`ci.yml`): actionlint and zizmor; tests on Python 3.10 to 3.14 and PyPy 3.11 with Pango and fonts from apt;
   SonarCloud; build.
 - **Scorecard** (`scorecard.yml`): OpenSSF Scorecard, weekly and on push to main.
-- **Release** (`release.yml`): on `v*` tags, tests, then a GitHub release with the wheel, the sdist
-  and a signed provenance bundle. Not published to PyPI yet.
+- **Release** (`release.yml`): on `v*` tags, tests, one build with signed provenance, then PyPI
+  through Trusted Publishing (`pypi` environment), then a GitHub release with the wheel, the sdist
+  and the provenance bundle.
 - Every action is pinned by SHA, `${{ }}` values reach `run:` through `env:`, checkouts use
   `persist-credentials: false`.
 
@@ -127,5 +128,5 @@ run in a process of their own: `tests/helpers.py` installs weasysvg on import.
 
 1. Add each change under `## [Unreleased]` in `CHANGELOG.md`, in the pull request that makes it.
 2. Run the **Bump Version & Release** workflow with `patch`, `minor` or `major`. It writes the
-   version to `pyproject.toml` and `README.md`, cuts the changelog, commits, tags `vX.Y.Z` and pushes.
-3. The tag triggers `release.yml`, which creates the GitHub release.
+   version to `pyproject.toml`, cuts the changelog, commits, tags `vX.Y.Z` and pushes.
+3. The tag triggers `release.yml`, which publishes to PyPI and creates the GitHub release.

@@ -51,12 +51,12 @@ jobs:
       - name: Run tests
         run: uv run pytest tests/ -v
 
-  release:
+  build:
     runs-on: ubuntu-latest
     needs: test
     timeout-minutes: 15
     permissions:
-      contents: write
+      contents: read
       id-token: write
       attestations: write
 
@@ -101,12 +101,73 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
 
+      - name: Keep the package for the publishing jobs
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          # The signed provenance bundle and the notes travel beside dist/, which holds the package alone
+          cp "$BUNDLE" "$RUNNER_TEMP/release/weasysvg-${GITHUB_REF_NAME#v}.intoto.jsonl"
+          cp "$RUNNER_TEMP/release-notes.md" "$RUNNER_TEMP/release/"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+
+  # PyPI first: a file there can never be replaced, so the GitHub release waits for it.
+  # Trusted Publishing: PyPI accepts the OIDC token of this workflow in the pypi environment, no secret.
+  pypi:
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/weasysvg/
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      # Uploads PEP 740 attestations of the files along with them. After a partial upload, re-run the
+      # failed jobs only: they take the same files from the build job, and PyPI accepts a file it holds
+      # with the same hashes, while it refuses one with other content. A full re-run builds anew.
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  release:
+    runs-on: ubuntu-latest
+    needs: pypi
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release/
+
+      # Releases are immutable: the release gets all its files in this one call
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
         run: |
-          # The signed provenance bundle travels with the files.
-          cp "$BUNDLE" "dist/weasysvg-${GITHUB_REF_NAME#v}.intoto.jsonl"
-          gh release create "$GITHUB_REF_NAME" dist/*.whl dist/*.tar.gz dist/*.intoto.jsonl \
-            --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/release-notes.md"
+          gh release create "$GITHUB_REF_NAME" dist/*.whl dist/*.tar.gz release/*.intoto.jsonl \
+            --repo "$GITHUB_REPOSITORY" --notes-file release/release-notes.md

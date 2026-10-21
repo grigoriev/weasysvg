@@ -80,12 +80,6 @@ jobs:
           sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
           cat pyproject.toml | grep version
 
-      - name: Update version in README.md
-        env:
-          NEW_VERSION: ${{ steps.new.outputs.version }}
-        run: |
-          sed -i "s/weasysvg@v[0-9]*\.[0-9]*\.[0-9]*/weasysvg@v${NEW_VERSION}/g" README.md
-
       # The release workflow takes its notes from the section cut here.
       - name: Move the Unreleased entries of CHANGELOG.md into the release
         env:
@@ -101,7 +95,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml README.md CHANGELOG.md
+          git add pyproject.toml CHANGELOG.md
           git commit -m "chore: bump version to ${NEW_VERSION}"
           git tag "v${NEW_VERSION}"
           # The token reaches git through GIT_ASKPASS, so the remote URL holds no

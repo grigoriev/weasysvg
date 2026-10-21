@@ -6,7 +6,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/grigoriev/weasysvg/blob/main/LICENSE)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_weasysvg&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=grigoriev_weasysvg)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_weasysvg&metric=coverage)](https://sonarcloud.io/summary/new_code?id=grigoriev_weasysvg)
@@ -28,10 +28,10 @@ service needs no browser.
 weasysvg runs on CPython 3.10 to 3.14 and on PyPy 3.11, as WeasyPrint 70 does. On PyPy a C compiler
 must be present: zopfli, which WeasyPrint needs, has no PyPy wheel and builds from source.
 
-The package is not on PyPI yet. Install a release from GitHub:
+Install it from PyPI:
 
 ```sh
-pip install "weasysvg @ git+https://github.com/grigoriev/weasysvg@v0.1.0"
+pip install weasysvg
 ```
 
 weasysvg depends on WeasyPrint only. Every SVG feature it adds stays vector in the PDF, blur included.
@@ -43,8 +43,10 @@ WeasyPrint needs Pango, see its
 
 ### Verify
 
-GitHub releases carry a signed provenance bundle. Verify a downloaded file with
-`gh attestation verify <file> --repo grigoriev/weasysvg`.
+The build of each release has signed provenance on GitHub, and the GitHub release carries its bundle.
+PyPI and the GitHub release hold the same files, so verify a file from either with
+`gh attestation verify <file> --repo grigoriev/weasysvg`. On PyPI each file also has a publish
+attestation (PEP 740): it ties the upload to `release.yml` of this repository.
 
 ## Usage
 
@@ -98,7 +100,7 @@ change between releases.
 
 ## How it compares to Chromium
 
-The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
+The bench in [`tools/visual`](https://github.com/grigoriev/weasysvg/tree/main/tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
 Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
 the resvg suite. Every SVG has a reference: Chromium, resvg, or both where they agree (69 SVGs). For the resvg tests the expected
 image of the resvg suite decides between Chromium and resvg where they differ. `make review` compares the
@@ -113,10 +115,10 @@ gives the verdict:
 | ❌ differs from the reference | 54 | 0 |
 
 Of the 35 diagrams from draw.io, kroki and mermaid.ink, 34 match the reference and 1 is close.
-Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
+Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](https://github.com/grigoriev/weasysvg/blob/main/corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
 shows every SVG in Chromium, your own browser, resvg, WeasyPrint alone and WeasyPrint with weasysvg, in a row,
 with the reference marked and a swipe between any two of them, as GitHub compares images;
-[`corpus/COMPARISON.md`](corpus/COMPARISON.md) holds the same in the repository.
+[`corpus/COMPARISON.md`](https://github.com/grigoriev/weasysvg/blob/main/corpus/COMPARISON.md) holds the same in the repository.
 
 ## Known gaps
 
@@ -137,7 +139,7 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 
 ## Development
 
-Tests and the bench run in Docker, since WeasyPrint needs Pango. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Tests and the bench run in Docker, since WeasyPrint needs Pango. See [CONTRIBUTING.md](https://github.com/grigoriev/weasysvg/blob/main/CONTRIBUTING.md).
 
 ```sh
 make lint     # ruff and mypy, on the host
@@ -147,21 +149,21 @@ make comparison # corpus/COMPARISON.md, the renderings of every SVG side by side
 make upstream # probes of the WeasyPrint gaps and of the hooked internals
 ```
 
-weasysvg supports the latest WeasyPrint major only. [UPGRADING.md](UPGRADING.md) describes how a new one
+weasysvg supports the latest WeasyPrint major only. [UPGRADING.md](https://github.com/grigoriev/weasysvg/blob/main/UPGRADING.md) describes how a new one
 is taken: which patches it makes redundant, which internals changed, what renders worse.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately, see [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](https://github.com/grigoriev/weasysvg/blob/main/CONTRIBUTING.md). Report vulnerabilities privately, see [SECURITY.md](https://github.com/grigoriev/weasysvg/blob/main/SECURITY.md).
 
 ## Disclaimer
 
 This software is provided "as is", without warranty of any kind, as the LICENSE states. Use
 it at your own risk. Sergey Grigoriev is not liable for damage from its use, as far as the law
 allows. It is published free of charge, outside of any commercial offering, with no
-obligation to support it. Security reports are welcome, see [SECURITY.md](SECURITY.md).
+obligation to support it. Security reports are welcome, see [SECURITY.md](https://github.com/grigoriev/weasysvg/blob/main/SECURITY.md).
 
 ## License
 
-MIT, see [LICENSE](LICENSE). The test corpus keeps the licenses of its sources, see
-[corpus/SOURCES.md](corpus/SOURCES.md).
+MIT, see [LICENSE](https://github.com/grigoriev/weasysvg/blob/main/LICENSE). The test corpus keeps the licenses of its sources, see
+[corpus/SOURCES.md](https://github.com/grigoriev/weasysvg/blob/main/corpus/SOURCES.md).
