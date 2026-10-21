@@ -775,8 +775,8 @@
  },
  {
   "name": "resvg__painting-stroke-dasharray--odd-count",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "resvg",
+  "reference_why": "Chromium places the dashes about 0.25% further along the circle with each turn, so they drift. resvg keeps the dash positions of the spec.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "close",

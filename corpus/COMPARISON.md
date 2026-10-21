@@ -11,7 +11,7 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | 🟡 close to the reference | 22 | 5 |
 | ❌ differs from the reference | 54 | 0 |
 
-References: Chromium 36, resvg 10, Chromium and resvg 69.
+References: Chromium 36, resvg 11, Chromium and resvg 68.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
@@ -1239,7 +1239,7 @@ References: Chromium 36, resvg 10, Chromium and resvg 69.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | resvg | Chromium places the dashes about 0.25% further along the circle with each turn, so they drift. resvg keeps the dash positions of the spec. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | 🟡 | WeasyPrint | **close to the reference** | The dashes drift along the circle: WeasyPrint draws it a little too large. |
 
