@@ -140,7 +140,9 @@ jobs:
           name: dist
           path: dist/
 
-      # Uploads PEP 740 attestations of the files along with them
+      # Uploads PEP 740 attestations of the files along with them. After a partial upload, re-run the
+      # failed jobs only: they take the same files from the build job, and PyPI accepts a file it holds
+      # with the same hashes, while it refuses one with other content. A full re-run builds anew.
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
 
