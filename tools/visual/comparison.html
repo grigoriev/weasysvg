@@ -67,8 +67,8 @@ figcaption { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
 figure a { display: block; }
 figure a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* A tall drawing fits the screen too: the panels of one SVG stay in view, a click shows the full size */
-/* Every panel by one rule, at the zoom of the page: its size, its column and 70 % of the screen bound it.
-   --w is the width of the drawing at the zoom, --r its width over its height; the 2 px are the border. */
+/* Every panel by one rule: its size, its column and 70 % of the screen bound it.
+   --w is the width of the drawing, --r its width over its height; the 2 px are the border. */
 figure img { display: block; width: min(calc(var(--w) + 2px), 100%, calc((70vh - 2px) * var(--r) + 2px)); height: auto; background: #fff; border: 1px solid var(--line); cursor: zoom-in; image-rendering: auto; }
 .missing { color: var(--muted); font-style: italic; padding: 12px; border: 1px dashed var(--line); border-radius: 4px; }
 .hint { color: var(--muted); font-size: 12px; }
@@ -105,11 +105,6 @@ figure img { display: block; width: min(calc(var(--w) + 2px), 100%, calc((70vh -
   <h1>weasysvg corpus</h1>
   <p class="intro" id="intro"></p>
   <div class="controls">
-    <fieldset class="segmented" id="zoom">
-      <legend>Panel size</legend>
-      <button type="button" data-zoom="1">1×</button>
-      <button type="button" data-zoom="2">2×</button>
-    </fieldset>
     <label>Group <select id="group"><option value="">all</option></select></label>
     <label>weasysvg <select id="verdict"><option value="">any verdict</option></select></label>
     <input type="search" id="search" placeholder="Filter by name" aria-label="Filter by name">
@@ -148,14 +143,8 @@ const groups = data.groups;
 const labels = data.labels;
 // The panels each reference names
 const referencePanels = { chromium: ["chromium"], resvg: ["resvg"], both: ["chromium", "resvg"], browser: ["browser"] };
-const state = { zoom: 1, group: "", verdict: "", search: "" };
+const state = { group: "", verdict: "", search: "" };
 
-function load() {
-  try { Object.assign(state, JSON.parse(localStorage.getItem("weasysvg-comparison-v4") || "{}")); } catch (error) { /* storage unavailable */ }
-}
-function save() {
-  try { localStorage.setItem("weasysvg-comparison-v4", JSON.stringify({ zoom: state.zoom })); } catch (error) { /* storage unavailable */ }
-}
 function element(tag, attributes, children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attributes || {})) {
@@ -266,7 +255,7 @@ function live(item, scale, fluid) {
   else box.style.width = item.width * scale + "px";
   return box;
 }
-// The size of a panel in a card, at the zoom of the page: the rules of figure img and figure .live read it
+// The size of a panel in a card: the rules of figure img and figure .live read it
 function panelSize(node, item, scale) {
   node.style.setProperty("--w", item.width * scale + "px");
   node.style.setProperty("--r", String(item.width / item.height));
@@ -295,7 +284,7 @@ function panel(item, key) {
   if ((referencePanels[item.reference] || []).includes(key)) caption.append(" ", element("span", { class: "ref", text: "reference" }));
   const children = [caption];
   if (path) {
-    const image = drawing(item, key, state.zoom, true);
+    const image = drawing(item, key, 1, true);
     // A link: Enter opens the full view, and "open in new tab" still shows the PNG or the SVG
     const link = element("a", { href: path }, [image]);
     link.addEventListener("click", (event) => {
@@ -331,7 +320,6 @@ function render() {
   const items = visible();
   document.getElementById("list").replaceChildren(...items.map(card));
   document.getElementById("count").textContent = items.length + " of " + data.items.length;
-  for (const button of document.querySelectorAll("#zoom button")) button.setAttribute("aria-pressed", String(Number(button.dataset.zoom) === state.zoom));
 }
 
 let current = null;
@@ -413,7 +401,6 @@ function step(direction) {
 }
 
 function setup() {
-  load();
   renderers.browser = browserName();
   document.getElementById("intro").textContent = data.intro;
   const group = document.getElementById("group");
@@ -457,9 +444,6 @@ function setup() {
   compare.addEventListener("pointerup", () => { dragging = false; });
   compare.addEventListener("pointercancel", () => { dragging = false; });
   window.addEventListener("resize", () => { if (current && view.zoom === "fit") showLightbox(); });
-  for (const button of document.querySelectorAll("#zoom button")) {
-    button.addEventListener("click", () => { state.zoom = Number(button.dataset.zoom); save(); render(); });
-  }
   for (const button of document.querySelectorAll("#lb-zoom button")) {
     button.addEventListener("click", () => { view.zoom = button.dataset.zoom; showLightbox(); });
   }
