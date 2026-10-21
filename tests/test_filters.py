@@ -989,3 +989,19 @@ def test_a_filter_on_anchored_text_covers_the_drawn_text() -> None:
     black = [x for x in range(200) if cast(int, image.getpixel((x, 65))) < 26]
     assert black, "the filter is drawn"
     assert abs((black[0] + black[-1]) / 2 - 100) < 3
+
+
+def test_a_blurred_rect_has_no_seam_where_its_edges_meet_its_middle() -> None:
+    # 4 deviations in from each side the shading of an edge meets the flat middle. Side by side, the two
+    # left a device pixel unpainted at 192 dpi in PDFium: the shadow of blockdiag had a light line there
+    filtered = '<filter id="b" height="1.504" width="1.1575" x="-0.07875" y="-0.252"><feGaussianBlur stdDeviation="4.2"/></filter>'
+    body = filtered + '<rect fill="black" stroke="black" style="filter:url(#b);opacity:0.7" x="259" y="46" width="128" height="40"/>'
+    scale = 8 / 3  # 192 dpi
+    image = rasterize(render(svg(body, width=420, height=120)), scale).convert("L")
+    k = scale * 0.75  # device pixels per CSS px
+    row = [cast("int", image.getpixel((x, round(80 * k)))) for x in range(round(360 * k), round(380 * k))]
+    column = [cast("int", image.getpixel((round(320 * k), y))) for y in range(round(52 * k), round(68 * k))]
+    for line in (row, column):
+        # The shadow changes smoothly there: no pixel lighter than both of its neighbors
+        spikes = [middle - max(before, after) for before, middle, after in zip(line, line[1:], line[2:], strict=False)]
+        assert max(spikes) <= 2, line

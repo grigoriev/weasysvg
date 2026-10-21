@@ -1053,8 +1053,10 @@ def _axis_group(stream: Any, start: float, end: float, sigma: float, vertical: b
     # Where the two edges are close, one shading covers both
     spans = [(start - reach, start + reach), (end - reach, end + reach)] if end - start > 2 * reach else [(start - reach, end + reach)]
     if len(spans) == 2:
+        # The flat middle runs under the shadings of the edges: where a shading met it side by side, PDFium
+        # left a device pixel between them unpainted, a light line across the shadow
         group.set_color(_gray(1))
-        group.rectangle(*strip(start + reach, end - reach))
+        group.rectangle(*strip(start, end))
         group.fill()
     for low, high in spans if sigma else []:
         group.push_state()
