@@ -13,7 +13,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 import pytest
-from fontTools.ttLib import TTFont
+from fontTools.ttLib import TTFont, newTable
 from helpers import SVG_NS, RecordingStream, content, render, svg, text_of
 from weasyprint import svg as wp_svg
 from weasyprint.text.fonts import get_hb_object_data
@@ -400,6 +400,15 @@ def test_a_font_without_outlines_has_no_ink() -> None:
     assert ink._extent("bitmaps", 10, 0, 1) is None
 
 
+def test_a_broken_font_has_no_vertical_origin() -> None:
+    # HarfBuzz may take a font fontTools cannot read: the glyph keeps the ascent of its layout
+    ink._FONTS["broken"] = (b"not a font", 0, 1000)
+    assert ink._vertical_origin("broken", 1) is None
+    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "MPLUS1p-Regular.ttf"
+    ink._FONTS["mplus"] = (path.read_bytes(), 0, 1000)
+    assert ink._vertical_origin("mplus", 10**6) is None
+
+
 def test_a_character_no_font_has_cuts_nothing() -> None:
     # The .notdef box of an unknown character is no glyph of the run: the underline stays whole
     pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">\U0010fffd</text>', height=100))
@@ -645,6 +654,40 @@ def test_vertical_text_anchor_counts_absolute_y() -> None:
     matrices = glyph_matrices(render(svg(body, height=300)))
     assert 100 < matrices[0][5] < 120
     assert 140 < matrices[1][5] < 160
+
+
+FONTS = Path(__file__).resolve().parents[1] / "corpus" / "fonts"
+MPLUS = f"<style>@font-face{{font-family:Mplus;src:url({(FONTS / 'MPLUS1p-Regular.ttf').as_uri()})}}</style>"
+
+
+def test_an_upright_glyph_hangs_from_its_vertical_origin() -> None:
+    # vmtx of Mplus 1p: 日 has its top side bearing 87 over its top at 773, its vertical origin 0.86 em above the baseline
+    body = MPLUS + '<text x="50" y="20" writing-mode="tb" font-family="Mplus" font-size="20">日</text>'
+    (matrix,) = glyph_matrices(render(svg(body, height=120)))
+    assert matrix[4:] == pytest.approx((40, 20 + 17.2), abs=0.01)
+
+
+def test_an_upright_glyph_turns_about_its_vertical_origin() -> None:
+    # As resvg: the middle of the top of the em box stays at x, y, the glyph turns 45 degrees counterclockwise
+    body = MPLUS + '<text x="50" y="20" writing-mode="tb" rotate="-45" font-family="Mplus" font-size="20">日</text>'
+    (matrix,) = glyph_matrices(render(svg(body, height=120)))
+    half = math.sqrt(0.5)
+    assert matrix[4:] == pytest.approx((50 - 10 * half + 17.2 * half, 20 + 10 * half + 17.2 * half), abs=0.01)
+
+
+def test_the_vertical_origin_of_a_glyph() -> None:
+    font = TTFont(FONTS / "MPLUS1p-Regular.ttf", lazy=False)
+    name = font.getBestCmap()[ord("日")]
+    assert ink.vertical_origin_in_units(font, name) == 860
+    # VORG wins over vmtx
+    vorg = newTable("VORG")
+    vorg.majorVersion, vorg.minorVersion, vorg.defaultVertOriginY, vorg.VOriginRecords = 1, 0, 880, {name: 900}
+    font["VORG"] = vorg
+    assert ink.vertical_origin_in_units(font, name) == 900
+    assert ink.vertical_origin_in_units(font, ".notdef") == 880
+    # Without vertical metrics there is none: the baseline of the layout stays
+    del font["VORG"], font["vmtx"]
+    assert ink.vertical_origin_in_units(font, name) is None
 
 
 def test_vertical_text_positions_and_rotation() -> None:

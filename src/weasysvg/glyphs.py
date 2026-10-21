@@ -10,8 +10,8 @@ from typing import Any
 from weasyprint.matrix import Matrix
 
 Point = tuple[float, float]
-# Where a character goes, from the height and baseline of its line: origin of the baseline, angle
-Place = Callable[[float, float], tuple[Point, float]]
+# Where a character goes, from the height, baseline and Pango line of its layout: origin of the baseline, angle
+Place = Callable[[float, float, Any], tuple[Point, float]]
 
 ZWJ = "\u200d"
 # Joining types of Arabic (ArabicShaping.txt of Unicode): right-joining letters join the letter before them
@@ -194,7 +194,7 @@ def show(svg: Any, style: Any, fill: Any, stroke: Any, items: list[tuple[str, Pl
         svg.fill_stroke(fill, stroke, text=True)
         box = TextBox(layout, style)
         box.baseline = baseline
-        (x, y), angle = place(height, baseline)
+        (x, y), angle = place(height, baseline, layout.get_first_line()[0])
         cos, sin = math.cos(angle), math.sin(angle)
         draw_first_line(svg.stream, box, "none", "none", Matrix(cos, -sin, sin, cos) @ Matrix(d=-1, e=x, f=y))
     svg.stream.end_text()
