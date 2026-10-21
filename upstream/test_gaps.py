@@ -6,6 +6,7 @@ the patch to remove, with its tests. Run them in a process of their own: make up
 
 from __future__ import annotations
 
+import math
 import re
 
 from native import RED, WHITE, content, lost, near, pixel, render, still_broken, svg, text_matrices
@@ -169,7 +170,14 @@ def test_empty_fill_paints_nothing() -> None:
 def test_an_arc_of_no_radius_runs_off() -> None:
     # A relative line to the absolute end: the triangle runs out to (120, 80) instead of (60, 60)
     pdf, _ = render(svg('<path d="M 20 20 L 60 20 A 0 0 0 0 1 60 60 Z" fill="black"/>'))
-    still_broken(near(pixel(pdf, 100 * 3 // 4, 64 * 3 // 4), (0, 0, 0)), "an arc of a zero radius", "paint.fix_zero_radius_arcs")
+    still_broken(near(pixel(pdf, 100 * 3 // 4, 64 * 3 // 4), (0, 0, 0)), "an arc of a zero radius", "paint.fix_arcs")
+
+
+def test_half_a_circle_bulges() -> None:
+    # One Bezier curve for 180 degrees: at 30 degrees the edge of a circle of radius 100 lies 1.7 units out
+    pdf, _ = render(svg('<path d="M 50 150 A 100 100 0 0 1 250 150 Z" fill="black"/>', width=300, height=200))
+    x, y = 150 - 101 * math.cos(math.radians(30)), 150 - 101 * math.sin(math.radians(30))
+    still_broken(near(pixel(pdf, round(x * 3 / 4), round(y * 3 / 4)), (0, 0, 0), 120), "an arc of 180 degrees in one curve", "paint.fix_arcs")
 
 
 def test_clip_rule_is_ignored() -> None:
