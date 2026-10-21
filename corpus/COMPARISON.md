@@ -8,8 +8,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
 | ✅ matches the reference | 39 | 108 |
-| 🟡 close to the reference | 22 | 5 |
-| ❌ differs from the reference | 54 | 1 |
+| 🟡 close to the reference | 22 | 6 |
+| ❌ differs from the reference | 54 | 0 |
 
 References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 
@@ -1632,7 +1632,7 @@ References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | resvg | The test is undefined behavior; the resvg suite shows its expected result. |
-| ❌ | weasysvg | **differs from the reference** | The Arabic word is not shaped: its letters stand apart in isolated forms, so the column runs longer. |
+| 🟡 | weasysvg | **close to the reference** | The Arabic word joins and runs from its last letter down, as in the suite, but its letters are laid out one at a time: without the cursive attachment of Amiri it runs about 10 px longer. |
 | ❌ | WeasyPrint | **differs from the reference** | Laid out horizontally. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opacity groups, marker orientation, text baselines from font metrics, text-anchor per text chunk, filters, masks and clips on text, circles of the right length, dots of zero-length dashes in place in PDFium, negative dash offsets of odd dash arrays, decorations placed as in Chromium with underlines that skip the ink of the glyphs, font-size
   keywords, relative font sizes inherited as computed, `ex` from the x-height of the font, and Chromium font selection. No SVG content is rasterized: the PDF stays vector.
 - `feTurbulence`, drawn as an image of the noise, and `feComposite` arithmetic.
+- Arabic laid out one character at a time, on a path or down a column, takes its joining forms and runs
+  right to left, numbers in it read left to right.
 - Python 3.10 to 3.14 and PyPy 3.11, the versions WeasyPrint 70 supports.
 - Upstream tracking for WeasyPrint upgrades (UPGRADING.md): probes of the gaps weasysvg covers, a
   snapshot of the internals it hooks, a bench baseline, and a weekly run against the newest WeasyPrint.

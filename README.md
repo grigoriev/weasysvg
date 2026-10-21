@@ -90,7 +90,7 @@ change between releases.
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
-| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright, other scripts sideways. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, underlines and overlines skip the ink of the glyphs, font-size keywords, a relative font size inherited as computed and `ex` from the x-height of the font, nested `<text>` ignored, `text-anchor` per text chunk. A filter, mask or clip on text uses the box of the text as drawn. |
+| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright, other scripts sideways. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; laid out one character at a time, on a path or down a column, Arabic in one text node still takes its joining forms and runs right to left; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized as in Chromium, underlines and overlines skip the ink of the glyphs, font-size keywords, a relative font size inherited as computed and `ex` from the x-height of the font, nested `<text>` ignored, `text-anchor` per text chunk. A filter, mask or clip on text uses the box of the text as drawn. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
@@ -109,8 +109,8 @@ gives the verdict:
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
 | ✅ matches the reference | 39 | 108 |
-| 🟡 close to the reference | 22 | 5 |
-| ❌ differs from the reference | 54 | 1 |
+| 🟡 close to the reference | 22 | 6 |
+| ❌ differs from the reference | 54 | 0 |
 
 Of the 35 diagrams from draw.io, kroki and mermaid.ink, 32 match the reference and 3 are close.
 Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
@@ -120,13 +120,15 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 
 ## Known gaps
 
-- On a `textPath` each character is laid out alone, so Arabic does not join there.
+- On a `textPath` and in vertical text each character is laid out alone. Arabic takes its joining forms,
+  but loses the cursive attachment some fonts use to pull the letters together (Amiri): it runs longer.
+- On a `textPath` and in vertical text, joining and right-to-left order stop at the edge of a `<tspan>`: an
+  Arabic word split by one falls apart there.
 - An underline or overline skips no ink on text laid out character by character (several `x` or `y`
   values, `rotate`, `textLength`) or on vertical text.
 - A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
   edge, which knows nothing of the far edge: a filled shape thinner than about two deviations comes out
   darker and sharper than in Chromium, and corners come out mitered inside the shape.
-- `rotate` on vertical text lays out each character alone, so Arabic does not join there.
 - Lighting, morphology, convolution and displacement have no vector form: the element draws
   unfiltered, with a warning.
 - `feComposite` arithmetic needs one input to be a flood of the whole filter region, or both inputs to
