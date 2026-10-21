@@ -43,7 +43,7 @@
   },
   "weasyprint.svg:Node.cascade": {
    "fingerprint": "3918fd436da24f7d",
-   "used_by": "text.cascade; restylers cascade children before they change a node"
+   "used_by": "text.cascade; restylers cascade children before they change a node; text._cascade_without_rules swaps Node._style"
   },
   "weasyprint.svg:Node.__iter__": {
    "fingerprint": "a89ec74388b81e9f",

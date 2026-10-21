@@ -47,6 +47,9 @@ from .fonts import FALLBACK, resolve_families
 
 TEXT_TAGS = ("a", "text", "textPath", "tspan")
 XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
+# Marks the <tspan> keep_nested_tails makes for the text after a child: it matches no stylesheet rule
+TAIL = "{https://github.com/grigoriev/weasysvg}tail"
+_NO_RULES = SimpleNamespace(match=lambda _wrapper: [])
 # font-size keywords, as CSS defines them (medium = 16px)
 FONT_SIZE_KEYWORDS = {
     "xx-small": "9px",
@@ -142,6 +145,16 @@ def _font_px(node: Any) -> float:
     return float(noted)
 
 
+def _cascade_without_rules(self: Any, child: Any) -> None:
+    """The cascade of WeasyPrint with no stylesheet rule: the text after a child is no element in a browser."""
+    style = self._style
+    self._style = (_NO_RULES, _NO_RULES)
+    try:
+        _ORIGINAL_CASCADE(self, child)
+    finally:
+        self._style = style
+
+
 def cascade(self: Any, child: Any) -> None:
     """Cascade the attributes to child, with the font size inherited as computed, not as written.
 
@@ -154,7 +167,10 @@ def cascade(self: Any, child: Any) -> None:
     """
     parent = self.attrib.pop("font-size", None) if self is not child else None
     try:
-        _ORIGINAL_CASCADE(self, child)
+        if TAIL in child.attrib:
+            _cascade_without_rules(self, child)
+        else:
+            _ORIGINAL_CASCADE(self, child)
     finally:
         if parent is not None:
             self.attrib["font-size"] = parent
@@ -209,27 +225,33 @@ def _drawn_text(element: ET.Element, outer: ET.Element, parents: dict[ET.Element
     return True
 
 
+def _split_tails(parent: ET.Element) -> None:
+    """Give the text after each child of parent a <tspan> of its own, marked as a tail."""
+    namespace = parent.tag.rpartition("}")[0] + "}" if "}" in parent.tag else ""
+    # From the end, so an insertion moves no child still to come
+    for index, child in reversed(list(enumerate(parent))):
+        if child.tail:
+            tspan = ET.Element(namespace + "tspan", {TAIL: ""})
+            # WeasyPrint reads the xml:space of a nested element from its own attributes alone
+            if (space := parent.get(XML_SPACE)) is not None:
+                tspan.set(XML_SPACE, space)
+            tspan.text, child.tail = child.tail, None
+            parent.insert(index + 1, tspan)
+
+
 def keep_nested_tails(root: ET.Element) -> None:
     """The text after a child of a <tspan> becomes a <tspan> of its own.
 
     WeasyPrint makes such an anonymous <tspan> for the children of a <text> and drops the text after the
-    children of a <tspan>: Polarion writes <wbr/> into the labels of its charts, "Don<wbr/>e".
+    children of a <tspan>: Polarion writes <wbr/> into the labels of its charts, "Don<wbr/>e". The new
+    <tspan> is no element in a browser, so cascade matches no stylesheet rule against it.
     """
     for outer in [element for element in root.iter() if local_name(element.tag) == "text"]:
         parents = {child: parent for parent in outer.iter() for child in parent}
         # Only the children of a <tspan>: WeasyPrint draws those of a <textPath> or <a>, and trims the last.
         # Only where the text is drawn: the text of a <desc> or an unknown element stays hidden
         for parent in [element for element in outer.iter() if local_name(element.tag) == "tspan" and _drawn_text(element, outer, parents)]:
-            namespace = parent.tag.rpartition("}")[0] + "}" if "}" in parent.tag else ""
-            # From the end, so an insertion moves no child still to come
-            for index, child in reversed(list(enumerate(parent))):
-                if child.tail:
-                    tspan = ET.Element(namespace + "tspan")
-                    # WeasyPrint reads the xml:space of a nested element from its own attributes alone
-                    if (space := parent.get(XML_SPACE)) is not None:
-                        tspan.set(XML_SPACE, space)
-                    tspan.text, child.tail = child.tail, None
-                    parent.insert(index + 1, tspan)
+            _split_tails(parent)
 
 
 def drop_invalid_rotate(root: ET.Element) -> None:

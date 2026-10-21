@@ -1088,3 +1088,11 @@ def test_a_tail_inside_an_element_that_draws_nothing_stays_hidden() -> None:
     text = text_of(render(svg('<text x="10" y="40"><tspan>A<desc><tspan>T<title>X</title> hidden</tspan></desc>C</tspan></text>')))
     assert "hidden" not in text
     assert text.strip().endswith("C")
+
+
+def test_the_tspan_of_a_tail_matches_no_stylesheet_rule() -> None:
+    # The tail is no element in a browser: tspan tspan enlarges B only, C keeps the size of its parent
+    pdf = render(svg('<style>tspan tspan { font-size: 40px }</style><text x="10" y="60" font-size="20"><tspan>A<tspan>B</tspan>C</tspan></text>'))
+    sizes = font_sizes(pdf)
+    assert len(sizes) == 3
+    assert sizes.count(max(sizes)) == 1
