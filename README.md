@@ -28,11 +28,13 @@ service needs no browser.
 weasysvg runs on CPython 3.10 to 3.14 and on PyPy 3.11, as WeasyPrint 70 does. On PyPy a C compiler
 must be present: zopfli, which WeasyPrint needs, has no PyPy wheel and builds from source.
 
-The package is not on PyPI yet. Install a release from GitHub:
+Install it from PyPI:
 
 ```sh
-pip install "weasysvg @ git+https://github.com/grigoriev/weasysvg@v0.1.0"
+pip install weasysvg
 ```
+
+Each release on PyPI and on GitHub carries signed build provenance.
 
 weasysvg depends on WeasyPrint only. Every SVG feature it adds stays vector in the PDF, blur included.
 The one exception is the noise of `feTurbulence`: it has no vector form, so it is an image, computed in
