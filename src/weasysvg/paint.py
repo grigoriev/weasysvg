@@ -180,6 +180,8 @@ def _gradient_cell(svg: Any, node: Any, gradient: Any, font_size: float, stroke:
     elif cover is not None:
         # The region in units of the box of the shape, where an objectBoundingBox gradient lives
         bx, by, bwidth, bheight = box
+        if not bwidth or not bheight:
+            return None  # a box of no width or height has no units: WeasyPrint paints nothing
         x, y, width, height = (cover[0] - bx) / bwidth, (cover[1] - by) / bheight, cover[2] / bwidth, cover[3] / bheight
     else:
         x, y, width, height = 0, 0, 1, 1

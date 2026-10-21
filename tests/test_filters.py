@@ -1119,6 +1119,15 @@ def test_the_gradient_of_a_blurred_shape_pads_past_its_box(gradient: str, transf
     assert darkness(image, 100, top - deviation) < 0.01
 
 
+@pytest.mark.parametrize("points", ["0,50 100,50 200,50", "50,0 50,100 50,200"])
+def test_the_gradient_of_a_blurred_flat_shape_paints_nothing(points: str) -> None:
+    # An objectBoundingBox gradient on a box of no height or width has no units: WeasyPrint paints nothing
+    # for such a fill, and neither does the blur over its region
+    stops = '<linearGradient id="g"><stop offset="0"/><stop offset="1" stop-color="red"/></linearGradient>'
+    image = blurred_shape(f'<polyline points="{points}" fill="url(#g)"/>', defs=stops).convert("L")
+    assert image.getextrema() == (255, 255)
+
+
 def test_the_drop_shadow_of_a_shape_is_its_blurred_coverage() -> None:
     image = blurred_shape('<circle cx="100" cy="100" r="2" fill="red"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
     # Beside the dot only its shadow: a dot of radius 2 blurred by 4, seen 4 from its center
