@@ -166,6 +166,12 @@ def test_empty_fill_paints_nothing() -> None:
     still_broken(near(pixel(pdf, 30, 30), WHITE), 'fill=""', "paint.drop_empty_presentation")
 
 
+def test_an_arc_of_no_radius_runs_off() -> None:
+    # A relative line to the absolute end: the triangle runs out to (120, 80) instead of (60, 60)
+    pdf, _ = render(svg('<path d="M 20 20 L 60 20 A 0 0 0 0 1 60 60 Z" fill="black"/>'))
+    still_broken(near(pixel(pdf, 100 * 3 // 4, 64 * 3 // 4), (0, 0, 0)), "an arc of a zero radius", "paint.fix_zero_radius_arcs")
+
+
 def test_clip_rule_is_ignored() -> None:
     clip = '<clipPath id="c"><path d="M0 0H200V100H0Z M50 25H150V75H50Z" clip-rule="evenodd"/></clipPath>'
     pdf, _ = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
