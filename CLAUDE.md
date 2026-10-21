@@ -65,7 +65,8 @@ once.
 - `paint_order.py`: `paint-order` and translucent strokes. `fill_stroke` paints the path left in the stream once
   per paint, markers in between; `text.draw_text` splits each mode 2 text object into two passes.
 - `markers.py`: marker angles from `pathdata`, rebuilt into `node.vertices` after WeasyPrint draws a shape.
-- `text.py`, `fonts.py`: SVG text, Chromium font selection. A text with more than one chunk is laid out
+- `text.py`, `fonts.py`: SVG text, Chromium font selection. Decoration lines follow WeasyPrint on HTML text, not
+  Chromium: thickness and place from the font tables (`text.font_lines`), no skipped ink. A text with more than one chunk is laid out
   once into a scratch group (`ChunkPlan`), then each chunk draws moved by its own `text-anchor`.
 - `textpath.py`: characters placed along a `pathdata.Polyline`, for `<textPath>` and its `<tspan>`.
 - `vertical.py`: vertical `writing-mode`, characters placed down the y axis.

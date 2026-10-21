@@ -183,7 +183,7 @@
   },
   "weasyprint.draw.text:draw_text": {
    "fingerprint": "74e0b88db0fe87e2",
-   "used_by": "foreign_object._snap_baselines moves position_y, where it draws the baseline"
+   "used_by": "foreign_object._snap_baselines moves position_y, where it draws the baseline; text.font_lines places the decoration lines as it does"
   },
   "weasyprint.formatting_structure.build:marker_to_box": {
    "fingerprint": "a657195c9f6fe508",
@@ -215,7 +215,7 @@
   },
   "weasyprint.text.line_break:Layout.setup": {
    "fingerprint": "f378d059e7ef24a5",
-   "used_by": "text._track sets attributes after it"
+   "used_by": "text._track sets attributes after it; text.font_lines reads the decoration metrics it sets"
   },
   "weasyprint.text.line_break:Layout.set_text": {
    "fingerprint": "470e0077dcbd0ccd",

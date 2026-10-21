@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the boxes in the OSI model from Wikimedia (`paint-order: stroke`) shows its outer half only. The
   `paint_order` argument of `install()` turns it off.
 
+### Changed
+
+- Text decoration lines take their thickness and place from the font tables, as WeasyPrint draws
+  `text-decoration` on HTML text, so SVG text and HTML text in one PDF get the same lines. The underline and
+  the overline run straight through the glyphs: WeasyPrint skips no ink. This departs from Chromium on
+  purpose (a tenth of the font size, ink skipped) and matches resvg; `text-decoration-thickness: auto`
+  allows both.
+
 ### Fixed
 
 - A translucent stroke over a fill shows the fill under it, as in Chromium. WeasyPrint filled and stroked
