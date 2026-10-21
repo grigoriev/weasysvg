@@ -1289,3 +1289,14 @@ def test_the_space_that_ends_a_text_moves_no_anchor(body: str) -> None:
 def test_a_preserved_space_that_ends_a_text_stays() -> None:
     body = '<text x="150" y="40" text-anchor="end" xml:space="preserve"><tspan>A </tspan></text>'
     assert _ink_x(body) != _ink_x(body.replace("A ", "A"))
+
+
+def test_the_text_of_a_pattern_stays_out_of_the_chunks_it_paints() -> None:
+    # A pattern draws its own content while the node sets its fill: its text must not count as a piece of
+    # the chunk, or the chunk is anchored by the wrong width
+    def shifts(fill: str) -> list[str]:
+        pattern = '<pattern id="p" width="40" height="40" patternUnits="userSpaceOnUse"><text y="20" font-size="20">pattern text</text></pattern>'
+        body = f'<defs>{pattern}</defs><text y="40" x="150" text-anchor="middle" fill="{fill}"><tspan x="150">one</tspan> two<tspan x="150" dy="20">three</tspan></text>'
+        return re.findall(r"1 0 0 1 (-[\d.]+) 0 cm", content(render(svg(body, width=300, height=120))))
+
+    assert shifts("url(#p)") == shifts("black")

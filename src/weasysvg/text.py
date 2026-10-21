@@ -488,6 +488,7 @@ class _Drawing:
     node: Any
     absolute: list[bool]  # recording: whether each piece starts with an absolute position
     offsets: list[float]  # applying: how far each piece moves past the shift of the whole node
+    stream: Any  # the node draws here: a pattern of its fill draws text of its own in another stream
     index: int = 0
 
     def place(self, matrix: Any) -> Any:
@@ -616,7 +617,7 @@ def _absolute(node: Any) -> list[bool]:
 def _draw_planned(svg: Any, node: Any, font_size: float, plan: ChunkPlan) -> Any:
     """Draw a node of a planned text: noted piece by piece, or moved by the shift of its chunk."""
     if plan.recording:
-        token = _DRAWING.set(_Drawing(plan, node, _absolute(node), []))
+        token = _DRAWING.set(_Drawing(plan, node, _absolute(node), [], svg.stream))
         count = len(plan.pieces)
         try:
             return _draw_text(svg, node, font_size)
@@ -632,7 +633,7 @@ def _draw_planned(svg: Any, node: Any, font_size: float, plan: ChunkPlan) -> Any
     if not pieces:
         return _draw_text(svg, node, font_size)
     shift = pieces[0].shift
-    token = _DRAWING.set(_Drawing(plan, node, [], [piece.shift - shift for piece in pieces]))
+    token = _DRAWING.set(_Drawing(plan, node, [], [piece.shift - shift for piece in pieces], svg.stream))
     svg.stream.push_state()
     try:
         svg.stream.transform(e=shift)
@@ -933,6 +934,8 @@ def recorded_draw_first_line(stream: Any, textbox: Any, text_overflow: Any, bloc
     level, as in Chromium; its glyph crosses a line at a slant, so it is left out and cuts nothing.
     """
     drawing = _DRAWING.get()
+    if drawing is not None and drawing.stream is not stream:
+        drawing = None
     if drawing is not None and not drawing.plan.recording:
         matrix = drawing.place(matrix)
     emojis = _ORIGINAL_DRAW_FIRST_LINE(stream, textbox, text_overflow, block_ellipsis, matrix)
