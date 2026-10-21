@@ -35,7 +35,11 @@ MAX_COLORS = 4  # colors one content may paint: each is one more mesh, and 64 by
 MIN_ARC_POINTS, MAX_ARC_POINTS = 8, 256
 MITER, ROUND, BEVEL = 0, 1, 2  # line joins, as the j operator numbers them
 BUTT, SQUARE = 0, 2  # line caps, as the J operator numbers them; 1 is round
-_TOKEN = re.compile(rb"[\[\]]|/[^\s/\[\]()<>]+|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?|[A-Za-z'\"*]+|\S")
+# The tokens of a content stream, tried in order: a name, a number, an operator, else one character alone
+_NAME = rb"/[^\s/\[\]()<>]+"
+_NUMBER = rb"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+_OPERATOR = rb"[A-Za-z'\"*]+"
+_TOKEN = re.compile(b"|".join((_NAME, _NUMBER, _OPERATOR, rb"\S")))
 # Operators that change nothing the coverage reads: marked content, flatness, rendering intent
 _IGNORED = frozenset((b"BDC", b"BMC", b"EMC", b"MP", b"DP", b"i", b"ri"))
 
@@ -104,6 +108,10 @@ class _State:
     stroke_alpha: float = 1.0
     clips: tuple[Clip, ...] = ()
 
+    def in_group(self, ctm: Matrix) -> _State:
+        """The state a transparency group starts from, in its matrix: no clip, opacity or blend mode of its own."""
+        return _State(ctm, self.width, self.cap, self.join, self.miter, self.dashed, self.fill, self.stroke)
+
 
 @dataclass
 class _Subpath:
@@ -117,20 +125,62 @@ def _tokens(stream: Any) -> Iterator[bytes]:
         yield from _TOKEN.findall(item if isinstance(item, bytes) else str(item).encode("latin-1"))
 
 
+def _is_operand(token: bytes) -> bool:
+    """Whether token is a name, an array bracket or a number: what an operator takes, not an operator."""
+    return token[:1] in b"/[]-+." or token[:1].isdigit()
+
+
+def _set_state(state: _State, token: bytes, numbers: list[float]) -> bool:
+    """Apply an operator that changes the graphics state alone; False for any other operator."""
+    if token == b"cm":
+        state.ctm = _concat(_matrix(numbers), state.ctm)
+    elif token == b"w":
+        state.width = numbers[0]
+    elif token == b"J":
+        state.cap = int(numbers[0])
+    elif token == b"j":
+        state.join = int(numbers[0])
+    elif token == b"M":
+        state.miter = numbers[0]
+    elif token == b"d":
+        state.dashed = any(numbers[:-1])
+    elif token in (b"rg", b"g"):
+        state.fill = _rgb(token, numbers)
+    elif token in (b"RG", b"G"):
+        state.stroke = _rgb(token, numbers)
+    else:
+        return False
+    return True
+
+
+def _matrix(values: Any) -> Matrix:
+    a, b, c, d, e, f = (float(value) for value in values)
+    return a, b, c, d, e, f
+
+
+def _rgb(token: bytes, numbers: list[float]) -> RGB:
+    """The color of a gray (g, G) or an RGB (rg, RG) operator."""
+    return (numbers[0],) * 3 if token in (b"g", b"G") else (numbers[0], numbers[1], numbers[2])
+
+
+_CONSTRUCT = frozenset((b"m", b"l", b"c", b"v", b"y", b"h", b"re"))
+_PAINT = frozenset((b"n", b"f", b"F", b"f*", b"S", b"s", b"B", b"B*", b"b", b"b*"))
+
+
 class _Reader:
     """Reads one content stream, and the groups it paints, into a Group."""
 
     def __init__(self, flatness: float) -> None:
         self.flatness = flatness
 
-    def read(self, stream: Any, group: Group, state: _State) -> None:
+    def read_content(self, stream: Any, group: Group, state: _State) -> None:
         resources = stream._resources
         stack: list[_State] = []
         path: list[_Subpath] = []
         clip: str | None = None
         operands: list[bytes] = []
         for token in _tokens(stream):
-            if token[:1] in b"/[]" or token[:1].isdigit() or token[:1] in b"-+.":
+            if _is_operand(token):
                 operands.append(token)
                 continue
             numbers = [float(value) for value in operands if value[:1] not in b"/[]"]
@@ -138,45 +188,27 @@ class _Reader:
                 stack.append(replace(state))
             elif token == b"Q":
                 state = stack.pop()
-            elif token == b"cm":
-                state.ctm = _concat(tuple(numbers), state.ctm)  # type: ignore[arg-type]
-            elif token in (b"m", b"l", b"c", b"v", b"y", b"h", b"re"):
+            elif token in _CONSTRUCT:
                 self.construct(path, token, numbers, state.ctm)
             elif token in (b"W", b"W*"):
                 clip = "evenodd" if token == b"W*" else "nonzero"
-            elif token in (b"n", b"f", b"F", b"f*", b"S", b"s", b"B", b"B*", b"b", b"b*"):
-                if token in (b"s", b"b", b"b*") and path:
-                    path[-1].closed = True
-                self.paint(group, path, token, state)
-                if clip is not None:
-                    rings = tuple(self.fill_rings(path, state.ctm))
-                    state.clips = (*state.clips, (rings, clip))
+            elif token in _PAINT:
+                self.end_path(group, path, token, state, clip)
                 path, clip = [], None
-            elif token in (b"w", b"J", b"j", b"M"):
-                value = numbers[0]
-                if token == b"w":
-                    state.width = value
-                elif token == b"J":
-                    state.cap = int(value)
-                elif token == b"j":
-                    state.join = int(value)
-                else:
-                    state.miter = value
-            elif token == b"d":
-                state.dashed = any(numbers[:-1])
-            elif token in (b"rg", b"RG", b"g", b"G"):
-                rgb = (numbers[0],) * 3 if token in (b"g", b"G") else (numbers[0], numbers[1], numbers[2])
-                if token.islower():
-                    state.fill = rgb
-                else:
-                    state.stroke = rgb
-            elif token == b"gs":
-                self.graphics_state(resources["ExtGState"][operands[0][1:].decode()], state)
-            elif token == b"Do":
-                self.paint_group(group, resources["XObject"].get(operands[0][1:].decode()), state)
-            elif token not in _IGNORED:
+            elif token in (b"gs", b"Do"):
+                self.use_resource(group, resources, token, operands[0][1:].decode(), state)
+            elif not _set_state(state, token, numbers) and token not in _IGNORED:
                 raise Unsupported(token.decode("latin-1"))
             operands = []
+
+    def end_path(self, group: Group, path: list[_Subpath], token: bytes, state: _State, clip: str | None) -> None:
+        """Paint path as token says, then clip what follows to it when W or W* came before token."""
+        if token in (b"s", b"b", b"b*") and path:
+            path[-1].closed = True
+        self.paint(group, path, token, state)
+        if clip is not None:
+            rings = tuple(self.fill_rings(path, state.ctm))
+            state.clips = (*state.clips, (rings, clip))
 
     def construct(self, path: list[_Subpath], token: bytes, numbers: list[float], ctm: Matrix) -> None:
         if token == b"m":
@@ -230,6 +262,13 @@ class _Reader:
             if outline:
                 group.items.append(Shape(outline, "union", state.stroke_alpha, state.stroke, state.clips))
 
+    def use_resource(self, group: Group, resources: Any, token: bytes, name: str, state: _State) -> None:
+        """Apply the graphics state (gs) or paint the group (Do) that name stands for in resources."""
+        if token == b"gs":
+            self.graphics_state(resources["ExtGState"][name], state)
+        else:
+            self.paint_group(group, resources["XObject"].get(name), state)
+
     @staticmethod
     def graphics_state(values: Any, state: _State) -> None:
         for key, value in values.items():
@@ -244,12 +283,12 @@ class _Reader:
         extra = getattr(xobject, "extra", None) or {}
         if extra.get("Subtype") != "/Form":
             raise Unsupported("an image")
-        ctm = _concat(tuple(float(value) for value in extra.get("Matrix", IDENTITY)), state.ctm)  # type: ignore[arg-type]
-        # The group is clipped to its box, and starts with no clip, opacity or blend mode of its own
+        ctm = _concat(_matrix(extra.get("Matrix", IDENTITY)), state.ctm)
+        # The group is clipped to its box
         x0, y0, x1, y1 = (float(value) for value in extra["BBox"])
         box = [_apply(ctm, x, y) for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
         inner = Group(alpha=state.fill_alpha, clips=(*state.clips, ((box,), "nonzero")))
-        self.read(xobject, inner, replace(state, ctm=ctm, fill_alpha=1.0, stroke_alpha=1.0, clips=()))
+        self.read_content(xobject, inner, state.in_group(ctm))
         if inner.items:
             group.items.append(inner)
 
@@ -257,7 +296,7 @@ class _Reader:
 def read(stream: Any, flatness: float) -> Group:
     """The content drawn in stream, curves flattened to within about flatness in content space."""
     group = Group()
-    _Reader(flatness).read(stream, group, _State())
+    _Reader(flatness).read_content(stream, group, _State())
     return group
 
 
@@ -298,38 +337,56 @@ def _stroked(path: list[_Subpath], state: _State, flatness: float) -> Iterator[R
     for subpath in path:
         if len(subpath.points) == 1:
             continue  # a moveto alone paints nothing
-        points, smooth = [subpath.points[0]], [subpath.smooth[0]]
-        for point, turn in zip(subpath.points[1:], subpath.smooth[1:], strict=True):
-            if point != points[-1]:
-                points.append(point)
-                smooth.append(turn)
-        closed = subpath.closed and len(points) > 2
-        if closed and points[-1] == points[0]:
-            points.pop()
-            smooth.pop()
+        points, smooth, closed = _distinct(subpath)
         if len(points) == 1:
-            # A subpath of no length paints its caps only, along the x axis
-            (x, y), cap = points[0], state.cap
-            if cap == SQUARE:
-                yield [(x - half, y - half), (x + half, y - half), (x + half, y + half), (x - half, y + half)]
-            elif cap != BUTT:
-                yield _circle((x, y), half, flatness)
-            continue
-        count = len(points)
-        segments = [(points[i], points[(i + 1) % count]) for i in range(count if closed else count - 1)]
-        normals = []
-        for (x0, y0), (x1, y1) in segments:
-            length = math.dist((x0, y0), (x1, y1))
-            normals.append(((y0 - y1) / length * half, (x1 - x0) / length * half))
-        for ((x0, y0), (x1, y1)), (nx, ny) in zip(segments, normals, strict=True):
-            yield [(x0 + nx, y0 + ny), (x1 + nx, y1 + ny), (x1 - nx, y1 - ny), (x0 - nx, y0 - ny)]
-        corners = range(count) if closed else range(1, count - 1)
-        for i in corners:
-            before, after = normals[i - 1], normals[i % len(normals)]
-            yield from _join(points[i], before, after, BEVEL if smooth[i] else state.join, state.miter, half, flatness)
-        if not closed:
-            yield from _cap(points[0], normals[0], -1, state.cap, half, flatness)
-            yield from _cap(points[-1], normals[-1], 1, state.cap, half, flatness)
+            yield from _dot(points[0], state.cap, half, flatness)
+        else:
+            yield from _outline(points, smooth, closed, state, half, flatness)
+
+
+def _distinct(subpath: _Subpath) -> tuple[list[Point], list[bool], bool]:
+    """The points of subpath without repeats, their smoothness, and whether it is closed with an inside.
+
+    A closed subpath that ends on its start drops that last point: the join there closes it.
+    """
+    points, smooth = [subpath.points[0]], [subpath.smooth[0]]
+    for point, turn in zip(subpath.points[1:], subpath.smooth[1:], strict=True):
+        if point != points[-1]:
+            points.append(point)
+            smooth.append(turn)
+    closed = subpath.closed and len(points) > 2
+    if closed and points[-1] == points[0]:
+        points.pop()
+        smooth.pop()
+    return points, smooth, closed
+
+
+def _dot(point: Point, cap: int, half: float, flatness: float) -> Iterator[Ring]:
+    """A subpath of no length paints its caps only, along the x axis."""
+    x, y = point
+    if cap == SQUARE:
+        yield [(x - half, y - half), (x + half, y - half), (x + half, y + half), (x - half, y + half)]
+    elif cap != BUTT:
+        yield _circle(point, half, flatness)
+
+
+def _outline(points: list[Point], smooth: list[bool], closed: bool, state: _State, half: float, flatness: float) -> Iterator[Ring]:
+    """The stroke of a subpath of two points or more: a quad per segment, its joins, and caps at open ends."""
+    count = len(points)
+    segments = [(points[i], points[(i + 1) % count]) for i in range(count if closed else count - 1)]
+    normals = []
+    for (x0, y0), (x1, y1) in segments:
+        length = math.dist((x0, y0), (x1, y1))
+        normals.append(((y0 - y1) / length * half, (x1 - x0) / length * half))
+    for ((x0, y0), (x1, y1)), (nx, ny) in zip(segments, normals, strict=True):
+        yield [(x0 + nx, y0 + ny), (x1 + nx, y1 + ny), (x1 - nx, y1 - ny), (x0 - nx, y0 - ny)]
+    corners = range(count) if closed else range(1, count - 1)
+    for i in corners:
+        before, after = normals[i - 1], normals[i % len(normals)]
+        yield from _join(points[i], before, after, BEVEL if smooth[i] else state.join, state.miter, half, flatness)
+    if not closed:
+        yield from _cap(points[0], normals[0], -1, state.cap, half, flatness)
+        yield from _cap(points[-1], normals[-1], 1, state.cap, half, flatness)
 
 
 def _join(point: Point, before: Point, after: Point, join: int, limit: float, half: float, flatness: float) -> Iterator[Ring]:

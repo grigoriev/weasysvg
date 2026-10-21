@@ -27,6 +27,16 @@ def extent(shape: Shape) -> tuple[float, float, float, float]:
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def test_operators_split_into_tokens() -> None:
+    # Brackets and delimiters stand alone, a name ends at a delimiter, numbers take a sign, a leading or
+    # trailing dot and an exponent, and an operator ends where a number starts
+    content = SimpleNamespace(stream=[b"/a0 gs [1 2.5]0 d -.5 +3. 1e-05 2E+3cm 0.5g T* ' \" (x) <ab> -", "/n[ 7."])
+    assert list(coverage._tokens(content)) == [
+        *(b"/a0", b"gs", b"[", b"1", b"2.5", b"]", b"0", b"d", b"-.5", b"+3.", b"1e-05", b"2E+3", b"cm", b"0.5", b"g"),
+        *(b"T*", b"'", b'"', b"(", b"x", b")", b"<", b"ab", b">", b"-", b"/n", b"[", b"7."),
+    ]
+
+
 def test_paths_are_read_in_content_space() -> None:
     # cm moves the path, q and Q restore it; v and y repeat a control point; h then l starts a new subpath
     found = shapes("q", "1 0 0 2 10 0 cm", "0 0 m", "10 0 l", "10 10 l", "h", "0 10 l", "f", "Q", "0 0 m", "5 0 5 5 v", "0 5 0 0 y", "f*")

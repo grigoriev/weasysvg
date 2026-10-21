@@ -60,8 +60,10 @@ def test_the_patch_moves_no_dash(monkeypatch: pytest.MonkeyPatch) -> None:
     # Only the seam at the start point changes: the stroke spans 165 to 175, the patch 2.5 units around y 100
     assert box is not None
     left, top, right, bottom = box
-    assert left >= 164 * UNIT and right <= 176 * UNIT
-    assert top >= 97 * UNIT and bottom <= 103 * UNIT
+    assert left >= 164 * UNIT
+    assert right <= 176 * UNIT
+    assert top >= 97 * UNIT
+    assert bottom <= 103 * UNIT
 
 
 @pytest.mark.parametrize("cap", ["butt", "round"])

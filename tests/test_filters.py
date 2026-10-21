@@ -1278,8 +1278,12 @@ def test_a_blurred_group_mixes_its_colors() -> None:
     # half where they meet, and no seam in the alpha between them
     image = blurred_content('<rect x="60" y="60" width="40" height="80" fill="red"/><rect x="100" y="60" width="40" height="80" fill="blue"/>')
     left, right, middle = image.getpixel((112, 200)), image.getpixel((288, 200)), image.getpixel((200, 200))
-    assert left[0] == 255 and abs(left[1] - left[2]) <= 2 and 200 < left[1] < 230, left
-    assert right[2] == 255 and abs(right[0] - right[1]) <= 2 and 200 < right[0] < 230, right
+    assert left[0] == 255, left
+    assert abs(left[1] - left[2]) <= 2, left
+    assert 200 < left[1] < 230, left
+    assert right[2] == 255, right
+    assert abs(right[0] - right[1]) <= 2, right
+    assert 200 < right[0] < 230, right
     assert near(middle, (128, 0, 128), 12), middle
     assert all(sum(image.getpixel((x, 200))[:2]) <= 260 for x in range(190, 211))
 
