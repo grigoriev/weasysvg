@@ -199,8 +199,8 @@
  },
  {
   "name": "diagrams__mermaid-ink-gantt",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "close",
@@ -208,8 +208,8 @@
  },
  {
   "name": "diagrams__mermaid-ink-gitgraph",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "same",
@@ -236,7 +236,7 @@
  {
   "name": "diagrams__mermaid-ink-pie",
   "reference": "chromium",
-  "reference_why": "With Trebuchet MS resvg places the centered title about 4 px off; Chromium and the HarfBuzz layout of WeasyPrint agree.",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "close",
@@ -244,8 +244,8 @@
  },
  {
   "name": "diagrams__mermaid-ink-sequence",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "close",

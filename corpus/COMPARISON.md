@@ -11,7 +11,7 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | 🟡 close to the reference | 22 | 5 |
 | ❌ differs from the reference | 54 | 1 |
 
-References: Chromium 35, resvg 7, Chromium and resvg 72, an English browser 1.
+References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
@@ -335,7 +335,7 @@ References: Chromium 35, resvg 7, Chromium and resvg 72, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | 🟡 | WeasyPrint | **close to the reference** | The axis dates lose their year: 01-05 instead of 2014-01-05. |
 
@@ -349,7 +349,7 @@ References: Chromium 35, resvg 7, Chromium and resvg 72, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | ✅ | WeasyPrint | **matches the reference** | Matches. |
 
@@ -391,7 +391,7 @@ References: Chromium 35, resvg 7, Chromium and resvg 72, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium | With Trebuchet MS resvg places the centered title about 4 px off; Chromium and the HarfBuzz layout of WeasyPrint agree. |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | 🟡 | WeasyPrint | **close to the reference** | The title sits about 2 px lower; the rest matches. |
 
@@ -405,7 +405,7 @@ References: Chromium 35, resvg 7, Chromium and resvg 72, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | 🟡 | WeasyPrint | **close to the reference** | The text of the note sits about 2.5 px off to the side; the rest matches. |
 

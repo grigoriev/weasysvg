@@ -99,7 +99,7 @@ change between releases.
 
 The bench in [`tools/visual`](tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
 Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
-the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (72 SVGs), or an
+the resvg suite. Every SVG has a reference: Chromium, resvg, both where they agree (69 SVGs), or an
 English browser where headless Chromium matches no `systemLanguage`. For the resvg tests the expected
 image of the resvg suite decides between Chromium and resvg where they differ. `make review` compares the
 renderings at twice the resolution of the panels, in an 8 x 8 grid, and a look at each cell that differs
