@@ -45,6 +45,7 @@ RUN sed -i 's/^Components: main$/Components: main contrib/' /etc/apt/sources.lis
     && apt-get update \
     && apt-get install --yes --no-install-recommends ttf-mscorefonts-installer \
     && find /usr/share/fonts/truetype/msttcorefonts -type f ! -iname 'trebuc*' -delete \
+    && find /usr/share/fonts/truetype/msttcorefonts -xtype l -delete \
     && fc-cache --force \
     && test -n "$(fc-list "Trebuchet MS")" \
     && test "$(fc-match Helvetica family)" = "Liberation Sans" \
