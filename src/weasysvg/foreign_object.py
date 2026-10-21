@@ -339,8 +339,10 @@ def _element_to_box(*args: Any, **kwargs: Any) -> Any:
     found = _ORIGINAL_ELEMENT_TO_BOX(*args, **kwargs)
     if IN_FOREIGN_OBJECT.get():
         for box in found:
-            # In a flex or grid container an empty box is an item, which takes a cell or a gap: it stays
-            if isinstance(box, wp_boxes.ParentBox) and not ITEM_LAYOUTS.intersection(box.style["display"]):
+            # Only in a block container or an inline box: in a flex or grid container an empty box is an item,
+            # which takes a cell or a gap. Right in a table, a row group or a row WeasyPrint 70 gives it no cell,
+            # but a later version may, as Chromium does
+            if isinstance(box, (wp_boxes.BlockContainerBox, wp_boxes.InlineBox)) and not ITEM_LAYOUTS.intersection(box.style["display"]):
                 box.children = [child for child in box.children if not _plain_empty(child, box)]
     return found
 
