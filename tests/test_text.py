@@ -400,6 +400,15 @@ def test_a_font_without_outlines_has_no_ink() -> None:
     assert ink._extent("bitmaps", 10, 0, 1) is None
 
 
+def test_a_broken_font_has_no_vertical_origin() -> None:
+    # HarfBuzz may take a font fontTools cannot read: the glyph keeps the ascent of its layout
+    ink._FONTS["broken"] = (b"not a font", 0, 1000)
+    assert ink._vertical_origin("broken", 1) is None
+    path = Path(__file__).resolve().parents[1] / "corpus" / "fonts" / "MPLUS1p-Regular.ttf"
+    ink._FONTS["mplus"] = (path.read_bytes(), 0, 1000)
+    assert ink._vertical_origin("mplus", 10**6) is None
+
+
 def test_a_character_no_font_has_cuts_nothing() -> None:
     # The .notdef box of an unknown character is no glyph of the run: the underline stays whole
     pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">\U0010fffd</text>', height=100))
