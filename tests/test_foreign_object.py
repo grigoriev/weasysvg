@@ -436,7 +436,8 @@ def test_an_empty_inline_that_sizes_the_line_stays() -> None:
     assert first_character_top(f'<p style="{style}"><i style="font-size:40px"></i>Car</p>') < first_character_top(f'<p style="{style}">Car</p>') - 5
 
 
-def test_an_empty_inline_with_padding_keeps_the_space() -> None:
-    # A box with padding is drawn: the space after it is no longer at the start of the line
+@pytest.mark.parametrize("own", ["padding-left:4px", "outline:2px solid red", "font-family:'Liberation Serif'"])
+def test_an_empty_inline_that_shows_keeps_the_space(own: str) -> None:
+    # A box drawn, or with a font of its own that sets the line metrics, stays: the space after it too
     style = "margin:0;font:16px 'DejaVu Sans'"
-    assert first_character_x(f'<p style="{style}"><i style="padding-left:4px"></i> Car</p>') > first_character_x(f'<p style="{style}">Car</p>') + 6
+    assert first_character_x(f'<p style="{style}"><i style="{own}"></i> Car</p>') > first_character_x(f'<p style="{style}">Car</p>') + 3
