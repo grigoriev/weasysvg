@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 111 |
-| 🟡 close to the reference | 22 | 3 |
+| ✅ matches the reference | 39 | 108 |
+| 🟡 close to the reference | 22 | 6 |
 | ❌ differs from the reference | 54 | 0 |
 
 References: Chromium 39, resvg 7, Chromium and resvg 69.
@@ -70,7 +70,7 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg ignores the @font-face fonts the SVG embeds and falls back to a serif. |
-| ✅ | weasysvg | **matches the reference** | Matches, with the embedded fonts. |
+| 🟡 | weasysvg | **close to the reference** | Matches, with the embedded fonts, as Firefox draws it. Chromium on Linux widens the glyphs of the unhinted embedded fonts by 5 to 13 %, so its bold labels run wider; weasysvg keeps the advances of the font. |
 | ❌ | WeasyPrint | **differs from the reference** | Nothing but a black rectangle: the SVG is lost. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -84,7 +84,7 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg ignores the embedded @font-face fonts. |
-| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | weasysvg | **close to the reference** | Matches, as Firefox draws it. Chromium on Linux widens the glyphs of the unhinted embedded fonts, so its labels run a little wider; weasysvg keeps the advances of the font. |
 | ❌ | WeasyPrint | **differs from the reference** | Two black bars instead of the diagram. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -112,7 +112,7 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg ignores the embedded hand-drawn font. |
-| ✅ | weasysvg | **matches the reference** | Matches, hand-drawn font included. |
+| 🟡 | weasysvg | **close to the reference** | Matches, hand-drawn font included, as Firefox draws it. Chromium on Linux widens the glyphs of the unhinted embedded font, so its label runs a little wider; weasysvg keeps the advances of the font. |
 | 🟡 | WeasyPrint | **close to the reference** | Wider gap between the words. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -364,7 +364,7 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | The title has fill=&quot;&quot;, which browsers ignore: it takes #333 from the CSS of the root, as in Chromium. resvg draws it black. |
-| ✅ | weasysvg | **matches the reference** | Matches, the title sized 4ex from the x-height of the font, as in Chromium. |
+| 🟡 | weasysvg | **close to the reference** | Matches, as Safari and Firefox draw it: the title is 4ex from the x-height of Trebuchet MS, 33.5 px. Chromium on Linux takes the x-height of the hinted x, 9 px, and draws the title at 36 px. |
 | ❌ | WeasyPrint | **differs from the reference** | The title, with fill=&quot;&quot;, and the labels of the two sections are missing. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -506,7 +506,7 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg shows &#x27;Not supported by viewer&#x27; fallbacks. |
-| 🟡 | weasysvg | **close to the reference** | One AsciiMath label breaks its line at another word. |
+| 🟡 | weasysvg | **close to the reference** | One AsciiMath label too wide for its box breaks at another place: Chromium (ICU) after the hyphen of &#x27;b^2-4ac&#x27;, Pango after the slash. The rest matches. |
 | ❌ | WeasyPrint | **differs from the reference** | Fallback texts in place of the labels. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
@@ -664,7 +664,7 @@ References: Chromium 39, resvg 7, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium and resvg |  |
-| 🟡 | weasysvg | **close to the reference** | The shadow of the lens ring is darker and sharper than in Chromium: the ring is a filled shape thinner than two deviations, and the levels of a blur know only the nearest edge. |
+| ✅ | weasysvg | **matches the reference** | Matches: the shadows of the lens ring and of the map are soft, as in Chromium. |
 | ❌ | WeasyPrint | **differs from the reference** | No shadows, and the handle is a flat dark shape. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
