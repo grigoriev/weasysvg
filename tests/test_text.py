@@ -327,6 +327,29 @@ def test_a_line_all_under_ink_paints_no_empty_path(body: str) -> None:
     assert all(line.endswith((" re", " l", " c", " m", "h")) for line in painted)
 
 
+@pytest.mark.parametrize("attributes", ['x="10" textLength="140"', 'x="10 35 60 85"', 'x="10" textLength="60" lengthAdjust="spacingAndGlyphs"'])
+def test_text_laid_out_by_character_skips_ink_too(attributes: str) -> None:
+    # WeasyPrint lays out such text one character at a time: its glyphs still cut the underline, in two
+    # places when the letters are spread far enough apart
+    pdf = render(svg(f'<text y="60" font-size="40" text-decoration="underline" {attributes}>agya</text>', height=100))
+    assert len(line_pieces(pdf)) in (2, 3)
+
+
+def test_text_of_a_pattern_fill_cuts_no_underline() -> None:
+    # The pattern draws its own text while the underlined text sets its fill: only the letters of the
+    # underlined text cut the line
+    pattern = '<pattern id="p" width="200" height="100" patternUnits="userSpaceOnUse"><text x="70" y="30" font-size="30">g</text></pattern>'
+    plain = render(svg('<text x="10" y="60" font-size="40" textLength="140" text-decoration="underline">aaaa</text>', height=100))
+    filled = render(svg(f'<defs>{pattern}</defs><text x="10" y="60" font-size="40" textLength="140" text-decoration="underline" fill="url(#p)">aaaa</text>', height=100))
+    assert len(line_pieces(filled)) == len(line_pieces(plain)) == 1
+
+
+def test_rotated_characters_skip_no_ink() -> None:
+    # A turned glyph crosses the line at a slant: the line stays whole under it, as before
+    pdf = render(svg('<text x="10" y="60" font-size="40" text-decoration="underline" rotate="20">agya</text>', height=100))
+    assert len(line_pieces(pdf)) == 1
+
+
 def test_a_line_without_descenders_is_whole() -> None:
     assert len(line_pieces(render(svg('<text x="10" y="60" font-size="40" text-decoration="underline">Decor</text>', height=100)))) == 1
 

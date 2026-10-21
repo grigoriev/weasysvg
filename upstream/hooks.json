@@ -95,7 +95,7 @@
   },
   "weasyprint.svg.text:text": {
    "fingerprint": "388f5046ffe009d3",
-   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge"
+   "used_by": "text._draw_run, textpath, vertical repeat its positioning; text.chunk_boxes undoes its box merge; text.recorded_draw_first_line reads the matrix it passes for each character"
   },
   "weasyprint.svg.text:TextBox": {
    "fingerprint": "af3cf2f8fbba9a1c",
@@ -147,7 +147,7 @@
   },
   "weasyprint.draw.text:draw_first_line": {
    "fingerprint": "7669a3733dcd8597",
-   "used_by": "glyphs.show, text._draw_run; text.carried_shifts moves the shifts of its TJ arrays; ink.run_glyphs places glyphs as it does"
+   "used_by": "glyphs.show, text._draw_run; text.carried_shifts moves the shifts of its TJ arrays; ink.run_glyphs places glyphs as it does; text.recorded_draw_first_line wraps it for the whole process"
   },
   "weasyprint.text.fonts:get_pango_font_key": {
    "fingerprint": "e9145b8544aeaf67",

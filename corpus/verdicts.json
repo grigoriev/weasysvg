@@ -120,8 +120,8 @@
   "name": "diagrams__kroki-plantuml-activity",
   "reference": "chromium",
   "reference_why": "resvg draws the underline under 'waiting' through the descenders; Chromium skips their ink.",
-  "verdict": "close",
-  "what": "The underline under 'waiting' runs whole: the text has a textLength, so it is laid out character by character and skips no ink. Chromium cuts it under each glyph.",
+  "verdict": "same",
+  "what": "Matches, the underlined word included: its glyphs cut the line as in Chromium.",
   "native_verdict": "close",
   "native_what": "The underline under 'waiting' is missing."
  },
