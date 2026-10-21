@@ -24,13 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A visual regression corpus of 115 SVGs with Chromium and resvg references, and a bench that
   compares weasysvg with Chromium.
 - `corpus/COMPARISON.md` and the interactive `corpus/comparison.html` on GitHub Pages: every corpus SVG
-  in Chromium, resvg, WeasyPrint alone and with weasysvg.
+  in Chromium, resvg, WeasyPrint alone and with weasysvg, each panel at 2x as lossless WebP, sharp when zoomed.
 - Each corpus SVG names its reference (Chromium, resvg, both, or an English browser). The verdicts say
   whether a rendering is better than it, matches it, comes close or differs, and what differs, in a
   table with an icon per status. The comparison page shows the SVG in your own browser too, and a swipe
   between any two renderers.
 - `make review`: the renderings of each corpus SVG compared region by region at twice the resolution of the
-  panels, with sheets of the cells that differ, to judge the verdicts at full size.
+  references, with sheets of the cells that differ, to judge the verdicts at full size.
 - The visual image has Trebuchet MS, the first font of Mermaid, as Safari has it: Mermaid labels fit their
   boxes in the references.
 - `corpus/fonts`: the fonts the resvg tests ask for. The references, weasysvg, resvg and the browser panel of the comparison page all use them.

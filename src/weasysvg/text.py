@@ -560,9 +560,8 @@ def recorded_draw_first_line(stream: Any, textbox: Any, text_overflow: Any, bloc
     emojis = _ORIGINAL_DRAW_FIRST_LINE(stream, textbox, text_overflow, block_ellipsis, matrix)
     recording = _RECORDED.get()
     if recording is not None and recording[0] is stream and matrix[0][1] == 0 and matrix[1][0] == 0:
-        found = recording[1]
         scale_x, x = matrix[0][0], matrix[2][0]
-        found += [replace(glyph, x=x + scale_x * glyph.x, stretch=scale_x) for glyph in ink.run_glyphs(textbox.pango_layout.get_first_line()[0], 0)]
+        recording[1].extend(replace(glyph, x=x + scale_x * glyph.x, stretch=scale_x) for glyph in ink.run_glyphs(textbox.pango_layout.get_first_line()[0], 0))
     return emojis
 
 

@@ -1,9 +1,10 @@
-"""Compare the renderings of each corpus SVG region by region, at twice the resolution of the panels.
+"""Compare the renderings of each corpus SVG region by region, at twice the resolution of the references.
 
 Usage: review.py [--only TEXT] [--grid N] [--scale N]
 
 Run make visual-baseline first: it writes the PDFs of weasysvg and of WeasyPrint alone. The PDFs of
-Chromium are printed here when tools/visual/out/chromium lacks them, as make references prints them.
+Chromium are printed here, as make references prints them, when tools/visual/out/chromium lacks them or
+holds one that no longer prints its reference.
 
 Every rendering is drawn at --scale times 96 dpi and cropped to the box of the Chromium panel: Chromium,
 WeasyPrint and weasysvg from their PDFs through PDFium, resvg at the scaled width, and for the resvg tests
@@ -36,7 +37,7 @@ from typing import Any
 
 import numpy as np
 import resvg_py
-from comparison import in_px, inside
+from comparison import in_px, inside, stale
 from imaging import ink_box, raster
 from PIL import Image, ImageDraw
 
@@ -216,7 +217,7 @@ def main() -> None:
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     items = [item for item in json.loads((CORPUS / "index.json").read_text()) if args.only in item["name"]]
-    missing = [item for item in items if not (PDFS["chromium"] / f"{item['name']}.pdf").exists()]
+    missing = [item for item in items if item.get("reference_box") and stale(item)]
     if missing:
         from make_references import print_pdfs
 
