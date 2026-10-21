@@ -310,7 +310,7 @@
   "reference": "chromium",
   "reference_why": "resvg shows 'Not supported by viewer' fallbacks.",
   "verdict": "close",
-  "what": "One AsciiMath label breaks its line at another word.",
+  "what": "One AsciiMath label too wide for its box breaks at another place: Chromium (ICU) after the hyphen of 'b^2-4ac', Pango after the slash. The rest matches.",
   "native_verdict": "differs",
   "native_what": "Fallback texts in place of the labels."
  },
