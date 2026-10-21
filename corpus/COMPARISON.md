@@ -2,7 +2,7 @@
 
 <!-- Written by make comparison (tools/visual/comparison.py). Do not edit by hand. -->
 
-Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); WeasyPrint 70.0 alone; and WeasyPrint 70.0 with weasysvg. The Chromium and WeasyPrint panels are PDFium rasterizations at 192 dpi, 2x the CSS px; resvg renders the SVG at 2x the width of the page. Every panel is cropped to the ink of the Chromium panel, so the four line up pixel for pixel. Each SVG has a reference: Chromium, resvg, both, or an English browser where headless Chromium matches no language. The verdicts compare weasysvg and WeasyPrint with that reference; they come from a visual review at full size, see [`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large panels, your own browser and a swipe between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.
+Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); WeasyPrint 70.0 alone; and WeasyPrint 70.0 with weasysvg. The Chromium and WeasyPrint panels are PDFium rasterizations at 192 dpi, 2x the CSS px; resvg renders the SVG at 2x the width of the page. Every panel is cropped to the ink of the Chromium panel, so the four line up pixel for pixel. Each SVG has a reference: Chromium, resvg or both. The verdicts compare weasysvg and WeasyPrint with that reference; they come from a visual review at full size, see [`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large panels, your own browser and a swipe between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.
 
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
@@ -11,7 +11,7 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | 🟡 close to the reference | 22 | 3 |
 | ❌ differs from the reference | 54 | 0 |
 
-References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
+References: Chromium 39, resvg 7, Chromium and resvg 69.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
@@ -551,8 +551,8 @@ References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | an English browser | Chromium of the references ran with no English language: the switch has no fallback child, so it drew no title. An English browser shows Raster and Vector, as weasysvg does (see the browser panel). |
-| ✅ | weasysvg | **matches the reference** | Matches an English browser: Raster and Vector titles. |
+| 📌 | Reference | Chromium | resvg draws no Raster and Vector titles. |
+| ✅ | weasysvg | **matches the reference** | Matches: Raster and Vector titles. |
 | ❌ | WeasyPrint | **differs from the reference** | All translations of the titles are drawn on top of each other. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

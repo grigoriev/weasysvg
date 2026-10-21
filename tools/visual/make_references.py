@@ -33,7 +33,9 @@ async def print_pdfs(items: list[dict[str, Any]]) -> str:
     """Print every item with Chromium into PDFS; returns the version of Chromium."""
     PDFS.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch()
+        # systemLanguage matches the Accept-Language list alone, and exactly: "en-US" misses systemLanguage="en".
+        # A desktop Chrome in English sends "en-US,en"; headless sends "en-US", whatever the locale
+        browser = await playwright.chromium.launch(args=["--accept-lang=en-US,en"])
         context = await browser.new_context(locale="en-US")
         tab = await context.new_page()
         for item in items:

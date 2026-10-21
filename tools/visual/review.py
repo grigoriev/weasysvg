@@ -184,7 +184,7 @@ def sheet(images: dict[str, Image.Image], reference: str, bad: list[tuple[int, i
 
 
 def references(reference: str, images: dict[str, Image.Image]) -> list[str]:
-    """The renderings weasysvg is judged against: both for "both", Chromium for "browser"."""
+    """The renderings weasysvg is judged against: both for "both"."""
     keys = {"both": ["chromium", "resvg"], "resvg": ["resvg"]}.get(reference, ["chromium"])
     return [key for key in keys if key in images] or ["chromium"]
 

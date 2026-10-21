@@ -51,8 +51,8 @@ GROUPS = {
 VERDICTS = ("better", "same", "close", "differs")
 LABELS = {"better": "better than the reference", "same": "matches the reference", "close": "close to the reference", "differs": "differs from the reference"}
 ICONS = {"better": "⬆️", "same": "✅", "close": "🟡", "differs": "❌"}
-# The reference of an SVG: the renderer, or both, judged right for it; "browser" is an English desktop browser
-REFERENCES = {"chromium": "Chromium", "resvg": "resvg", "both": "Chromium and resvg", "browser": "an English browser"}
+# The reference of an SVG: the renderer, or both, judged right for it
+REFERENCES = {"chromium": "Chromium", "resvg": "resvg", "both": "Chromium and resvg"}
 COLUMNS = (("Chromium", "render/chromium"), ("resvg", "render/resvg"), ("WeasyPrint", "render/weasyprint"), ("weasysvg", "render/weasysvg"))
 # The PDFs of each rendering: make references prints Chromium, make comparison runs the bench
 VISUAL = ROOT / "tools" / "visual" / "out"
@@ -229,8 +229,8 @@ def page(resvg_errors: dict[str, str]) -> str:
         f"Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py {resvg_version}); "
         f"WeasyPrint {version} alone; and WeasyPrint {version} with weasysvg. The Chromium and WeasyPrint panels are "
         f"PDFium rasterizations at {METRIC_DPI * SCALE} dpi, {SCALE}x the CSS px; resvg renders the SVG at {SCALE}x the width of the page. Every panel is cropped to the "
-        "ink of the Chromium panel, so the four line up pixel for pixel. Each SVG has a reference: Chromium, resvg, both, or an "
-        "English browser where headless Chromium matches no language. The verdicts compare weasysvg and WeasyPrint with that "
+        "ink of the Chromium panel, so the four line up pixel for pixel. Each SVG has a reference: Chromium, resvg or both. "
+        "The verdicts compare weasysvg and WeasyPrint with that "
         "reference; they come from a visual review at full size, see "
         "[`verdicts.json`](verdicts.json). Click a panel for its full size. The interactive page, with large "
         "panels, your own browser and a swipe between renderers: <https://grigoriev.github.io/weasysvg/corpus/comparison.html>.\n\n"
