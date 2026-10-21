@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   label read "Don".
 - Text in a `<foreignObject>` sits on the line where Chromium and Safari put it: Blink rounds the font
   metrics to whole px and paints the baseline on a whole px. Mermaid labels sat up to 1 px lower.
+- The noise of `feTurbulence` is computed at 2 px per CSS px: at 1 it came out blurred once printed or
+  viewed at 2x.
+- A blurred rect leaves no seam where its blurred edges meet its middle.
+- The space that ends a text moves no anchor: `text-anchor="end"` put the text a space too far left.
+- A wide arc in path data is drawn as curves of at most 90 degrees: WeasyPrint drew a half circle as one
+  curve, which bulged the band of the flag of Brazil.
 
 ## [0.1.0] - 2026-10-21
 

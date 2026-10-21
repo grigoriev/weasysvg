@@ -8,6 +8,8 @@ import re
 from types import SimpleNamespace
 from typing import Any, cast
 
+import pypdfium2 as pdfium
+import pypdfium2.raw as pdfium_c
 import pytest
 from helpers import RecordingStream, content, pixel, rasterize, render, streams, svg
 from PIL import ImageStat
@@ -896,7 +898,7 @@ def test_pixel_work_is_bounded_per_svg(monkeypatch: pytest.MonkeyPatch, caplog: 
 
 def test_pixel_work_is_counted_once_per_image(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     # The same noise and recolor in many elements are computed once
-    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 120_000)
     shapes = "".join(f'<rect x="{x}" y="20" width="10" height="10" filter="url(#f)"/>' for x in range(0, 200, 20))
     primitives = '<feTurbulence baseFrequency="0.05"/><feColorMatrix type="saturate" values="0"/>'
     body = f'<defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">{primitives}</filter></defs>{shapes}'
@@ -907,7 +909,7 @@ def test_pixel_work_is_counted_once_per_image(monkeypatch: pytest.MonkeyPatch, c
 
 def test_a_recolored_silhouette_is_computed_once(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     # Each draw evaluates the chain again: the silhouette must be the same image, or its recolor counts again
-    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 30_000)
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 120_000)
     shapes = "".join(f'<rect x="{x}" y="20" width="10" height="10" filter="url(#f)"/>' for x in range(0, 200, 20))
     primitives = '<feTurbulence baseFrequency="0.05" result="t"/><feFlood flood-color="blue"/><feComposite in2="t" operator="in"/><feColorMatrix type="saturate" values="0"/>'
     body = f'<defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="60">{primitives}</filter></defs>{shapes}'
@@ -1005,3 +1007,10 @@ def test_a_blurred_rect_has_no_seam_where_its_edges_meet_its_middle() -> None:
         # The shadow changes smoothly there: no pixel lighter than both of its neighbors
         spikes = [middle - max(before, after) for before, middle, after in zip(line, line[1:], line[2:], strict=False)]
         assert max(spikes) <= 2, line
+
+
+def test_turbulence_is_computed_at_twice_the_css_resolution() -> None:
+    # Noise upscaled from one pixel per CSS px blurs at print resolution
+    document = pdfium.PdfDocument(render(filtered('<feTurbulence baseFrequency="0.05"/>')))
+    found = document[0].get_objects(filter=[pdfium_c.FPDF_PAGEOBJ_IMAGE], max_depth=50)
+    assert [picture.get_px_size() for picture in found] == [(2 * 72, 2 * 48)]

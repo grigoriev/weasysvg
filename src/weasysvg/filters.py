@@ -421,6 +421,8 @@ def recolored(rgba: Any, functions: tuple[Recolor, ...]) -> Any:
     return rgba.__class__("srgb", value[:3], value[3])
 
 
+# Pixels of noise per CSS px: one per px blurs once printed or viewed at 2x, as Chromium draws it there
+TURBULENCE_PX_PER_CSS_PX = 2
 # The pure-Python pixel work one SVG may cost: turbulence pixels times octaves, plus recolored pixels
 MAX_PIXEL_WORK = 2_000_000
 
@@ -527,7 +529,7 @@ def _fe_turbulence(chain: _Chain, child: Any) -> list[Layer]:
     )
     if region[2] <= 0 or region[3] <= 0:
         return []
-    scale, linear = _core.px_per_unit(chain.svg), _linear_space(chain, child)
+    scale, linear = _core.px_per_unit(chain.svg) * TURBULENCE_PX_PER_CSS_PX, _linear_space(chain, child)
     columns, rows = turbulence.size(region, scale)
     image = _computed(chain.svg, ("turbulence", spec, region, scale, linear), columns * rows * max(spec.octaves, 1), lambda: turbulence.image(spec, region, scale, linear))
     return [Layer("image", region=region, image=image)]
