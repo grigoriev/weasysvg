@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from fontTools.pens.basePen import BasePen
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.ttLib import TTFont
 from weasyprint.text.ffi import FROM_UNITS, ffi, harfbuzz, pango
 from weasyprint.text.fonts import get_hb_object_data, get_pango_font_hb_face, get_pango_font_key
@@ -184,6 +185,42 @@ def intercepts(glyphs: list[Glyph], top: float, bottom: float) -> list[tuple[flo
             across = glyph.scale * glyph.stretch
             out.append((glyph.x + extent[0] * across, glyph.x + extent[1] * across))
     return out
+
+
+def vertical_origin_in_units(font: Any, name: str) -> float | None:
+    """How far above the baseline the vertical origin of a glyph lies, in font units, as HarfBuzz and Chromium take it.
+
+    VORG gives it, else vmtx: the top side bearing over the top of the glyph. None for a font with neither.
+    """
+    if "VORG" in font:
+        table = font["VORG"]
+        return float(table.VOriginRecords.get(name, table.defaultVertOriginY))
+    if "vmtx" not in font:
+        return None
+    glyph_set = font.getGlyphSet()
+    pen = BoundsPen(glyph_set)
+    glyph_set[name].draw(pen)
+    top = pen.bounds[3] if pen.bounds else 0  # an empty glyph has its top at the baseline
+    return float(font["vmtx"][name][1] + top)
+
+
+@functools.lru_cache(maxsize=4096)
+def _vertical_origin(key: str, glyph: int) -> float | None:
+    try:
+        font = _font(key)
+        order = font.getGlyphOrder()
+        return vertical_origin_in_units(font, order[glyph]) if glyph < len(order) else None
+    except Exception:  # fontTools raises errors of many kinds on a broken table
+        return None
+
+
+def vertical_origin(line: Any) -> float | None:
+    """How far above the baseline the vertical origin of the first glyph of a Pango line lies, in user units."""
+    found = run_glyphs(line, 0)
+    if not found:
+        return None
+    units = _vertical_origin(found[0].font, found[0].index)
+    return None if units is None else units * found[0].scale
 
 
 def skipped(start: float, end: float, cuts: list[tuple[float, float]], dilation: float) -> list[tuple[float, float]]:

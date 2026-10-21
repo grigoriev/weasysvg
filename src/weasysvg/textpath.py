@@ -164,4 +164,4 @@ def draw(svg: Any, node: Any, font_size: float, state: _State, style: Any, advan
 
 
 def _fixed(origin: tuple[float, float], angle: float) -> glyphs.Place:
-    return lambda _height, _baseline: (origin, angle)
+    return lambda _height, _baseline, _line: (origin, angle)

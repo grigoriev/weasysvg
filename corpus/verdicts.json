@@ -1028,9 +1028,9 @@
  {
   "name": "resvg__text-writing-mode--tb-with-rotate",
   "reference": "resvg",
-  "reference_why": "The test is undefined behavior; the resvg suite shows its expected result.",
-  "verdict": "close",
-  "what": "The Arabic word joins and runs from its last letter down, as in the suite, but its letters are laid out one at a time: without the cursive attachment of Amiri it runs about 10 px longer.",
+  "reference_why": "The test is undefined behavior; resvg draws what the suite expects. The suite PNG comes from an older resvg and draws the Arabic word shorter.",
+  "verdict": "same",
+  "what": "Matches resvg: CJK hangs from its vertical origin and turns about it, Latin and Arabic turn about their own origins.",
   "native_verdict": "differs",
   "native_what": "Laid out horizontally."
  }

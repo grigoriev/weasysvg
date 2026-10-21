@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 110 |
-| 🟡 close to the reference | 22 | 4 |
+| ✅ matches the reference | 39 | 111 |
+| 🟡 close to the reference | 22 | 3 |
 | ❌ differs from the reference | 54 | 0 |
 
 References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
@@ -1631,8 +1631,8 @@ References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | resvg | The test is undefined behavior; the resvg suite shows its expected result. |
-| 🟡 | weasysvg | **close to the reference** | The Arabic word joins and runs from its last letter down, as in the suite, but its letters are laid out one at a time: without the cursive attachment of Amiri it runs about 10 px longer. |
+| 📌 | Reference | resvg | The test is undefined behavior; resvg draws what the suite expects. The suite PNG comes from an older resvg and draws the Arabic word shorter. |
+| ✅ | weasysvg | **matches the reference** | Matches resvg: CJK hangs from its vertical origin and turns about it, Latin and Arabic turn about their own origins. |
 | ❌ | WeasyPrint | **differs from the reference** | Laid out horizontally. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |

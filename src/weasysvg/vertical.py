@@ -18,7 +18,7 @@ from typing import Any
 
 from weasyprint.svg import utils as wp_utils
 
-from . import glyphs
+from . import glyphs, ink
 from .textpath import ANCHOR
 
 MODES = frozenset(("tb", "tb-rl", "vertical-rl", "vertical-lr"))
@@ -122,12 +122,17 @@ def _numbers(node: Any, name: str, font_size: float, reference: float) -> list[f
 
 
 def _place(character: str, width: float, x: float, y: float, angle: float) -> glyphs.Place:
-    """Upright: the top of the em box at y, centered on x. Sideways: turned clockwise, the middle of
-    the em box on x, the start of the glyph at y."""
+    """Upright: the vertical origin of the glyph at x, y, the middle of the top of its em box. Sideways:
+    turned clockwise, the middle of the em box on x, the start of the glyph at y. rotate turns each about
+    that point, as resvg does."""
 
-    def place(height: float, baseline: float) -> tuple[tuple[float, float], float]:
+    def place(height: float, baseline: float, line: Any) -> tuple[tuple[float, float], float]:
         if upright(character):
-            return (x - width / 2, y + baseline), angle
+            # From VORG or vmtx, as HarfBuzz and Chromium take it; a font without either keeps its ascent
+            top = ink.vertical_origin(line)
+            rise = baseline if top is None else top
+            cos, sin = math.cos(angle), math.sin(angle)
+            return (x - width / 2 * cos - rise * sin, y - width / 2 * sin + rise * cos), angle
         descent = height - baseline
         return (x - (baseline - descent) / 2, y), angle + math.pi / 2
 
