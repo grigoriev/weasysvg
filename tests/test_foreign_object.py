@@ -413,6 +413,16 @@ def test_a_label_sized_to_its_content_ignores_the_space_too() -> None:
     assert first_character_x(label("<i></i> Car")) == pytest.approx(first_character_x(label("Car")))
 
 
+def test_an_empty_inline_of_a_face_with_other_metrics_stays(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A bold or italic face may come with other metrics: then the box shapes the line, and stays
+    metrics = iter([(14.0, 4.0), (15.0, 4.0)])
+    monkeypatch.setattr(foreign_object, "_line_metrics", lambda _style: next(metrics))
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    kept = first_character_x(f'<p style="{style}"><i></i> Car</p>')
+    monkeypatch.undo()
+    assert kept > first_character_x(f'<p style="{style}">Car</p>') + 3
+
+
 def test_an_empty_inline_with_auto_margins_is_dropped_too() -> None:
     style = "margin:0;font:16px 'DejaVu Sans'"
     assert first_character_x(f'<p style="{style}"><i style="margin-left:auto"></i> Car</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car</p>'))

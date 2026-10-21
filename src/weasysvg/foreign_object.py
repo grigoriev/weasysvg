@@ -305,24 +305,27 @@ def _table_layout(*args: Any, **kwargs: Any) -> Any:
 
 _ORIGINAL_ELEMENT_TO_BOX = wp_build.element_to_box
 SIDES = ("top", "right", "bottom", "left")
-# What an empty inline box brings to the height and baseline of its line. Not its font style or weight:
-# the faces of a family share their line metrics, and <i> and <b> would never go
-LINE_SHAPING = ("font_family", "font_size", "line_height", "vertical_align")
+# What an empty inline box brings to the height and baseline of its line, besides the metrics of its font
+LINE_SHAPING = ("font_size", "line_height", "vertical_align")
+METRIC_TOLERANCE = 0.01  # px
 
 
 def _plain_empty(box: Any, parent: Any) -> bool:
     """Whether box is an inline box with nothing in it, nothing drawn, and the line box of its parent.
 
     White space ignores such a box. An auto margin of an inline box is 0. A box with an outline or a shadow is drawn, and
-    a box of another font or line height, or another vertical alignment, still shapes the line: both stay.
+    a box whose font has other metrics, or of another line height or vertical alignment, still shapes the
+    line: both stay.
     """
     if type(box) is not wp_boxes.InlineBox or box.children:
         return False
     style = box.style
     drawn = style["outline_width"] or style["box_shadow"] or any(style[f"border_{side}_width"] or style[f"padding_{side}"].value for side in SIDES)
     spaced = any(style[f"margin_{side}"] != "auto" and style[f"margin_{side}"].value for side in SIDES)
-    shaping = any(style[key] != parent.style[key] for key in LINE_SHAPING)
-    return not (drawn or spaced or shaping)
+    if drawn or spaced or any(style[key] != parent.style[key] for key in LINE_SHAPING):
+        return False
+    # Another face, of another family or not, may bring other metrics: <i> and <b> mostly do not
+    return all(abs(mine - theirs) < METRIC_TOLERANCE for mine, theirs in zip(_line_metrics(style), _line_metrics(parent.style), strict=True))
 
 
 def _element_to_box(*args: Any, **kwargs: Any) -> Any:
@@ -347,18 +350,22 @@ CORNERS = ("top_left", "top_right", "bottom_right", "bottom_left")
 MARKER_PADDING = 7  # px, kCMarkerPaddingPx of Blink
 
 
-def _ascent(style: Any) -> int:
-    """The ascent of the first font of style, in whole px as Chromium counts it."""
+def _line_metrics(style: Any) -> tuple[float, float]:
+    """The ascent and descent of the first font of style, in px."""
     layout = Layout(style)
     try:
         layout.set_text("x")
         line, _ = layout.get_first_line()
         logical = ffi.new("PangoRectangle *")
         pango.pango_layout_line_get_extents(line, ffi.NULL, logical)
-        ascent: int = round(-logical.y * FROM_UNITS)
-        return ascent
+        return -logical.y * FROM_UNITS, (logical.height + logical.y) * FROM_UNITS
     finally:
         layout.deactivate()
+
+
+def _ascent(style: Any) -> int:
+    """The ascent of the first font of style, in whole px as Chromium counts it."""
+    return round(_line_metrics(style)[0])
 
 
 def _symbol_marker(marker: Any, kind: str) -> None:
