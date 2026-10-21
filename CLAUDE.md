@@ -49,10 +49,13 @@ once.
   WeasyPrint document (one page each), draws each page into the SVG stream. Also patches
   `layout.block.table_layout` inside a foreignObject, and `layout.inline.strut` and `split_text_box`: lines take
   the font metrics rounded to whole px as Blink does, and each baseline lands on a whole px of the HTML.
-- `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask built in
-  levels: the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
+- `filters.py`: evaluates a filter chain into vector layers. A blur is a luminosity soft mask: axial
+  shadings for a plain rect, the mesh of `shapeblur.py` for another filled shape, else built in levels:
+  the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
   and transfer functions recolor every parsed color (`RECOLOR`). feComposite arithmetic with a constant
   input is a recolor too. `turbulence.py` computes the noise of feTurbulence as an image layer.
+- `shapeblur.py`: the blur of one filled shape from its coverage, sampled on a grid and blurred with Pillow;
+  `filters.py` draws the grid as a lattice mesh shading (type 5) in the mask and paints the whole region.
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
 - `pathdata.py`: path data as segments with tangents and points along them.
 - `paint_order.py`: `paint-order` and translucent strokes. `fill_stroke` paints the path left in the stream once

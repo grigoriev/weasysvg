@@ -29,13 +29,15 @@ import hashlib
 import logging
 import math
 import re
+import zlib
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from statistics import NormalDist
 from typing import Any, cast
 
-from PIL import Image, ImageFilter
+import pydyf
+from PIL import Image, ImageChops, ImageFilter
 from weasyprint import svg as wp_svg
 from weasyprint.images import RasterImage
 from weasyprint.svg import defs as wp_defs
@@ -43,7 +45,7 @@ from weasyprint.svg import utils as wp_utils
 from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, color, parse_url, size
 
-from . import _core, turbulence
+from . import _core, shapeblur, turbulence
 
 LOGGER = logging.getLogger("weasysvg")
 Region = tuple[float, float, float, float]
@@ -996,8 +998,10 @@ def _draw_image(stream: Any, layer: Layer, sigma: float) -> None:
 
 # ---------------- rectangles blurred exactly ----------------
 
-# Samples of the blurred profile across each edge of a rectangle, 4 deviations to each side
-EDGE_SAMPLES = 32
+# The blurred profile across each edge of a rectangle reaches 4 deviations to each side. Each shading spans
+# one deviation in 8 linear pieces: PDFium looks a shading up in 256 steps along its whole axis, which over
+# 8 deviations lagged the profile by up to 5 levels, in runs of one slope that showed as bands.
+EDGE_SAMPLES = 9
 EDGE_REACH = 4
 
 
@@ -1033,14 +1037,14 @@ def _profile_shading(stream: Any, samples: list[tuple[float, float]], vertical: 
     pieces = [stream.create_interpolation_function((0, 1), [a], [b], 1) for (_, a), (_, b) in zip(samples, samples[1:], strict=False)]
     function = stream.create_stitching_function((low, high), [0, 1] * len(pieces), [t for t, _ in samples[1:-1]], pieces)
     coords = (0, low, 0, high) if vertical else (low, 0, high, 0)
-    return stream.add_shading(2, (low, high), coords, False, function, "DeviceGray")
+    return stream.add_shading(2, (low, high), coords, True, function, "DeviceGray")
 
 
 def _axis_group(stream: Any, start: float, end: float, sigma: float, vertical: bool, box: Region) -> Any:
     """A group over box in gray: the coverage of [start, end] along one axis, constant along the other.
 
-    Each blurred edge is a shading of its own over 4 deviations to each side: PDFium samples a shading
-    in 256 steps, which over a whole wide rect would move its edges by whole units.
+    Each blurred edge is a run of shadings over 4 deviations to each side: PDFium samples a shading in
+    256 steps, which over a whole wide rect would move its edges by whole units.
     """
     group = stream.add_group(*box)
     left, top, width, height = box
@@ -1061,12 +1065,18 @@ def _axis_group(stream: Any, start: float, end: float, sigma: float, vertical: b
         group.rectangle(*strip(start, end))
         group.fill()
     for low, high in spans if sigma else []:
-        group.push_state()
-        group.rectangle(*strip(low, high))
-        group.clip()
-        group.end()
-        group.paint_shading(_profile_shading(group, _profile(start, end, sigma, low, high), vertical).id)
-        group.pop_state()
+        pieces = math.ceil((high - low) / sigma - 1e-9)
+        for k in range(pieces):
+            first = low + (high - low) * k / pieces
+            last = low + (high - low) * (k + 1) / pieces
+            # Each shading pads its last value up to the end of the span, and the next one paints over it from
+            # where it starts: no device pixel between two of them stays unpainted
+            group.push_state()
+            group.rectangle(*strip(first, high))
+            group.clip()
+            group.end()
+            group.paint_shading(_profile_shading(group, _profile(start, end, sigma, first, last), vertical).id)
+            group.pop_state()
     return group
 
 
@@ -1084,23 +1094,142 @@ def _rect_blur_mask(svg: Any, rect: Region, blur: tuple[float, float], box: Regi
     mask.draw_x_object(_axis_group(mask, y, y + height, blur[1], True, box).id)
 
 
-def _blurred_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, sigma: float, box: Region) -> None:
-    """The blur mask of node: exact for a plain rect, the levels of _blur_mask for anything else."""
+def _charge(svg: Any, cost: int) -> bool:
+    """Count cost against MAX_PIXEL_WORK; False when the budget of the SVG is spent."""
+    pixels: _Pixels = svg.__dict__.setdefault("_weasysvg_pixels", _Pixels())
+    if pixels.work + cost > MAX_PIXEL_WORK:
+        return False
+    pixels.work += cost
+    return True
+
+
+def _mesh_shading(stream: Any, grid: shapeblur.Field, values: Image.Image) -> Any:
+    """A lattice of Gouraud shaded triangles in gray through the samples of grid (shading type 5).
+
+    Each vertex is its column and row as 16 bit coordinates, which Decode maps onto the centers of the
+    cells, and its gray as one byte.
+    """
+    width, height = grid.width, grid.height
+    columns = bytes(x >> 8 for x in range(width)), bytes(x & 255 for x in range(width))
+    (x, y), (dx, dy) = grid.first, grid.cell
+    top = shapeblur.MAX_SIDE - 1
+    extra = pydyf.Dictionary(
+        {
+            "ShadingType": 5,
+            "ColorSpace": "/DeviceGray",
+            "BitsPerCoordinate": 16,
+            "BitsPerComponent": 8,
+            "VerticesPerRow": width,
+            "Decode": pydyf.Array((x, x + top * dx, y, y + top * dy, 0, 1)),
+        }
+    )
+    if stream.compress:
+        # Each row as its difference from the row above (the PNG predictor Up): the coordinates repeat and
+        # the gray changes little, which Flate packs some ten times tighter than the vertices themselves
+        above = Image.new("L", values.size)
+        above.paste(values.crop((0, 0, width, height - 1)), (0, 1))
+        grays = ImageChops.subtract_modulo(values, above).tobytes()
+        data = bytearray((1 + 5 * width) * height)
+        for row in range(height):
+            first = row * (1 + 5 * width)
+            data[first] = 2  # Up
+            start, end = first + 1, first + 1 + 5 * width
+            if row == 0:
+                data[start:end:5], data[start + 1 : end : 5] = columns
+            else:
+                data[start + 2 : end : 5] = bytes((row % 256 == 0,)) * width
+                data[start + 3 : end : 5] = b"\x01" * width
+            data[start + 4 : end : 5] = grays[row * width : (row + 1) * width]
+        extra["DecodeParms"] = pydyf.Dictionary({"Predictor": 12, "Colors": 1, "BitsPerComponent": 8, "Columns": 5 * width})
+        extra["Filter"] = "/FlateDecode"
+        # The default level: the 9 of pydyf took ten times as long for a stream a few percent smaller
+        shading = pydyf.Stream([zlib.compress(data)], extra)
+    else:
+        # Binary data in an uncompressed stream could read as operators: write it as hex
+        data = bytearray(5 * width * height)
+        for row in range(height):
+            first, end = 5 * row * width, 5 * (row + 1) * width
+            data[first:end:5], data[first + 1 : end : 5] = columns
+            data[first + 2 : end : 5] = bytes((row >> 8,)) * width
+            data[first + 3 : end : 5] = bytes((row & 255,)) * width
+        data[4::5] = values.tobytes()
+        extra["Filter"] = "/ASCIIHexDecode"
+        shading = pydyf.Stream([data.hex().encode() + b">"], extra)
+    shading.id = f"s{len(stream._resources['Shading'])}"
+    stream._resources["Shading"][shading.id] = shading
+    return shading
+
+
+def _shape_blur_mask(svg: Any, node: Any, font_size: float, blur: tuple[float, float], box: Region) -> bool:
+    """Set the blurred coverage of a filled shape as the soft mask of svg.stream; False when it cannot.
+
+    A thin shape keeps what both of its edges give it, where the levels of _blur_mask know the nearest one
+    only, and the mesh shades smoothly where the levels left flat rings (shapeblur.py).
+    """
+    if not shapeblur.eligible(node) or not node.visible or min(blur) <= 0:
+        return False
+    rings = shapeblur.outline(svg, node, font_size, wp_svg.TAGS[node.tag], min(blur) / shapeblur.CELLS_PER_SIGMA / 4)
+    if not rings:
+        return False
+    grid = shapeblur.Field(rings, node.get("fill-rule") == "evenodd", blur)
+    if grid.cells > shapeblur.MAX_CELLS or max(grid.width, grid.height) > shapeblur.MAX_SIDE or not _charge(svg, grid.cells):
+        return False
+    mask = svg.stream.set_alpha_state(*box, mode="luminosity")
+    mask.paint_shading(_mesh_shading(mask, grid, grid.blurred()).id)
+    return True
+
+
+def _blurred_mask(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, sigma: float, box: Region) -> Restyle | None:
+    """Set the blur mask of node; return how far its paint must grow under it, None for all of box.
+
+    The mask is exact for a plain rect and the blurred coverage of any other filled shape: the paint
+    covers box, the mask alone shapes it. The levels of _blur_mask for anything else take the element
+    grown to the lowest level.
+    """
     rect = _plain_rect(svg, node, font_size)
     if rect is not None:
         _rect_blur_mask(svg, rect, layer.blur, box)
-    else:
-        _blur_mask(svg, original, node, font_size, context, sigma, box)
+        return None
+    if _shape_blur_mask(svg, node, font_size, layer.blur, box):
+        return None
+    _blur_mask(svg, original, node, font_size, context, sigma, box)
+    return _widest(max(sigma, *layer.blur))
+
+
+def _paint_box(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, target: Any, box: Region, recolor: tuple[Recolor, ...]) -> None:
+    """Draw node on target with box in place of its geometry: its paint, clip and mask over all of box.
+
+    Its gradient or pattern still takes the box of the shape. The paint of a shape grown by a wide stroke
+    had holes: PDFium leaves the inside of a stroke unpainted where its half width passes the radius of a
+    curve, a white glint in the shadow of a small drop.
+    """
+    shape = wp_svg.TAGS[node.tag]
+
+    def boxed(svg_: Any, node_: Any, font_size_: float) -> Any:
+        if node_ is not node:
+            return shape(svg_, node_, font_size_)
+        svg_.stream.rectangle(*box)
+        return None
+
+    wp_svg.TAGS[node.tag] = boxed
+    try:
+        # Grown by nothing: no stroke, the fill in its own paint
+        _draw_into(svg, original, node, font_size, context, target, Restyle("grow", 0.0), recolor)
+    finally:
+        wp_svg.TAGS[node.tag] = shape
 
 
 def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
     """The element in one color, blurred when sigma is set."""
     if sigma:
         # The silhouette of the grown element, in one color, under the blurred edge
-        _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
+        grow = _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
         group = stream.add_group(*big)
         mask = group.set_alpha_state(*big, mode="alpha")
-        _draw_into(svg, original, node, font_size, context, mask, _widest(max(sigma, *layer.blur)))
+        if grow is None:
+            _paint_box(svg, original, node, font_size, context, mask, big, ())
+        else:
+            _draw_into(svg, original, node, font_size, context, mask, grow)
         group.set_color(_with_alpha(layer.rgba, layer.opacity))
         group.rectangle(*big)
         group.fill()
@@ -1118,13 +1247,15 @@ def _draw_source(svg: Any, original: Callable[..., None], node: Any, font_size: 
     # A blurred source keeps its colors and spreads them to the widest level of the mask
     grow = None
     if sigma:
-        _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
         # The paint reaches as far as the wider deviation: the mask cuts it to the blur
-        grow = _widest(max(sigma, *layer.blur))
+        grow = _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
     # A group under the blur mask: a mask or gradient opacity of the element sets a soft mask of its
     # own, which would replace the blur mask in the graphics state
     target = stream.add_group(*big) if layer.opacity < 1 or sigma else stream
-    _draw_into(svg, original, node, font_size, context, target, grow, layer.recolor)
+    if sigma and grow is None:
+        _paint_box(svg, original, node, font_size, context, target, big, layer.recolor)
+    else:
+        _draw_into(svg, original, node, font_size, context, target, grow, layer.recolor)
     if target is not stream:
         if layer.opacity < 1:
             stream.set_alpha(layer.opacity, stroke=True, fill=True)

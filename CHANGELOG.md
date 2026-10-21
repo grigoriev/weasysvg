@@ -37,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `text-anchor` places each text chunk of SVG 2 as one: a chunk starts only at a character with an absolute
   `x` or `y`, and the text after a positioned `<tspan>` belongs to it. WeasyPrint anchored that text with the
   `<text>`, so the second line of a label in a Wikimedia OSI model diagram sat off its center.
+- A blurred filled shape other than a plain rect fades as in Chromium: its coverage is blurred and drawn
+  as a mesh of shaded triangles. The levels of the nearest edge left rings in the tail, made a shape
+  thinner than a few deviations dark and sharp (the lens ring of the OpenStreetMap logo, the chest of
+  Tux) and left white glints where the grown paint had holes (the Inkscape logo).
+- The blurred edge of a plain rect follows the Gaussian to about one level of 255, its tail included:
+  one shading over 8 deviations showed bands in PDFium, and the paint stopped at 2.15 deviations.
 
 ## [0.1.0] - 2026-10-21
 

@@ -90,7 +90,7 @@ change between releases.
 |---|---|
 | `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. Disc, circle and square list markers are the shapes Chromium paints, placed from the ascent of the font. Lines take the font metrics rounded to whole px and the baseline on a whole px, as in Chromium and Safari: a Mermaid label no longer sits up to 1 px low. |
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. `systemLanguage` reads the `lang` of the element that holds the image (`<html lang="de">`), else the `language` of `install()`, and matches as Chromium does with the Accept-Language list of that language (`de-CH` reads `de-CH,de`). An SVG from CSS (`background-image`, `list-style-image`, `content: url()`) reads `language`. |
-| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, and in steps through the profile for other shapes. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
+| Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, a mesh of shaded triangles through the blurred coverage for another filled shape, and in steps through the profile for the rest. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
@@ -132,14 +132,16 @@ with the reference marked and a swipe between any two of them, as GitHub compare
 - An underline or overline skips no ink under a turned character (`rotate`) or on vertical text.
 - The text after a child of a nested `<tspan>` is drawn as a `<tspan>` of its own, which counts as a sibling for
   structural selectors (`:last-child`, `:nth-child`, `+`). WeasyPrint does the same for the children of a `<text>`.
-- A plain rect is blurred exactly. Any other shape is blurred in levels by the distance to its nearest
-  edge, which knows nothing of the far edge: a filled shape thinner than about two deviations comes out
-  darker and sharper than in Chromium, and corners come out mitered inside the shape.
+- A plain rect is blurred exactly. A filled shape without stroke or markers is blurred from its coverage,
+  sampled on a grid of a third of a deviation, within some 3 levels of 255. Anything else (strokes, text,
+  groups, a grid past its limits) is blurred in levels by the distance to its nearest edge, which knows
+  nothing of the far edge: a shape thinner than about two deviations comes out darker and sharper than in
+  Chromium, and the tail shows steps.
 - Lighting, morphology, convolution and displacement have no vector form: the element draws
   unfiltered, with a warning.
 - `feComposite` arithmetic needs one input to be a flood of the whole filter region, or both inputs to
   be the same. A translucent result composites over the value of the formula on nothing.
-- Except on a plain rect, a blur with two different deviations uses their mean.
+- Except on a plain rect or a filled shape, a blur with two different deviations uses their mean.
 
 ## Development
 
