@@ -297,43 +297,14 @@ _HANDLERS: dict[str, Callable[[_Builder, _Arguments], None]] = {
 }
 
 
-def parse(data: str | None) -> list[Segment]:
-    """The segments of a d attribute, up to the first error, as SVG renders a path in error."""
-    scanner, builder = _Scanner(data or ""), _Builder()
-    command = None
-    try:
-        while True:
-            if command is None or command in "Zz" or not scanner.at_number():
-                token = scanner.command()
-                if token is None or (command is None and token not in "Mm"):
-                    break
-                command = token
-                if command in "Zz":
-                    builder.add(command, [])
-                    continue
-            builder.add(command, _arguments(scanner, command))
-            # Pairs after a moveto are linetos
-            command = {"M": "L", "m": "l"}.get(command, command)
-    except ValueError:
-        pass
-    return builder.segments
+def _read(data: str | None) -> tuple[list[tuple[str, list[float]]], int, str | None]:
+    """The commands of path data with their numbers, up to the first error, as SVG renders a path in error.
 
-
-def _number(value: float) -> str:
-    return f"{value:.12g}"
-
-
-def without_zero_radius_arcs(data: str | None) -> str | None:
-    """The path data with each arc of a zero radius written as the line to its end, None when it has none.
-
-    SVG draws such an arc as a straight line. WeasyPrint 70 writes it as a relative line to the absolute end
-    point, so the line runs off by the current point: Highcharts closes every slice of a pie with one.
-    The commands are written out one by one; data past an error stays as it is, for WeasyPrint to stop at.
+    Also where reading stopped and the command in force there.
     """
     scanner = _Scanner(data or "")
-    commands: list[str] = []
+    commands: list[tuple[str, list[float]]] = []
     command = None
-    changed = False
     mark = 0
     try:
         while True:
@@ -344,24 +315,71 @@ def without_zero_radius_arcs(data: str | None) -> str | None:
                     break
                 command = token
                 if command in "Zz":
-                    commands.append(command)
+                    commands.append((command, []))
                     continue
-            values = _arguments(scanner, command)
-            if command in "Aa" and (not values[0] or not values[1]):
-                commands.append(f"{'L' if command == 'A' else 'l'}{_number(values[5])} {_number(values[6])}")
-                changed = True
-            else:
-                commands.append(command + " ".join(_number(value) for value in values))
+            commands.append((command, _arguments(scanner, command)))
+            # Pairs after a moveto are linetos
             command = {"M": "L", "m": "l"}.get(command, command)
-        mark = scanner.position
     except ValueError:
         pass
-    if not changed:
+    return commands, mark, command
+
+
+def parse(data: str | None) -> list[Segment]:
+    """The segments of a d attribute, up to the first error, as SVG renders a path in error."""
+    builder = _Builder()
+    for command, values in _read(data)[0]:
+        builder.add(command, values)
+    return builder.segments
+
+
+def _number(value: float) -> str:
+    """A number as path data, written exactly."""
+    text = repr(value)
+    return text[:-2] if text.endswith(".0") else text
+
+
+def _zero_radius(name: str, values: list[float]) -> bool:
+    return name in "Aa" and (not values[0] or not values[1])
+
+
+def _as_line(name: str, values: list[float], current: Point) -> str | None:
+    """The line an arc of a zero radius draws, None where it ends at the current point."""
+    origin = current if name == "a" else (0.0, 0.0)
+    if (values[5] + origin[0], values[6] + origin[1]) == current:
         return None
-    tail = (data or "")[mark:].strip()
+    return f"{'L' if name == 'A' else 'l'}{_number(values[5])} {_number(values[6])}"
+
+
+def _tail(data: str, mark: int, command: str | None) -> list[str]:
+    """The data past an error, as it is, with the command its leading numbers belong to."""
+    tail = data[mark:].strip()
     if tail and command and tail[0] not in COMMANDS:
-        tail = command + tail  # the numbers went on the command before them
-    return " ".join([*commands, tail] if tail else commands)
+        tail = command + tail
+    return [tail] if tail else []
+
+
+def without_zero_radius_arcs(data: str | None) -> str | None:
+    """The path data with each arc of a zero radius written as the line to its end, None when it has none.
+
+    SVG draws such an arc as a straight line, and omits it where it ends at the current point. WeasyPrint 70
+    writes it as a relative line to the absolute end point, so the line runs off by the current point:
+    Highcharts closes every slice of a pie with one. Data past an error stays as it is, for WeasyPrint to
+    stop at.
+    """
+    commands, mark, command = _read(data)
+    builder = _Builder()
+    written: list[str] = []
+    changed = False
+    for name, values in commands:
+        if _zero_radius(name, values):
+            changed = True
+            line = _as_line(name, values, builder.current)
+            written.extend([line] if line else [])
+        else:
+            written.append(name + " ".join(_number(value) for value in values))
+        builder.add(name, values)
+    return " ".join(written + _tail(data or "", mark, command)) if changed else None
 
 
 class Polyline:

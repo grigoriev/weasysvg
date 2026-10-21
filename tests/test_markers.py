@@ -171,7 +171,12 @@ def test_marker_on_a_polyline_and_without_markers() -> None:
     ("data", "expected"),
     [
         # An arc of no radius is a line to its end; uppercase stays absolute, lowercase relative
-        ("M 335 97 A 0 0 0 1 0 335 97 Z", "M335 97 L335 97 Z"),
+        ("M 335 97 L 300 50 A 0 0 0 1 0 335 97 Z", "M335 97 L300 50 L335 97 Z"),
+        # One that ends where it starts is omitted, as SVG says: a marker sees no vertex there
+        ("M 335 97 A 0 0 0 1 0 335 97 Z", "M335 97 Z"),
+        ("M10 10 L20 10 a0 5 0 0 1 0 0 L30 10", "M10 10 L20 10 L30 10"),
+        # The other numbers are written exactly
+        ("M 1000000000001 0.1 A 0 0 0 0 1 1000000000002 0.30000000000000004", "M1000000000001 0.1 L1000000000002 0.30000000000000004"),
         ("M10 10 a0 5 0 0 1 3 4", "M10 10 l3 4"),
         ("M10 10 A 5 0 0 0 1 3 4", "M10 10 L3 4"),
         # A repeated arc keeps its radii, each written out
