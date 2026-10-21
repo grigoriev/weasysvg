@@ -78,7 +78,7 @@ changes on a node: WeasyPrint walks `<use>` targets, gradients and patterns more
 `tools/visual/bench.py` renders `corpus/svg`, compares with `corpus/reference/chromium` and writes a
 report. It is a dev tool, not a CI gate. `corpus/verdicts.json` holds the reference and the visual
 verdicts per SVG (schema in CONTRIBUTING.md). `make references` reprints the Chromium references in the
-visual image, which has the fonts of `corpus/fonts`. Judge a rendering zoomed in, never from a thumbnail:
+visual image, which has the fonts of `corpus/fonts` and Trebuchet MS. Judge a rendering zoomed in, never from a thumbnail:
 `make review` writes sheets of the cells that differ, at 2x, from the PDFs (rules in CONTRIBUTING.md).
 
 **Never judge a rendering with poppler.** Splash drops WeasyPrint gradients and cairo drops soft masks.

@@ -199,8 +199,8 @@
  },
  {
   "name": "diagrams__mermaid-ink-gantt",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "close",
@@ -208,8 +208,8 @@
  },
  {
   "name": "diagrams__mermaid-ink-gitgraph",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
   "native_verdict": "same",
@@ -235,21 +235,21 @@
  },
  {
   "name": "diagrams__mermaid-ink-pie",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The title sits about 2 px lower; the rest matches."
  },
  {
   "name": "diagrams__mermaid-ink-sequence",
-  "reference": "both",
-  "reference_why": "",
+  "reference": "chromium",
+  "reference_why": "resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family.",
   "verdict": "same",
   "what": "Matches.",
-  "native_verdict": "same",
-  "native_what": "Matches."
+  "native_verdict": "close",
+  "native_what": "The text of the note sits about 2.5 px off to the side; the rest matches."
  },
  {
   "name": "diagrams__mermaid-ink-state",

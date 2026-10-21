@@ -7,11 +7,11 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 41 | 108 |
-| 🟡 close to the reference | 20 | 6 |
+| ✅ matches the reference | 39 | 108 |
+| 🟡 close to the reference | 22 | 6 |
 | ❌ differs from the reference | 54 | 0 |
 
-References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
+References: Chromium 38, resvg 7, Chromium and resvg 69, an English browser 1.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
@@ -335,7 +335,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | 🟡 | WeasyPrint | **close to the reference** | The axis dates lose their year: 01-05 instead of 2014-01-05. |
 
@@ -349,7 +349,7 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
 | ✅ | WeasyPrint | **matches the reference** | Matches. |
 
@@ -391,9 +391,9 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The title sits about 2 px lower; the rest matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
@@ -405,9 +405,9 @@ References: Chromium 34, resvg 7, Chromium and resvg 73, an English browser 1.
 
 | | Renderer | Verdict | What |
 |---|---|---|---|
-| 📌 | Reference | Chromium and resvg |  |
+| 📌 | Reference | Chromium | resvg takes the sans-serif at the end of the family list of Mermaid and draws the labels in Liberation Sans; Chromium uses Trebuchet MS, its first family. |
 | ✅ | weasysvg | **matches the reference** | Matches. |
-| ✅ | WeasyPrint | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The text of the note sits about 2.5 px off to the side; the rest matches. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
