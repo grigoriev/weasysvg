@@ -61,6 +61,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.svg.bounding_box:is_valid_bounding_box": "filters, paint",
     "weasyprint.layout.table:table_layout": "foreign_object._table_layout",
     "weasyprint.draw:draw_page": "foreign_object draws its pages into the SVG stream",
+    "weasyprint.formatting_structure.build:element_to_box": "foreign_object._element_to_box drops empty inline boxes",
     "weasyprint.formatting_structure.build:marker_to_box": "foreign_object._marker_to_box draws symbol markers as Chromium does",
     "weasyprint.draw.text:draw_first_line": "glyphs.show, text._draw_run; text.carried_shifts moves the shifts of its TJ arrays; ink.run_glyphs places glyphs as it does",
     "weasyprint.text.fonts:get_pango_font_key": "ink.run_glyphs reads the size of each run",

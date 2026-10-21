@@ -7,6 +7,9 @@ Touches:
 - ``layout.block.table_layout``: inside a foreignObject a table taller than its rows gives the
   extra height to the rows, as browsers do (Mermaid centers its labels that way);
 - a UA stylesheet for the sub-document: what Chromium does differently in an SVG used as an image;
+- ``formatting_structure.build.element_to_box``: inside a foreignObject an inline box with nothing in it and
+  nothing drawn is dropped, so the white space around it collapses as CSS says and Chromium does (Mermaid
+  writes icons whose font never loads);
 - ``formatting_structure.build.marker_to_box``: inside a foreignObject an outside disc, circle or square
   marker is the shape Chromium paints, sized and placed from the ascent of the font, not a glyph.
 """
@@ -298,6 +301,34 @@ def _table_layout(*args: Any, **kwargs: Any) -> Any:
     return result
 
 
+# ---------------- empty inline boxes ----------------
+
+_ORIGINAL_ELEMENT_TO_BOX = wp_build.element_to_box
+SIDES_OF_INLINE = ("left", "right")
+
+
+def _plain_empty(box: Any) -> bool:
+    """Whether box is an inline box with nothing in it and nothing drawn: white space ignores it."""
+    style = box.style
+    return (
+        type(box) is wp_boxes.InlineBox and not box.children and all(style[f"border_{side}_width"] == 0 for side in SIDES_OF_INLINE) and all(style[f"{kind}_{side}"].value == 0 for kind in ("padding", "margin") for side in SIDES_OF_INLINE)
+    )
+
+
+def _element_to_box(*args: Any, **kwargs: Any) -> Any:
+    """element_to_box of WeasyPrint; inside a foreignObject without the empty inline boxes among the children.
+
+    WeasyPrint keeps the space after such a box at the start of a line, in the line and in the width the
+    content asks for. The element calls itself for its children: each level drops its own.
+    """
+    found = _ORIGINAL_ELEMENT_TO_BOX(*args, **kwargs)
+    if IN_FOREIGN_OBJECT.get():
+        for box in found:
+            if isinstance(box, wp_boxes.ParentBox):
+                box.children = [child for child in box.children if not _plain_empty(child)]
+    return found
+
+
 # ---------------- list markers ----------------
 
 _ORIGINAL_MARKER_TO_BOX = wp_build.marker_to_box
@@ -377,4 +408,5 @@ def install() -> None:
     conditional.SUPPORTED_EXTENSIONS.add(conditional.XHTML_NS)
     wp_block.table_layout = _table_layout
     wp_build.marker_to_box = _marker_to_box
+    wp_build.element_to_box = _element_to_box
     wp_svg.TAGS["foreignObject"] = foreign_object

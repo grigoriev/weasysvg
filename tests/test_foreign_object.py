@@ -383,3 +383,37 @@ def test_a_marker_image_stays_an_image() -> None:
     html = f"<ul style=\"margin:0;padding-left:40px;font:16px 'DejaVu Sans';color:#0000ff;list-style-image:url(&quot;{square}&quot;)\"><li>I</li></ul>"
     image = rasterize(render(svg(fo(html, width=200, height=40), width=200, height=40)), MARKER_SCALE / 0.75)
     assert ink_box(image, (255, 0, 0), slice(0, 38 * MARKER_SCALE))
+
+
+def first_character_x(body: str) -> float:
+    import pypdfium2 as pdfium
+
+    document = pdfium.PdfDocument(render(svg(fo(body, width=200, height=40), width=200, height=40)))
+    page = document[0]
+    textpage = page.get_textpage()
+    try:
+        boxes = [textpage.get_charbox(index) for index in range(textpage.count_chars()) if textpage.get_text_range(index, 1).strip()]
+        return float(boxes[0][0])
+    finally:
+        close(textpage, page, document)
+
+
+@pytest.mark.parametrize("icon", ['<i class="fa fa-car"></i>', "<i></i><b></b>", "<span><i></i></span>"])
+def test_a_space_after_an_empty_inline_starts_no_line(icon: str) -> None:
+    # Mermaid writes an icon its font never loads: Chromium drops the space after it at the start of the line
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_x(f'<p style="{style}">{icon} Car</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car</p>'))
+
+
+def test_a_label_sized_to_its_content_ignores_the_space_too() -> None:
+    # Mermaid sizes its labels by a table cell: its width, from the content, must not count the space either
+    def label(inner: str) -> str:
+        return f'<div style="display: table-cell; white-space: nowrap; text-align: center; font:16px \'DejaVu Sans\'"><p style="margin:0">{inner}</p></div>'
+
+    assert first_character_x(label("<i></i> Car")) == pytest.approx(first_character_x(label("Car")))
+
+
+def test_an_empty_inline_with_padding_keeps_the_space() -> None:
+    # A box with padding is drawn: the space after it is no longer at the start of the line
+    style = "margin:0;font:16px 'DejaVu Sans'"
+    assert first_character_x(f'<p style="{style}"><i style="padding-left:4px"></i> Car</p>') > first_character_x(f'<p style="{style}">Car</p>') + 6
