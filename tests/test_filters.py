@@ -1093,6 +1093,31 @@ def test_a_blurred_shape_keeps_its_gradient() -> None:
     assert right[2] > 200 > right[0], right
 
 
+@pytest.mark.parametrize(
+    ("gradient", "transform"),
+    [
+        ('gradientUnits="userSpaceOnUse" x1="0" y1="140" x2="0" y2="60"', ""),
+        ('x1="0" y1="1" x2="0" y2="0"', ""),
+        ('x1="1" y1="0" x2="0" y2="0" gradientTransform="rotate(90 .5 .5)"', ""),
+        # The shadow of the map in the OpenStreetMap logo: scaled, so a deviation of 4 spans 3.39 units down
+        ('gradientUnits="userSpaceOnUse" x1="0" y1="140" x2="0" y2="60"', "matrix(1 0 0 .84657 0 27.66)"),
+    ],
+)
+def test_the_gradient_of_a_blurred_shape_pads_past_its_box(gradient: str, transform: str) -> None:
+    # The gradient is a pattern whose cell is the box of the shape. Painted over the whole filter region it
+    # repeated past that box: the opaque bottom showed above the shape and the clear top below it, a hard
+    # edge at each side of the shadow of the map in the OpenStreetMap logo
+    stops = f'<linearGradient id="g" {gradient}><stop offset="0"/><stop offset="1" stop-opacity="0"/></linearGradient>'
+    image = blurred_shape(f'<path d="M60 60h80v80h-80z" fill="url(#g)" transform="{transform or "translate(0 0)"}"/>', defs=stops)
+    scale, shift = (0.84657, 27.66) if transform else (1.0, 0.0)
+    top, bottom, deviation = 60 * scale + shift, 140 * scale + shift, 4 * scale
+    # One deviation below the shape: the tail of the opaque bottom, 1 - Phi(1) of black
+    assert darkness(image, 100, bottom + deviation) == pytest.approx(0.159, abs=0.03)
+    assert darkness(image, 100, bottom + 2 * deviation) == pytest.approx(0.023, abs=0.015)
+    # One deviation above it, the tail of the clear top: nothing
+    assert darkness(image, 100, top - deviation) < 0.01
+
+
 def test_the_drop_shadow_of_a_shape_is_its_blurred_coverage() -> None:
     image = blurred_shape('<circle cx="100" cy="100" r="2" fill="red"/>', primitive='feDropShadow dx="0" dy="0" flood-color="black"')
     # Beside the dot only its shadow: a dot of radius 2 blurred by 4, seen 4 from its center

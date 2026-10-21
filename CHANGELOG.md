@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Tux) and left white glints where the grown paint had holes (the Inkscape logo).
 - The blurred edge of a plain rect follows the Gaussian to about one level of 255, its tail included:
   one shading over 8 deviations showed bands in PDFium, and the paint stopped at 2.15 deviations.
+- The gradient of a blurred shape pads past the box of the shape: the pattern WeasyPrint makes of it
+  repeated there, which cut the shadow of the map in the OpenStreetMap logo with hard straight edges.
 
 ## [0.1.0] - 2026-10-21
 

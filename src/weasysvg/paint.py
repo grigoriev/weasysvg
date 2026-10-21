@@ -2,8 +2,9 @@
 
 Touches:
 - ``svg.defs.draw_gradient``: a gradient cell of about 1000 units, since Splash and Quartz drop a 1 x 1
-  cell, that covers the box under any gradientTransform; r and fr percentages of a radial gradient
-  refer to the normalized diagonal; colors interpolate unpremultiplied, as Chromium does for SVG.
+  cell, that covers the box under any gradientTransform, or the whole box a blur paints (``BOXED``); r
+  and fr percentages of a radial gradient refer to the normalized diagonal; colors interpolate
+  unpremultiplied, as Chromium does for SVG.
 - ``svg.SVG.set_graphical_state``: a gradient or pattern stroke gets its stroke-width, not 1.
 - ``svg.defs.draw_pattern``: the tile origin in pattern space, x and y included; attributes and tag are
   restored after each use.
@@ -86,6 +87,9 @@ PRESENTATION = frozenset(
     )
 )
 
+# The node a blur paints over a whole box instead of its shape, and that box (filters._paint_box)
+BOXED: ContextVar[tuple[Any, tuple[float, float, float, float]] | None] = ContextVar("weasysvg_boxed", default=None)
+
 _ORIGINAL_DRAW_GRADIENT = wp_defs.draw_gradient
 _ORIGINAL_DRAW_PATTERN = wp_defs.draw_pattern
 _ORIGINAL_SET_GRAPHICAL_STATE = wp_svg.SVG.set_graphical_state
@@ -156,16 +160,29 @@ def _scaled_add_pattern(stream: Any, cell: tuple[float, float, float, float] | N
 
 
 def _gradient_cell(svg: Any, node: Any, gradient: Any, font_size: float, stroke: bool) -> tuple[float, float, float, float] | None:
-    """The cell of a transformed gradient: the box of all four corners, mapped back by gradientTransform.
+    """The cell of a gradient, None for the one WeasyPrint makes: all four corners mapped back by gradientTransform.
 
     WeasyPrint maps two corners only: rotated by 45 degrees, its cell is a sliver and the shape stays empty.
+    A blur paints a fill over its whole region: the cell is the shape box, and the pattern repeated the
+    gradient past it, a hard edge in the shadow. The cell covers that region, where the gradient pads.
     """
-    if "gradientTransform" not in gradient.attrib:
+    boxed = BOXED.get()
+    cover = boxed[1] if boxed is not None and boxed[0] is node and not stroke else None
+    if "gradientTransform" not in gradient.attrib and cover is None:
         return None
     box = svg.calculate_bounding_box(node, font_size, stroke)
     if not wp_defs.is_valid_bounding_box(box):
         return None
-    x, y, width, height = box if gradient.get("gradientUnits") == "userSpaceOnUse" else (0, 0, 1, 1)
+    if gradient.get("gradientUnits") == "userSpaceOnUse":
+        x, y, width, height = cover or box
+    elif cover is not None:
+        # The region in units of the box of the shape, where an objectBoundingBox gradient lives
+        bx, by, bwidth, bheight = box
+        x, y, width, height = (cover[0] - bx) / bwidth, (cover[1] - by) / bheight, cover[2] / bwidth, cover[3] / bheight
+    else:
+        x, y, width, height = 0, 0, 1, 1
+    if "gradientTransform" not in gradient.attrib:
+        return x, y, width, height
     matrix = wp_utils.transform(gradient.get("gradientTransform"), "0 0", font_size, svg.normalized_diagonal)
     if not matrix.determinant:
         return None

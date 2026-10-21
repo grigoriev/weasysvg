@@ -47,6 +47,7 @@ from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, color, parse_url, size
 
 from . import _core, shapeblur, turbulence
+from .paint import BOXED
 
 LOGGER = logging.getLogger("weasysvg")
 Region = tuple[float, float, float, float]
@@ -1216,8 +1217,9 @@ def _paint_box(svg: Any, original: Callable[..., None], node: Any, font_size: fl
 
 
 # The node _paint_box draws as a box, and the box. The shape table is shared by every thread: it gets a
-# wrapper once per tag that reads this, and is never swapped back.
-_BOXED: ContextVar[tuple[Any, Region] | None] = ContextVar("weasysvg_boxed", default=None)
+# wrapper once per tag that reads this, and is never swapped back. A gradient of the node covers the box
+# (paint.py).
+_BOXED = BOXED
 _BOXING_LOCK = threading.Lock()
 
 
