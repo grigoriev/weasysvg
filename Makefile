@@ -44,10 +44,10 @@ visual-check: visual-image
 	$(BENCH) --native --out tools/visual/out/native --against corpus/baseline.json
 	$(BENCH) --out tools/visual/out/weasysvg --against corpus/baseline.json
 
-# Render the panels of both modes into corpus/render and write corpus/COMPARISON.md
+# Render the panels at 2x into corpus/render and write corpus/COMPARISON.md
 comparison: visual-image
-	$(BENCH) --native --out tools/visual/out/native --panels tools/visual/out/panels/weasyprint
-	$(BENCH) --out tools/visual/out/weasysvg --panels tools/visual/out/panels/weasysvg
+	$(BENCH) --native --out tools/visual/out/native
+	$(BENCH) --out tools/visual/out/weasysvg
 	$(RUN) $(IMAGE):visual uv run --frozen --all-extras python tools/visual/comparison.py
 
 # Print the corpus with the Chromium of the visual image into corpus/reference/chromium; then run

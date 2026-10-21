@@ -1,4 +1,4 @@
-"""Compare the renderings of each corpus SVG region by region, at twice the resolution of the panels.
+"""Compare the renderings of each corpus SVG region by region, at twice the resolution of the references.
 
 Usage: review.py [--only TEXT] [--grid N] [--scale N]
 

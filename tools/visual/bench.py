@@ -1,6 +1,6 @@
 """The visual regression bench: render the corpus with WeasyPrint and weasysvg, compare with Chromium.
 
-Usage: bench.py [--only TEXT] [--out DIR] [--native] [--panels DIR] [--against FILE | --write-baseline FILE]
+Usage: bench.py [--only TEXT] [--out DIR] [--native] [--against FILE | --write-baseline FILE]
 
 1. Each corpus SVG is wrapped in the page the references were made from: an <img> with a data URL,
    sized by the width in corpus/index.json, on a 2000 px page.
@@ -14,8 +14,7 @@ Run it through make visual: the visual image has the fonts of the references.
 the mode; --against compares with it. For an upgrade of WeasyPrint (UPGRADING.md): weasysvg worse than
 its baseline is a regression to fix, WeasyPrint alone better than its baseline may be a gap it closed.
 
---panels writes each rendering as a PNG, cropped to the box of its Chromium reference, for the comparison
-page of the corpus (tools/visual/comparison.py).
+The PDFs in DIR/pdf feed the comparison page of the corpus (tools/visual/comparison.py).
 """
 
 from __future__ import annotations
@@ -77,20 +76,12 @@ def panel(image: Image.Image, target: Path) -> str:
     return f"img/{target.name}"
 
 
-def save_panel(item: dict[str, Any], ours: Image.Image, panels: Path) -> None:
-    """The rendering over the box of the Chromium reference, pixel for pixel comparable with it."""
-    box = item.get("reference_box")
-    if box:
-        ours.crop(tuple(box)).save(panels / f"{item['name']}.png", optimize=True)
-
-
-def run(item: dict[str, Any], out: Path, handler: Warnings, panels: Path | None = None) -> dict[str, Any]:
+def run(item: dict[str, Any], out: Path, handler: Warnings) -> dict[str, Any]:
     name = item["name"]
     handler.messages = []
     pdf = out / "pdf" / f"{name}.pdf"
-    if panels is not None:
-        # A failed rendering must not leave the panel of an earlier run on the page
-        (panels / f"{name}.png").unlink(missing_ok=True)
+    # A failed rendering must not leave the PDF of an earlier run for the comparison page
+    pdf.unlink(missing_ok=True)
     start = time.perf_counter()
     error = None
     try:
@@ -99,8 +90,6 @@ def run(item: dict[str, Any], out: Path, handler: Warnings, panels: Path | None 
         error = repr(e)[:300]
     row: dict[str, Any] = {"name": name, "group": item["group"], "ms": round((time.perf_counter() - start) * 1000, 1), "error": error, "warnings": handler.messages[:5]}
     ours = raster(pdf) if error is None else None
-    if ours is not None and panels is not None:
-        save_panel(item, ours, panels)
     ref = reference(item, ours.size) if ours is not None else None
     box = ink_box([image for image in (ours, ref) if image is not None])
     if ours is None or ref is None or box is None:
@@ -204,7 +193,6 @@ def main() -> int:
     parser.add_argument("--only", default="", help="render only the names that contain this text")
     parser.add_argument("--out", type=Path, default=ROOT / "tools" / "visual" / "out")
     parser.add_argument("--native", action="store_true", help="render with WeasyPrint alone")
-    parser.add_argument("--panels", type=Path, help="write each rendering as a PNG over its reference box into this directory")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--against", type=Path, help="compare the mismatch with this baseline")
     group.add_argument("--write-baseline", type=Path, help="store the mismatch in this baseline")
@@ -213,9 +201,6 @@ def main() -> int:
     mode = "native" if args.native else "weasysvg"
     (out / "pdf").mkdir(parents=True, exist_ok=True)
     (out / "img").mkdir(parents=True, exist_ok=True)
-    panels = inside(args.panels) if args.panels else None
-    if panels is not None:
-        panels.mkdir(parents=True, exist_ok=True)
     features = frozenset() if args.native else weasysvg.install()
     print(f"WeasyPrint {weasyprint.__version__}, features:", ", ".join(sorted(features)) or "none", flush=True)
     handler = Warnings()
@@ -225,7 +210,7 @@ def main() -> int:
     verdicts = {verdict["name"]: verdict for verdict in json.loads((CORPUS / "verdicts.json").read_text())}
     rows = []
     for item in index:
-        row = run(item, out, handler, panels)
+        row = run(item, out, handler)
         rows.append(row)
         print(f"{row['name']}: mismatch {row['mismatch']} in {row['ms']} ms {row['error'] or ''}", flush=True)
     (out / "rows.json").write_text(json.dumps(rows, indent=1) + "\n")
@@ -235,9 +220,6 @@ def main() -> int:
         write_baseline(inside(args.write_baseline), mode, rows)
     if args.against:
         return 1 if compare(inside(args.against), mode, rows) else 0
-    if panels is not None and any(row["error"] for row in rows):
-        print("rendering errors: the comparison page would miss panels")
-        return 1
     return 0
 
 
