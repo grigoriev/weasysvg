@@ -3,7 +3,8 @@
 Usage: comparison.py
 
 Run it through make comparison: the bench writes the PDFs of WeasyPrint and weasysvg first. The PDFs of
-Chromium are printed here when tools/visual/out/chromium lacks them, as make references prints them. This
+Chromium are printed here, as make references prints them, when tools/visual/out/chromium lacks them or
+holds one that no longer prints its reference. This
 script rasterizes the PDFs at SCALE times 96 dpi, and renders resvg on a page like the one of the
 references, at SCALE times the width of the page and with the fonts Chromium picks.
 
@@ -113,6 +114,19 @@ def resvg_image(item: dict[str, Any], scale: int = 1) -> Image.Image | str:
             raise
         return f"resvg error: {error}"[:200]
     return Image.open(io.BytesIO(png)).convert("RGBA")
+
+
+def stale(item: dict[str, Any]) -> bool:
+    """Whether the Chromium PDF of item is missing or no longer prints its reference.
+
+    tools/visual/out is a local cache: a PDF printed before the references changed would crop the old
+    drawing to the new box. The reference comes from the same PDFium at METRIC_DPI, so it matches byte for byte.
+    """
+    rendered = raster(PDFS["chromium"] / f"{item['name']}.pdf")
+    if rendered is None:
+        return True
+    reference = Image.open(CORPUS / "reference" / "chromium" / f"{item['name']}.png").convert("RGB")
+    return rendered.crop(tuple(item["reference_box"])).tobytes() != reference.tobytes()
 
 
 def save(image: Image.Image, folder: str, name: str) -> None:
@@ -314,7 +328,7 @@ def main() -> int:
     for _, folder in COLUMNS:
         (CORPUS / folder).mkdir(parents=True, exist_ok=True)
     index = json.loads((INDEX).read_text())
-    unprinted = [item for item in index if item.get("reference_box") and not (PDFS["chromium"] / f"{item['name']}.pdf").exists()]
+    unprinted = [item for item in index if item.get("reference_box") and stale(item)]
     if unprinted:
         from make_references import print_pdfs
 
