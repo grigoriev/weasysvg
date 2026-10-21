@@ -17,6 +17,8 @@ Touches:
 - ``svg.SVG.draw_node``, through ``_core``: mix-blend-mode as an isolated group, and a mask on a container
   is set before its children are drawn. ``svg.NOT_INHERITED_ATTRIBUTES`` gains mix-blend-mode.
 - a tree pass: an empty presentation attribute (fill="") is ignored, as browsers do.
+- a tree pass: an arc of a zero radius in path data becomes the line SVG draws for it. WeasyPrint wrote a
+  relative line to its absolute end, which broke every slice of a Highcharts pie.
 - ``svg.TAGS['circle']`` and ``svg.TAGS['ellipse']``: each quarter is a Bezier with the arc constant
   4 (sqrt(2) - 1) / 3. WeasyPrint uses 1 / sqrt(pi), a longer outline that moves the dashes along it.
 """
@@ -36,7 +38,7 @@ from weasyprint.matrix import Matrix
 from weasyprint.svg import defs as wp_defs
 from weasyprint.svg import utils as wp_utils
 
-from . import _core
+from . import _core, pathdata
 
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
 DASH_FRACTION = 2.5e-5  # of the dash period: the length a dash of length 0 gets, 0.001 units of a period of 40
@@ -548,9 +550,17 @@ def ellipse(svg: Any, node: Any, font_size: float) -> None:
     stream.close()
 
 
+def fix_zero_radius_arcs(root: ET.Element) -> None:
+    """Write each arc of a zero radius in path data as the line it draws: WeasyPrint misplaces its end."""
+    for element in root.iter():
+        if isinstance(element.tag, str) and element.tag.rpartition("}")[2] == "path" and (fixed := pathdata.without_zero_radius_arcs(element.get("d"))) is not None:
+            element.set("d", fixed)
+
+
 def install(*, blend: bool = True) -> None:
     wp_svg.TAGS["circle"] = wp_svg.TAGS["ellipse"] = ellipse
     _core.add_tree_pass(20, "empty_presentation", drop_empty_presentation)
+    _core.add_tree_pass(20, "zero_radius_arcs", fix_zero_radius_arcs)
     wp_defs.draw_gradient = wp_svg.draw_gradient = draw_gradient
     wp_defs.draw_pattern = wp_svg.draw_pattern = draw_pattern
     wp_defs.paint_mask = wp_svg.paint_mask = paint_mask

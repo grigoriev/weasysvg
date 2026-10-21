@@ -91,7 +91,8 @@ def _arc_tangent(arc: tuple[float, ...], theta: float) -> Point:
 def _arc(start: Point, end: Point, rx: float, ry: float, angle: float, large: bool, sweep: bool) -> Segment:
     """An elliptical arc in center parameterization (SVG implementation notes, F.6.5 and F.6.6)."""
     rx, ry = abs(rx), abs(ry)
-    if not rx or not ry:
+    # A radius whose square underflows to 0 draws the line a zero radius draws
+    if not rx * rx or not ry * ry:
         return Segment("line", (start, end))
     phi = math.radians(angle % 360)
     (x1, y1), (x2, y2) = start, end
@@ -297,26 +298,93 @@ _HANDLERS: dict[str, Callable[[_Builder, _Arguments], None]] = {
 }
 
 
-def parse(data: str | None) -> list[Segment]:
-    """The segments of a d attribute, up to the first error, as SVG renders a path in error."""
-    scanner, builder = _Scanner(data or ""), _Builder()
+def _read(data: str | None) -> tuple[list[tuple[str, list[float]]], int, str | None]:
+    """The commands of path data with their numbers, up to the first error, as SVG renders a path in error.
+
+    Also where reading stopped and the command in force there.
+    """
+    scanner = _Scanner(data or "")
+    commands: list[tuple[str, list[float]]] = []
     command = None
+    mark = 0
     try:
         while True:
+            mark = scanner.position
             if command is None or command in "Zz" or not scanner.at_number():
                 token = scanner.command()
                 if token is None or (command is None and token not in "Mm"):
                     break
                 command = token
                 if command in "Zz":
-                    builder.add(command, [])
+                    commands.append((command, []))
                     continue
-            builder.add(command, _arguments(scanner, command))
+            commands.append((command, _arguments(scanner, command)))
             # Pairs after a moveto are linetos
             command = {"M": "L", "m": "l"}.get(command, command)
     except ValueError:
         pass
+    return commands, mark, command
+
+
+def parse(data: str | None) -> list[Segment]:
+    """The segments of a d attribute, up to the first error, as SVG renders a path in error."""
+    builder = _Builder()
+    for command, values in _read(data)[0]:
+        builder.add(command, values)
     return builder.segments
+
+
+def _number(value: float) -> str:
+    """A number as path data, written exactly."""
+    text = repr(value)
+    return text[:-2] if text.endswith(".0") else text
+
+
+def _zero_radius(name: str, values: list[float]) -> bool:
+    return name in "Aa" and (not values[0] or not values[1])
+
+
+def _as_line(name: str, values: list[float], current: Point, smooth_next: bool) -> str | None:
+    """The line an arc of a zero radius draws, None where it ends at the current point.
+
+    Before a smooth curve it stays, as a line of no length: S and T reflect no control point past it.
+    """
+    origin = current if name == "a" else (0.0, 0.0)
+    if (values[5] + origin[0], values[6] + origin[1]) == current and not smooth_next:
+        return None
+    return f"{'L' if name == 'A' else 'l'}{_number(values[5])} {_number(values[6])}"
+
+
+def _tail(data: str, mark: int, command: str | None) -> list[str]:
+    """The data past an error, as it is, with the command its leading numbers belong to."""
+    tail = data[mark:].strip()
+    if tail and command and tail[0] not in COMMANDS:
+        tail = command + tail
+    return [tail] if tail else []
+
+
+def without_zero_radius_arcs(data: str | None) -> str | None:
+    """The path data with each arc of a zero radius written as the line to its end, None when it has none.
+
+    SVG draws such an arc as a straight line, and omits it where it ends at the current point. WeasyPrint 70
+    writes it as a relative line to the absolute end point, so the line runs off by the current point:
+    Highcharts closes every slice of a pie with one. Data past an error stays as it is, for WeasyPrint to
+    stop at.
+    """
+    commands, mark, command = _read(data)
+    if not any(_zero_radius(name, values) for name, values in commands):
+        return None
+    builder = _Builder()
+    written: list[str] = []
+    for index, (name, values) in enumerate(commands):
+        if _zero_radius(name, values):
+            smooth_next = index + 1 < len(commands) and commands[index + 1][0] in "SsTt"
+            line = _as_line(name, values, builder.current, smooth_next)
+            written.extend([line] if line else [])
+        else:
+            written.append(name + " ".join(_number(value) for value in values))
+        builder.add(name, values)
+    return " ".join(written + _tail(data or "", mark, command))
 
 
 class Polyline:

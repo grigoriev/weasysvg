@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- An arc of a zero radius in path data draws the straight line SVG asks for: WeasyPrint sent it off by the
+  current point, which broke every slice of a Highcharts pie.
 - The text after a child of a `<tspan>` is drawn: WeasyPrint dropped it, so `Don<wbr/>e` in a Polarion chart
   label read "Don".
 

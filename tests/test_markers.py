@@ -165,3 +165,42 @@ def test_marker_on_a_polyline_and_without_markers() -> None:
     body = f'<defs>{MARKER}</defs><polyline points="20 20 60 20" fill="none" stroke="black" marker-end="url(#m)"/><polyline points="20 60 60 60" fill="none" stroke="black"/>'
     pdf = render(svg(body, height=120))
     assert pixel(pdf, 49, 15) == BLUE
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        # An arc of no radius is a line to its end; uppercase stays absolute, lowercase relative
+        ("M 335 97 L 300 50 A 0 0 0 1 0 335 97 Z", "M335 97 L300 50 L335 97 Z"),
+        # One that ends where it starts is omitted, as SVG says: a marker sees no vertex there
+        ("M 335 97 A 0 0 0 1 0 335 97 Z", "M335 97 Z"),
+        ("M10 10 L20 10 a0 5 0 0 1 0 0 L30 10", "M10 10 L20 10 L30 10"),
+        # Before a smooth curve it stays, as a line of no length: S and T reflect no control point past it
+        ("M0 0 C10 0 20 10 20 20 A0 0 0 0 1 20 20 S40 40 50 50", "M0 0 C10 0 20 10 20 20 L20 20 S40 40 50 50"),
+        ("M0 0 Q10 0 20 20 a0 0 0 0 1 0 0 t30 30", "M0 0 Q10 0 20 20 l0 0 t30 30"),
+        # The other numbers are written exactly
+        ("M 1000000000001 0.1 A 0 0 0 0 1 1000000000002 0.30000000000000004", "M1000000000001 0.1 L1000000000002 0.30000000000000004"),
+        ("M10 10 a0 5 0 0 1 3 4", "M10 10 l3 4"),
+        ("M10 10 A 5 0 0 0 1 3 4", "M10 10 L3 4"),
+        # A repeated arc keeps its radii, each written out
+        ("M0 0 A 0 0 0 0 1 5 5 6 6 0 0 1 7 7", "M0 0 L5 5 A6 6 0 0 1 7 7"),
+        # Data past an error is kept as it is, for WeasyPrint to read up to the same error
+        ("M0 0 A0 0 0 0 1 5 5 L x", "M0 0 L5 5 L x"),
+        # Numbers cut short keep the command they belong to
+        ("M0 0 A0 0 0 0 1 5 5 6", "M0 0 L5 5 A6"),
+    ],
+)
+def test_arcs_of_no_radius_become_lines(data: str, expected: str) -> None:
+    assert pathdata.without_zero_radius_arcs(data) == expected
+
+
+@pytest.mark.parametrize("data", ["M0 0 A 5 5 0 0 1 10 0", "M0 0 L10 10", "", "A 0 0 0 0 1 5 5"])
+def test_path_data_without_arcs_of_no_radius_stays(data: str) -> None:
+    assert pathdata.without_zero_radius_arcs(data) is None
+
+
+@pytest.mark.parametrize("data", ["M0 0 A1e-200 1 0 0 1 10 10", "M0 0 A1e-200 1 0 0 1 10 10 A0 0 0 0 1 5 5"])
+def test_a_radius_whose_square_underflows_is_read(data: str) -> None:
+    # rx * rx is 0 for such a radius: the arc is the line it degenerates to, not a division by zero
+    assert [segment.kind for segment in pathdata.parse(data)][-1] == "line"
+    pathdata.without_zero_radius_arcs(data)
