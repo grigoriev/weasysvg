@@ -89,7 +89,7 @@ change between releases.
 
 | Area | What weasysvg adds |
 |---|---|
-| `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. Disc, circle and square list markers are the shapes Chromium paints, placed from the ascent of the font. Lines take the font metrics rounded to whole px and the baseline on a whole px, as in Chromium and Safari: a Mermaid label no longer sits up to 1 px low. |
+| `<foreignObject>` | The XHTML inside is laid out as a WeasyPrint document and drawn in place. The SVG stylesheet still matches it. All objects of one SVG share one layout run. Tables taller than their rows grow their rows, as browsers do. Disc, circle and square list markers are the shapes Chromium paints, placed from the ascent of the font. Lines take the font metrics rounded to whole px and the baseline on a whole px, as in Chromium and Safari: a Mermaid label no longer sits up to 1 px low. Collapsible white space on either side of a `<br>` goes, as at the end and the start of any line: a draw.io label written with a newline before each `<br/>` stays centered. |
 | Conditional processing | `<switch>` draws its first matching child. `requiredExtensions` and `systemLanguage` hide elements, so draw.io no longer draws both the label and its fallback. XHTML counts as supported only with `foreign_object` on; without it the fallback wins. `systemLanguage` reads the `lang` of the element that holds the image (`<html lang="de">`), else the `language` of `install()`, and matches as Chromium does with the Accept-Language list of that language (`de-CH` reads `de-CH,de`). An SVG from CSS (`background-image`, `list-style-image`, `content: url()`) reads `language`. |
 | Filters | `feGaussianBlur`, `feOffset`, `feFlood`, `feDropShadow`, `feMerge`, `feBlend` normal, `feComposite` over, in and arithmetic, `feColorMatrix`, `feComponentTransfer`, `primitiveUnits="objectBoundingBox"`, and the CSS `drop-shadow()` and `blur()` functions, all in vector. `feTurbulence` noise is an image. A blur is a soft mask: exact for a plain rect, as the product of two Gaussian profiles, a mesh of shaded triangles through the blurred coverage for another filled shape, and in steps through the profile for the rest. A color matrix or transfer function recolors each fill, stroke and gradient stop. |
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
@@ -107,9 +107,9 @@ change between releases.
 
 ## How it compares to Chromium
 
-The bench in [`tools/visual`](https://github.com/grigoriev/weasysvg/tree/main/tools/visual) renders a corpus of 117 SVGs. The corpus holds draw.io,
-Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
-the resvg suite. Every SVG has a reference: Chromium, resvg, or both where they agree (68 SVGs). For the resvg tests the expected
+The bench in [`tools/visual`](https://github.com/grigoriev/weasysvg/tree/main/tools/visual) renders a corpus of 122 SVGs. The corpus holds draw.io,
+Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, MathJax formulas, and tests of
+the resvg suite. Every SVG has a reference: Chromium, resvg, or both where they agree (69 SVGs). For the resvg tests the expected
 image of the resvg suite decides between Chromium and resvg where they differ. `make review` compares the
 renderings at twice the resolution of the panels, in an 8 x 8 grid, and a look at each cell that differs
 gives the verdict:
@@ -117,9 +117,9 @@ gives the verdict:
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 111 |
-| 🟡 close to the reference | 22 | 5 |
-| ❌ differs from the reference | 56 | 0 |
+| ✅ matches the reference | 41 | 116 |
+| 🟡 close to the reference | 23 | 5 |
+| ❌ differs from the reference | 58 | 0 |
 
 Of the 36 diagrams from draw.io, kroki and mermaid.ink, 31 match the reference and 5 are close.
 Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](https://github.com/grigoriev/weasysvg/blob/main/corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)

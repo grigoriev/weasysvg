@@ -468,6 +468,60 @@ def test_an_empty_inline_that_shows_keeps_the_space(own: str) -> None:
     assert first_character_x(f'<p style="{style}"><i style="{own}"></i> Car</p>') > first_character_x(f'<p style="{style}">Car</p>') + 3
 
 
+# ---------------- white space at a line break ----------------
+
+CENTERED = "margin:0;text-align:center;font:16px 'DejaVu Sans'"
+
+
+@pytest.mark.parametrize("line", ["Car <br/>x", "Car\n   <br/>x", "<span>Car </span><br/>x", "<span>Car</span> <i></i><br/>x"])
+def test_a_space_before_a_line_break_is_not_centered(line: str) -> None:
+    # A space at the end of a line goes, also before <br>: draw.io writes its labels indented, with a newline
+    # before each <br/>. WeasyPrint kept it in the line, which moved the centered text left by half a space
+    assert first_character_x(f'<p style="{CENTERED}">{line}</p>') == pytest.approx(first_character_x(f'<p style="{CENTERED}">Car<br/>x</p>'))
+
+
+@pytest.mark.parametrize("line", ["Car \t <br/>x", "<span>Car </span><br/>x"])
+def test_pre_line_drops_the_spaces_before_a_line_break_too(line: str) -> None:
+    # pre-line collapses spaces and tabs, and keeps newlines: the spaces before <br> go as in Chromium
+    style = f"{CENTERED};white-space:pre-line"
+    assert first_character_x(f'<p style="{style}">{line}</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car<br/>x</p>'))
+
+
+def test_pre_line_keeps_a_newline_before_a_line_break() -> None:
+    # A newline of pre-line is a line break of its own: "Car\n<br/>" leaves an empty line, as in Chromium
+    style = "margin:0;white-space:pre-line;font:16px/20px 'DejaVu Sans'"
+    assert lines(style, "Car\n<br/>x") == pytest.approx([15.0, 55.0])
+
+
+def test_many_line_breaks_take_linear_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Untrusted HTML may hold any number of <br>: each one looks at its neighbors only, never copies the run
+    import time
+
+    monkeypatch.setattr(foreign_object, "_line_items", lambda _box, items: items.extend([foreign_object.BREAK] * 40000))
+    monkeypatch.setattr(foreign_object, "_prune", lambda _box: None)
+    start = time.perf_counter()
+    foreign_object._trim_at_breaks(None)
+    assert time.perf_counter() - start < 0.5
+
+
+@pytest.mark.parametrize("tail", [" ", "\n   ", "<span> </span>", "<span>\n</span>\n"])
+def test_white_space_after_the_last_line_break_adds_no_line(tail: str) -> None:
+    # In Chromium white space alone after the last <br> makes no line. WeasyPrint made an empty line box, and
+    # the baseline of the inline-block came from it: the line around the inline-block grew, and the draw.io
+    # label centered in a flex box moved up
+    def label(inner: str) -> str:
+        block = f"<span style=\"display:inline-block;font:16px/1.25 'DejaVu Sans'\">{inner}</span>"
+        return f'<div style="font-size:0">{block}</div><div style="font:16px/1.25 \'DejaVu Sans\'">Bus</div>'
+
+    assert lines("margin:0", label(f"Car<br/>{tail}")) == lines("margin:0", label("Car<br/>"))
+
+
+def test_preserved_white_space_at_a_line_break_stays() -> None:
+    # pre and pre-wrap keep their spaces: only collapsible white space goes
+    pre = "margin:0;white-space:pre;font:16px 'DejaVu Sans'"
+    assert first_character_x(f'<p style="{pre}"><br/>   Car</p>') > first_character_x(f'<p style="{pre}"><br/>Car</p>') + 10
+
+
 # ---------------- line metrics ----------------
 
 

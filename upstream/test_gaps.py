@@ -411,6 +411,30 @@ def test_space_after_an_empty_inline_starts_a_line() -> None:
     still_broken(first_x("<i></i> Car") > first_x("Car") + 1, "space after an empty inline at the start of a line", "foreign_object._element_to_box")
 
 
+def test_a_space_before_a_line_break_is_centered() -> None:
+    import pypdfium2 as pdfium
+    import weasyprint
+
+    def first_x(body: str) -> float:
+        pdf = weasyprint.HTML(string=f"<style>@page{{size:200px 60px;margin:0}} p{{margin:0;text-align:center}}</style><p>{body}</p>").write_pdf()
+        textpage = pdfium.PdfDocument(pdf)[0].get_textpage()
+        return float(next(textpage.get_charbox(index)[0] for index in range(textpage.count_chars()) if textpage.get_text_range(index, 1).strip()))
+
+    still_broken(first_x("Car <br>x") < first_x("Car<br>x") - 1, "space before <br> in a centered line", "foreign_object._trim_at_breaks")
+
+
+def test_white_space_after_the_last_line_break_makes_a_line() -> None:
+    import weasyprint
+
+    def height(tail: str) -> float:
+        html = f"<style>@page{{size:200px 200px;margin:0}}</style><div style='font-size:0'><span style='display:inline-block;font:16px/20px serif'>Car<br>{tail}</span></div>"
+        page = weasyprint.HTML(string=html).render().pages[0]
+        return float(page._page_box.children[0].children[0].height)
+
+    # The inline-block takes its baseline from an empty line after the <br>: the line around it grows
+    still_broken(height(" ") > height("") + 5, "white space after the last <br>", "foreign_object._trim_at_breaks")
+
+
 def test_lines_keep_fractional_font_metrics() -> None:
     import ctypes
 

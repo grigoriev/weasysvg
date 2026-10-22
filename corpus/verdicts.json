@@ -342,6 +342,51 @@
   "native_what": "All HTML content is missing."
  },
  {
+  "name": "pdf-exporter__drawio-font-label",
+  "reference": "chromium",
+  "reference_why": "resvg draws the fallback 'Courier New...' and 'Text is not SVG - cannot display': it has no foreignObject.",
+  "verdict": "same",
+  "what": "Matches: both lines of the label sit where Chromium puts them, as the white space around each <br/> goes.",
+  "native_verdict": "differs",
+  "native_what": "The fallback 'Courier New...' at 12 px replaces the HTML label, and 'Text is not SVG - cannot display' shows."
+ },
+ {
+  "name": "pdf-exporter__formula-accents",
+  "reference": "chromium",
+  "reference_why": "resvg draws the letters of the monospace text at 16 px, Chromium at 13 px, its default size for a bare monospace family.",
+  "verdict": "same",
+  "what": "Matches: the letters take 13 px as in Chromium, every glyph within 0.25 px.",
+  "native_verdict": "differs",
+  "native_what": "The letters take 16 px, a fifth larger than in Chromium, and run past the right edge of the image."
+ },
+ {
+  "name": "pdf-exporter__formula-matrix",
+  "reference": "chromium",
+  "reference_why": "resvg draws the glyphs thinner: their stroke of 1 unit is 0.04 px, which PDFium draws as a hairline of one device pixel in the PDF of Chromium.",
+  "verdict": "same",
+  "what": "Matches: the glyphs are the same paths, within antialiasing.",
+  "native_verdict": "same",
+  "native_what": "Matches: the glyphs are the same paths, within antialiasing."
+ },
+ {
+  "name": "pdf-exporter__formula-quadratic",
+  "reference": "chromium",
+  "reference_why": "resvg draws the glyphs thinner: their stroke of 1 unit is 0.04 px, which PDFium draws as a hairline of one device pixel in the PDF of Chromium.",
+  "verdict": "same",
+  "what": "Matches: the glyphs are the same paths, the red part included, within antialiasing.",
+  "native_verdict": "same",
+  "native_what": "Matches: the glyphs are the same paths, the red part included, within antialiasing."
+ },
+ {
+  "name": "pdf-exporter__shapes-in-ellipse",
+  "reference": "both",
+  "reference_why": "",
+  "verdict": "same",
+  "what": "Matches.",
+  "native_verdict": "close",
+  "native_what": "The outline of the ellipse runs up to 1 px outside at the diagonals: WeasyPrint draws each quarter with control points at 1/sqrt(pi) of the radius, not 0.552."
+ },
+ {
   "name": "real__wm-Bitmap_VS_SVG",
   "reference": "chromium",
   "reference_why": "resvg draws no Raster and Vector titles.",
