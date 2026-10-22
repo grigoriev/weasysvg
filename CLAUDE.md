@@ -38,7 +38,8 @@ uv build                # wheel and sdist
 `src/weasysvg/`, one module per feature. `install()` in `__init__.py` calls each module's `install()`
 once.
 
-- `_core.py`: the two shared hooks. `images.SVGImage.__init__` runs the tree passes on the parsed
+- `_core.py`: the shared hooks. `images.SVGImage.draw` runs the draw wrappers (conditional language, then
+  `xobject`). `images.SVGImage.__init__` runs the tree passes on the parsed
   XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, trailing_space 18, empty_presentation 20, arcs 20, paint_order 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
   A node that holds text and has a filter, mask or clip is drawn once into a scratch group first
@@ -74,6 +75,9 @@ once.
 - `vertical.py`: vertical `writing-mode`, characters placed down the y axis.
 - `glyphs.py`: characters drawn one at a time at their own origin and angle, for the two above.
 - `fetch.py`: one fetch per URL and SVG.
+- `xobject.py`: each SVG image drawn into one Form XObject without a group dictionary, its BBox the viewport;
+  an inline `<svg>` with visible overflow gets a box wide enough. The form carries no tags: the Figure around
+  the `Do` marks it. One form per image, size, scale and resources dictionary.
 
 Every patch keeps a reference to the original WeasyPrint function and restores the attributes it
 changes on a node: WeasyPrint walks `<use>` targets, gradients and patterns more than once.

@@ -1,7 +1,9 @@
-"""The two hooks that several features share, each installed once.
+"""The hooks that several features share, each installed once.
 
 - ``images.SVGImage.__init__``: runs the tree passes on the parsed XML, then wraps the URL fetcher, then
   calls the image hooks with the built image.
+- ``images.SVGImage.draw``: runs the draw wrappers around the drawing: the language of conditional
+  processing, then the Form XObject of xobject.py.
 - ``svg.SVG.draw_node``: one replacement that combines blend mode, early mask and complex clip
   (paint.py) with vector filters (filters.py), in the compositing order of CSS: filter, then clip and
   mask, then blend. It also draws the opacity group, unbounded: the bounding box of WeasyPrint clips
@@ -54,7 +56,13 @@ DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
 # The smallest box a group gets, in user units
 MIN_GROUP_EXTENT = 1e4
 
+# Wraps SVGImage.draw, in the order of its rank, the lowest outermost. It gets the image, the stream, the
+# concrete size and the style, then the rest of the chain, which it calls with the stream to draw into.
+DrawWrapper = Callable[[Any, Any, float, float, Any, Callable[[Any], None]], None]
+_DRAW_WRAPPERS: list[tuple[int, DrawWrapper]] = []
+
 _ORIGINAL_SVGIMAGE_INIT = wp_images.SVGImage.__init__
+_ORIGINAL_SVGIMAGE_DRAW = wp_images.SVGImage.draw
 _ORIGINAL_DRAW_NODE = wp_svg.SVG.draw_node
 _ORIGINAL_ADD_GROUP = wp_stream.Stream.add_group
 _ORIGINAL_ADD_PATTERN = wp_stream.Stream.add_pattern
@@ -100,6 +108,25 @@ def _svgimage_init(self: Any, tree: Any, base_url: Any, url_fetcher: Any, contex
 def _install_svgimage_hook() -> None:
     if wp_images.SVGImage.__init__ is not _svgimage_init:
         wp_images.SVGImage.__init__ = _svgimage_init
+
+
+def add_draw_wrapper(rank: int, function: DrawWrapper) -> None:
+    if all(existing is not function for _, existing in _DRAW_WRAPPERS):
+        _DRAW_WRAPPERS.append((rank, function))
+        _DRAW_WRAPPERS.sort(key=lambda entry: entry[0])
+    if wp_images.SVGImage.draw is not _svgimage_draw:
+        wp_images.SVGImage.draw = _svgimage_draw
+
+
+def _svgimage_draw(self: Any, stream: Any, concrete_width: float, concrete_height: float, style: Any) -> None:
+    _draw_wrapped(0, self, stream, concrete_width, concrete_height, style)
+
+
+def _draw_wrapped(index: int, image: Any, stream: Any, width: float, height: float, style: Any) -> None:
+    if index == len(_DRAW_WRAPPERS):
+        _ORIGINAL_SVGIMAGE_DRAW(image, stream, width, height, style)
+        return
+    _DRAW_WRAPPERS[index][1](image, stream, width, height, style, lambda inner: _draw_wrapped(index + 1, image, inner, width, height, style))
 
 
 def add_after_draw(function: AfterDraw) -> None:

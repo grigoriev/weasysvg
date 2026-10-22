@@ -395,3 +395,12 @@ def test_lines_keep_fractional_font_metrics() -> None:
     x, y = ctypes.c_double(), ctypes.c_double()
     pdfium_c.FPDFText_GetCharOrigin(page.get_textpage().raw, 0, x, y)
     still_broken(abs((page.get_height() - y.value) / 0.75 - 17) > 0.25, "line metrics rounded to whole px", "foreign_object._strut and _split_text_box")
+
+
+# ---------------- output structure ----------------
+
+
+def test_svg_is_drawn_into_the_page() -> None:
+    # The operators of the SVG stand in the stream of the page: no Form XObject holds the diagram
+    pdf, _ = render(svg('<rect width="200" height="100" fill="red"/>'))
+    still_broken(b"/Subtype /Form" not in pdf, "an SVG image as a Form XObject", "xobject")

@@ -72,7 +72,7 @@ def test_clips_cut_what_follows() -> None:
 
 
 def test_a_group_takes_its_matrix_box_and_opacity() -> None:
-    inner = stream("0 0 10 10 re", "f", extra={"Subtype": "/Form", "BBox": [0, 0, 5, 5], "Matrix": [2, 0, 0, 2, 0, 0]})
+    inner = stream("0 0 10 10 re", "f", extra={"Subtype": "/Form", "BBox": [0, 0, 5, 5], "Matrix": [2, 0, 0, 2, 0, 0], "Group": {"S": "/Transparency"}})
     resources = {"ExtGState": {"a": {"ca": 0.5}}, "XObject": {"x": inner}}
     content = coverage.read(stream("/a gs", "/x Do", resources=resources), 0.01)
     group = content.items[0]
@@ -80,6 +80,27 @@ def test_a_group_takes_its_matrix_box_and_opacity() -> None:
     assert group.alpha == 0.5
     assert group.clips[0][0][0] == [(0, 0), (10, 0), (10, 10), (0, 10)]
     assert extent(group.items[0]) == (0, 0, 20, 20)  # type: ignore[arg-type]
+
+
+def test_a_form_without_group_paints_in_place() -> None:
+    # The form of an SVG image: its shapes join the content around it, each with the opacity in force,
+    # clipped to the box of the form
+    inner = stream("0 0 10 10 re", "f", extra={"Subtype": "/Form", "BBox": [0, 0, 5, 5], "Matrix": [2, 0, 0, 2, 0, 0]})
+    resources = {"ExtGState": {"a": {"ca": 0.5}}, "XObject": {"x": inner}}
+    content = coverage.read(stream("/a gs", "/x Do", "0 0 1 1 re", "f", resources=resources), 0.01)
+    first, second = content.items
+    assert isinstance(first, Shape)
+    assert first.alpha == 0.5
+    assert first.clips[0][0][0] == [(0, 0), (10, 0), (10, 10), (0, 10)]
+    assert extent(first) == (0, 0, 20, 20)
+    # The clip of the form ends with it
+    assert isinstance(second, Shape)
+    assert second.clips == ()
+
+
+def test_an_empty_group_leaves_nothing() -> None:
+    inner = stream(extra={"Subtype": "/Form", "BBox": [0, 0, 5, 5], "Group": {"S": "/Transparency"}})
+    assert coverage.read(stream("/x Do", resources={"ExtGState": {}, "XObject": {"x": inner}}), 0.01).items == []
 
 
 @pytest.mark.parametrize(
