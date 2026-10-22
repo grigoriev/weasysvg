@@ -7,7 +7,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 import tinycss2
-from helpers import pixel, render, svg
+from helpers import SVG_NS, XHTML_NS, pixel, render, svg, text_of
 from tinycss2.color5 import parse_color
 from weasyprint.svg import SVG
 from weasyprint.svg.utils import color
@@ -292,3 +292,18 @@ def test_draw_io_shapes_render_white_with_black_strokes() -> None:
     # CSS px 100, 50 inside, 20, 50 on the stroke, at 72 dpi
     assert pixel(pdf, 75, 37) == (255, 255, 255)
     assert pixel(pdf, 15, 37) == (0, 0, 0)
+
+
+@pytest.mark.parametrize("label", ["var(--undefined)", "var(--defined)"])
+def test_var_in_html_label_text_stays_literal(label: str) -> None:
+    """Chromium shows var() in the text of an HTML label as written: it is text, not a CSS value."""
+    body = f'<g style="--defined: lime"><foreignObject width="200" height="100"><div xmlns="{XHTML_NS}">Set {label}</div></foreignObject></g>'
+    assert f"Set {label}" in text_of(render(svg(body)))
+
+
+@pytest.mark.parametrize("name", ["data-label", "aria-label", "content", "{http://example.com/ns}note"])
+def test_var_in_non_property_attributes_stays_literal(name: str) -> None:
+    """Only CSS properties substitute var(): any other attribute keeps its text."""
+    node = ET.fromstring(svg('<rect id="r" width="20" height="20"/>', 20, 20))
+    node.find(f"{{{SVG_NS}}}rect").set(name, "var(--undefined)")  # type: ignore[union-attr]
+    assert cascaded(ET.tostring(node, encoding="unicode"))["r"].get(name) == "var(--undefined)"

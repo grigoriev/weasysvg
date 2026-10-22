@@ -8,7 +8,7 @@ Touches:
   presentation attribute or an earlier rule still applies, as in Chromium. WeasyPrint dropped every name
   that starts with "-", and wrote any value over the attribute: fill: foo painted black.
 - ``svg.Node.cascade``: after the cascade, the computed values. A custom property substitutes its var()
-  and inherits that result. Every other value, presentation attributes included, then substitutes its
+  and inherits that result. Every other property, presentation attributes included, then substitutes its
   var(). A value that cannot be substituted is invalid at computed-value time: the property is unset,
   inherited or initial, and the presentation attribute does not come back. An invalid color presentation
   attribute is unset too, as Chromium ignores it. light-dark() in a color takes its first color,
@@ -46,6 +46,8 @@ WIDE_KEYWORDS = frozenset(("initial", "inherit", "unset", "revert", "revert-laye
 UNSET_KEYWORDS = frozenset(("unset", "revert", "revert-layer"))
 SPACE = frozenset(("whitespace", "comment"))
 PARENS = "() block"
+# Attributes that hold text, not a CSS value: var() in them stays as written
+NOT_PROPERTIES = frozenset(("content", "href", "id", "class", "style", "lang"))
 
 _ORIGINAL_FIND_RULES = wp_css.find_stylesheets_rules
 _ORIGINAL_CASCADE: list[Callable[[Any, Any], None]] = [wp_svg.Node.cascade]
@@ -396,10 +398,16 @@ def _computed_color(parent: Any, child: Any, name: str) -> None:
         child.attrib[name] = value
 
 
+def _property(name: str) -> bool:
+    """Whether the attribute can hold a CSS value; data-*, aria-* and namespaced attributes, such as the
+    foreignObject stash, hold text."""
+    return not (name.startswith(("--", "data-", "aria-", "{")) or name in NOT_PROPERTIES)
+
+
 def compute(parent: Any, child: Any) -> None:
     """The computed values of child, once the cascade has written its attributes; parent is None at the root."""
     lookup = _custom_properties(child.attrib)
-    for name in [name for name, value in child.attrib.items() if not name.startswith("--") and _has_var(value)]:
+    for name in [name for name, value in child.attrib.items() if _property(name) and _has_var(value)]:
         try:
             child.attrib[name] = _serialize(substitute(tinycss2.parse_component_value_list(child.attrib[name]), lookup))
         except Invalid:
