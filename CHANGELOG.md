@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- SVG text in the generic `monospace` family alone takes 13px as its medium size, as in Chromium and Firefox:
+  MathJax writes accented letters as `<text font-family="monospace">` with no size, and they came out 1.23
+  times too large. A size from a keyword reads the monospace table of Chromium (`large` is 16px), and a size
+  relative to one (`2em`, `50%`, `smaller`) scales by 13/16 where the family turns monospace and back where
+  it leaves. A family list (`monospace, serif`) and an absolute length keep their size.
 - A tagged PDF (`pdf/ua-1`, `pdf/a-2a`) of an SVG with a `<foreignObject>` renders: WeasyPrint failed on
   the tags of its HTML, which belong to no box of the page. The Figure of the image marks the whole SVG.
 - A hole in a blurred shape keeps its size: it grew by one sample on each side, so the ring of the lens in

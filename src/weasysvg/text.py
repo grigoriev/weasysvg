@@ -5,7 +5,8 @@ Touches:
   font family resolved as Chromium does (fonts.py), dominant-baseline from real font metrics,
   text-decoration placed and sized from the font, as WeasyPrint draws it on HTML text. ``draw_node`` recognizes text nodes by that global, so both change together.
 - ``svg.Node.cascade``: font-size keywords. ``size()`` knows none, so "initial" or "medium" gave 0.
-  The cascade rewrites the attribute once, so every reader of font-size sees a length.
+  The cascade rewrites the attribute once, so every reader of font-size sees a length. It also gives the
+  generic monospace alone its default of 13px, as Chromium and Firefox do.
 - a tree pass: a <text> inside a <text> is not rendered, as in browsers.
 - a tree pass: a rotate list with a value that is no finite number is dropped, as in Chromium. WeasyPrint
   parses it during the cascade, and one bad value lost the whole SVG.
@@ -93,6 +94,14 @@ _RECORDED: ContextVar[Drawn | None] = ContextVar("weasysvg_recorded_glyphs", def
 
 # The font size of a node as computed along the document, in px
 FONT_PX = "_weasysvg_font_px"
+# The keyword the font size of a node comes from, and whether an absolute length lies under it
+FONT_KIND = "_weasysvg_font_kind"
+# The initial font size: the keyword medium
+INITIAL_KIND: tuple[str | None, bool] = ("medium", False)
+# The keyword sizes of Chromium, in px: the generic monospace alone takes 13px as medium, any other family 16px
+KEYWORD_PX = {"xx-small": 9.0, "x-small": 10.0, "small": 13.0, "medium": 16.0, "large": 18.0, "x-large": 24.0, "xx-large": 32.0, "xxx-large": 48.0}
+MONOSPACE_KEYWORDS = {"xx-small": 9.0, "x-small": 10.0, "small": 12.0, "medium": 13.0, "large": 16.0, "x-large": 20.0, "xx-large": 26.0, "xxx-large": 39.0}
+MONOSPACE_SCALE = 13 / 16
 # Drawn where they are used, with the size of the user: their text inherits from their own ancestors
 RESOURCES = frozenset(("clipPath", "mask", "marker", "pattern"))
 
@@ -189,12 +198,75 @@ def cascade(self: Any, child: Any) -> None:
     elif keyword in FONT_SIZE_KEYWORDS:
         child.attrib["font-size"] = FONT_SIZE_KEYWORDS[keyword]
     if self is child:
+        _size_root(child, value)
         return
     parent_px = _font_px(self)
     own = child.attrib.get("font-size", "1em")
-    setattr(child, FONT_PX, _resolved_px(self, own, parent_px))
-    if child.tag in RESOURCES or normalize(own).split(" ", 1)[0].endswith("ex"):
-        child.attrib["font-size"] = f"{getattr(child, FONT_PX)}px"
+    px = _resolved_px(self, own, parent_px)
+    sized = _monospace_px(self, child, value, px)
+    setattr(child, FONT_PX, sized)
+    if sized != px or child.tag in RESOURCES or normalize(own).split(" ", 1)[0].endswith("ex"):
+        child.attrib["font-size"] = f"{sized}px"
+
+
+def _size_kind(value: str | None, inherited: tuple[str | None, bool]) -> tuple[str | None, bool]:
+    """The keyword a font size comes from, if any, and whether a length in absolute units lies under it.
+
+    Blink keeps both with each size: an inherited value keeps those of the parent, a relative one keeps
+    whether the parent is absolute. rem counts as absolute in Chromium.
+    """
+    words = (value or "").lower().split()
+    word = words[0] if words else ""
+    if word in ("", "inherit", "unset", "revert", "revert-layer"):
+        return inherited
+    if word == "initial":
+        return "medium", False
+    if word in MONOSPACE_KEYWORDS:
+        return word, False
+    if word in ("larger", "smaller") or (word.endswith(("em", "ex", "ch", "%")) and not word.endswith("rem")):
+        return None, inherited[1]
+    return None, True
+
+
+def _noted_kind(node: Any) -> tuple[str | None, bool]:
+    """The kind of the font size of node, as noted by the cascade, or of its own value under the initial medium."""
+    noted: tuple[str | None, bool] | None = getattr(node, FONT_KIND, None)
+    return noted if noted is not None else _size_kind(node.attrib.get("font-size"), INITIAL_KIND)
+
+
+def _monospace(node: Any) -> bool:
+    """Whether the family of node is the generic monospace alone: a list or a quoted name is not."""
+    family = node.attrib.get("font-family")
+    return family is not None and family.strip().lower() == "monospace"
+
+
+def _monospace_px(parent: Any, child: Any, value: str | None, px: float) -> float:
+    """The font size of child in px, with the monospace default of Chromium and Firefox.
+
+    A browser takes 13px as the medium size of the generic monospace alone, 16px for any other family. A
+    size from a keyword is read from the table of its family. A size relative to a keyword, with no
+    absolute length under it, scales by 13/16 where the family turns monospace, and back where it leaves.
+    """
+    keyword, absolute = _size_kind(value, _noted_kind(parent))
+    setattr(child, FONT_KIND, (keyword, absolute))
+    monospace = _monospace(child)
+    if keyword is not None:
+        return (MONOSPACE_KEYWORDS if monospace else KEYWORD_PX)[keyword]
+    if absolute or monospace == _monospace(parent):
+        return px
+    return px * MONOSPACE_SCALE if monospace else px / MONOSPACE_SCALE
+
+
+def _size_root(root: Any, value: str | None) -> None:
+    """Note the kind of the font size of the root, and write out its size where monospace changes it."""
+    keyword, absolute = _size_kind(value, INITIAL_KIND)
+    setattr(root, FONT_KIND, (keyword, absolute))
+    if not _monospace(root) or (keyword is None and absolute):
+        return
+    own = root.attrib.get("font-size", "1em")
+    sized = MONOSPACE_KEYWORDS[keyword] if keyword is not None else _resolved_px(root, own, DEFAULT_FONT_PX) * MONOSPACE_SCALE
+    setattr(root, FONT_PX, sized)
+    root.attrib["font-size"] = f"{sized}px"
 
 
 def ex_restyle(svg: Any, node: Any, font_size: float) -> dict[str, str | None] | None:

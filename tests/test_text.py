@@ -67,6 +67,64 @@ def test_a_relative_font_size_applies_once(body: str, expected: float) -> None:
     assert font_sizes(render(svg(body))) == [pytest.approx(expected, abs=0.01)]
 
 
+# Chromium 1.64 of the visual image, getComputedStyle of each text
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ('<text x="10" y="50" font-family="monospace">A</text>', 13),
+        ('<text x="10" y="50" font-family="MONOSPACE">A</text>', 13),
+        ('<text x="10" y="50" style="font-family: monospace">A</text>', 13),
+        ('<g font-family="monospace"><text x="10" y="50">A</text></g>', 13),
+        ('<text x="10" y="50" font-family="monospace" font-size="16px">A</text>', 16),
+        ('<text x="10" y="50" font-family="monospace" font-size="12pt">A</text>', 16),
+        ('<text x="10" y="50" font-family="monospace" font-size="13">A</text>', 13),
+        ('<text x="10" y="50" font-family="monospace, serif">A</text>', 16),
+        ('<text x="10" y="50" font-family="Courier, monospace">A</text>', 16),
+        ('<text x="10" y="50" font-family="monospace, monospace">A</text>', 16),
+        ('<text x="10" y="50" font-family="\'monospace\'">A</text>', 16),
+        ('<text x="10" y="50" font-family="monospace" font-size="medium">A</text>', 13),
+        ('<text x="10" y="50" font-family="monospace" font-size="initial">A</text>', 13),
+        ('<text x="10" y="50" font-family="monospace" font-size="small">A</text>', 12),
+        ('<text x="10" y="50" font-family="monospace" font-size="large">A</text>', 16),
+        ('<text x="10" y="50" font-family="monospace" font-size="xx-large">A</text>', 26),
+        ('<text x="10" y="50" font-family="monospace" font-size="x-small">A</text>', 10),
+        ('<text x="10" y="50" font-family="monospace" font-size="xxx-large">A</text>', 39),
+        ('<g font-family="monospace" font-size="x-large"><text x="10" y="50" font-family="serif">A</text></g>', 24),
+        ('<text x="10" y="50" font-family="monospace" font-size="1rem">A</text>', 16),
+        ('<text x="10" y="50" font-family="monospace" font-size="2em">A</text>', 26),
+        ('<text x="10" y="50" font-family="monospace" font-size="50%">A</text>', 6.5),
+        ('<text x="10" y="50" font-family="monospace" font-size="smaller">A</text>', 10.833),
+        ('<g font-family="monospace"><text x="10" y="50" font-size="2em">A</text></g>', 26),
+        ('<g font-family="monospace"><text x="10" y="50" font-family="serif">A</text></g>', 16),
+        ('<g font-family="monospace" font-size="20px"><text x="10" y="50" font-family="serif">A</text></g>', 20),
+        ('<g font-family="monospace"><text x="10" y="50" font-family="serif" font-size="2em">A</text></g>', 32),
+        ('<g font-size="2em"><text x="10" y="50" font-family="monospace">A</text></g>', 26),
+        ('<g font-size="2em"><text x="10" y="50" font-family="monospace" font-size="inherit">A</text></g>', 26),
+        ('<g font-size="20px"><text x="10" y="50" font-family="monospace">A</text></g>', 20),
+        ('<g font-size="large"><text x="10" y="50" font-family="monospace">A</text></g>', 16),
+        ('<g font-size="20px"><text x="10" y="50" font-family="monospace" font-size="0.5em">A</text></g>', 10),
+        ('<g font-size="1.5em"><g font-family="monospace"><text x="10" y="50" font-family="serif">A</text></g></g>', 24),
+        ('<g font-family="monospace"><g font-size="1.5em"><text x="10" y="50">A</text></g></g>', 19.5),
+    ],
+)
+def test_monospace_takes_the_fixed_default_size(body: str, expected: float) -> None:
+    # Chromium and Firefox size the generic monospace alone from a default of 13px, not 16px: a size from a
+    # keyword, or relative to one, scales by 13/16 where the family turns monospace, and back where it leaves
+    assert font_sizes(render(svg(body))) == [pytest.approx(expected, abs=0.01)]
+
+
+def test_monospace_root_and_tspan() -> None:
+    # MathJax writes accented letters as <text font-family="monospace"> with no size: they came out 1.23 times too large
+    pdf = render(svg('<text x="10" y="50">a<tspan font-family="serif">b</tspan></text><text x="10" y="90" font-family="serif">c</text>', extra=' font-family="monospace"'))
+    assert font_sizes(pdf) == [13, 16, 16]
+
+
+@pytest.mark.parametrize(("size", "expected"), [("2em", 26), ("20px", 20)])
+def test_monospace_root_with_a_size(size: str, expected: float) -> None:
+    pdf = render(svg('<text x="10" y="50">A</text>', extra=f' font-family="monospace" font-size="{size}"'))
+    assert font_sizes(pdf) == [expected]
+
+
 @pytest.mark.parametrize("body", ['<text x="10" y="50" font-size="4ex">A</text>', '<text x="10" y="50" font-size="4ex"><tspan>A</tspan></text>'])
 def test_ex_is_the_x_height_of_the_font(body: str) -> None:
     # As in Chromium: the x-height of Liberation Sans is 1082 of 2048 units, not half the em

@@ -1838,5 +1838,21 @@
    2000,
    2000
   ]
+ },
+ {
+  "name": "text__monospace-default-size",
+  "source": "text/monospace-default-size.svg",
+  "group": "text",
+  "width": 420,
+  "reference_box": [
+   0,
+   0,
+   424,
+   234
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
  }
 ]

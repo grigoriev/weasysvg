@@ -1033,5 +1033,14 @@
   "what": "Matches resvg: CJK hangs from its vertical origin and turns about it, Latin and Arabic turn about their own origins.",
   "native_verdict": "differs",
   "native_what": "Laid out horizontally."
+ },
+ {
+  "name": "text__monospace-default-size",
+  "reference": "chromium",
+  "reference_why": "resvg has no default of 13px for the generic monospace: it sizes the text as any other family.",
+  "verdict": "same",
+  "what": "Matches: the generic monospace alone takes 13px as medium, the 2em line 26px, the sans-serif line inside the monospace group 16px.",
+  "native_verdict": "differs",
+  "native_what": "Monospace text without a size is 16px, the 2em line 32px, and the line in font-size large is missing."
  }
 ]
