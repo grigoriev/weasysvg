@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Python 3.10, which reaches its end of life in October 2026. Pillow 13.0.0 requires Python 3.11, and it
   fixes the vulnerabilities that Dependabot reports for Pillow 12.3.0 in the lock file.
+- PyPy. No known user runs weasysvg on it, and its CI job took five minutes, the longest of all.
 
 ## [0.2.0] - 2026-10-21
 

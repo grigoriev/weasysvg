@@ -11,7 +11,7 @@ vector in the PDF: weasysvg rasterizes no SVG content. The one image it makes is
 
 ## Tech Stack
 
-- **Python**: 3.11+ and PyPy 3.11 (the target services run 3.14)
+- **Python**: 3.11+, CPython only (the target services run 3.14)
 - **Package Manager**: uv
 - **Build Backend**: hatchling, `src/` layout
 - **Linting/Formatting**: ruff, line length 240
@@ -133,7 +133,7 @@ run in a process of their own: `tests/helpers.py` installs weasysvg on import.
 
 ## CI/CD
 
-- **CI** (`ci.yml`): actionlint and zizmor; tests on Python 3.11 to 3.14 and PyPy 3.11 with Pango and fonts from apt;
+- **CI** (`ci.yml`): actionlint and zizmor; tests on Python 3.11 to 3.14 with Pango and fonts from apt;
   SonarCloud; build.
 - **Scorecard** (`scorecard.yml`): OpenSSF Scorecard, weekly and on push to main.
 - **Release** (`release.yml`): on `v*` tags, tests, one build with signed provenance, then PyPI

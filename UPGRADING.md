@@ -33,7 +33,7 @@ Renovate does not merge it on its own. Work on that branch, or on `chore/weasypr
    - **A changed hook** names the internal and the weasysvg code that depends on it. Read the upstream
      change with `git diff vN-1..vN -- <file>` in a clone of Kozea/WeasyPrint. Adapt the weasysvg code
      if the change touches what it relies on.
-5. Run `make test`, and `make test BASE=pypy:3.11-slim-trixie`. Fix each failure test first.
+5. Run `make test`. Fix each failure test first.
 6. Run `make visual-check`.
    - **weasysvg worse** than the baseline is a regression: fix it, test first.
    - **WeasyPrint alone better** than the baseline points at a gap it may have closed: compare with
