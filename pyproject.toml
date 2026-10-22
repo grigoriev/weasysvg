@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "weasysvg"
-version = "0.3.0"
+version = "0.3.1"
 description = "Native SVG rendering for WeasyPrint, close to Chromium: foreignObject, filters, masks, blending and text."
 readme = "README.md"
 license = "MIT"
