@@ -7,15 +7,16 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 111 |
-| 🟡 close to the reference | 22 | 5 |
-| ❌ differs from the reference | 56 | 0 |
+| ✅ matches the reference | 41 | 115 |
+| 🟡 close to the reference | 23 | 6 |
+| ❌ differs from the reference | 58 | 0 |
 
-References: Chromium 38, resvg 11, Chromium and resvg 68.
+References: Chromium 42, resvg 11, Chromium and resvg 69.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (7)
 - [foreignObject](#foreignobject) (2)
+- [SBB pdf-exporter](#sbb-pdf-exporter) (5)
 - [Wikimedia Commons](#wikimedia-commons) (14)
 - [resvg feature tests](#resvg-feature-tests) (64)
 - [Text written for this corpus](#text-written-for-this-corpus) (1)
@@ -557,6 +558,78 @@ References: Chromium 38, resvg 11, Chromium and resvg 68.
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
 | <a href="render/chromium/fo__rich-html.webp"><img src="render/chromium/fo__rich-html.webp" width="200" alt="fo__rich-html in Chromium"></a> | <a href="render/resvg/fo__rich-html.webp"><img src="render/resvg/fo__rich-html.webp" width="200" alt="fo__rich-html in resvg"></a> | <a href="render/weasyprint/fo__rich-html.webp"><img src="render/weasyprint/fo__rich-html.webp" width="200" alt="fo__rich-html in WeasyPrint"></a> | <a href="render/weasysvg/fo__rich-html.webp"><img src="render/weasysvg/fo__rich-html.webp" width="200" alt="fo__rich-html in weasysvg"></a> |
+
+## SBB pdf-exporter
+
+### pdf-exporter__drawio-font-label
+
+[`pdf-exporter/drawio-font-label.svg`](svg/pdf-exporter/drawio-font-label.svg)
+
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg draws the fallback &#x27;Courier New...&#x27; and &#x27;Text is not SVG - cannot display&#x27;: it has no foreignObject. |
+| 🟡 | weasysvg | **close to the reference** | Both lines of the label sit 10.8 px left and 5 px above Chromium. WeasyPrint keeps the space before each &lt;br/&gt; in the centered line, and the white space after the last &lt;br/&gt; makes an empty line, which sets the baseline of the inline-block. |
+| ❌ | WeasyPrint | **differs from the reference** | The fallback &#x27;Courier New...&#x27; at 12 px replaces the HTML label, and &#x27;Text is not SVG - cannot display&#x27; shows. |
+
+| Chromium | resvg | WeasyPrint | weasysvg |
+|---|---|---|---|
+| <a href="render/chromium/pdf-exporter__drawio-font-label.webp"><img src="render/chromium/pdf-exporter__drawio-font-label.webp" width="200" alt="pdf-exporter__drawio-font-label in Chromium"></a> | <a href="render/resvg/pdf-exporter__drawio-font-label.webp"><img src="render/resvg/pdf-exporter__drawio-font-label.webp" width="200" alt="pdf-exporter__drawio-font-label in resvg"></a> | <a href="render/weasyprint/pdf-exporter__drawio-font-label.webp"><img src="render/weasyprint/pdf-exporter__drawio-font-label.webp" width="200" alt="pdf-exporter__drawio-font-label in WeasyPrint"></a> | <a href="render/weasysvg/pdf-exporter__drawio-font-label.webp"><img src="render/weasysvg/pdf-exporter__drawio-font-label.webp" width="200" alt="pdf-exporter__drawio-font-label in weasysvg"></a> |
+
+### pdf-exporter__formula-accents
+
+[`pdf-exporter/formula-accents.svg`](svg/pdf-exporter/formula-accents.svg)
+
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg draws the letters of the monospace text at 16 px, Chromium at 13 px, its default size for a bare monospace family. |
+| ✅ | weasysvg | **matches the reference** | Matches: the letters take 13 px as in Chromium, every glyph within 0.25 px. |
+| ❌ | WeasyPrint | **differs from the reference** | The letters take 16 px, a fifth larger than in Chromium, and run past the right edge of the image. |
+
+| Chromium | resvg | WeasyPrint | weasysvg |
+|---|---|---|---|
+| <a href="render/chromium/pdf-exporter__formula-accents.webp"><img src="render/chromium/pdf-exporter__formula-accents.webp" width="200" alt="pdf-exporter__formula-accents in Chromium"></a> | <a href="render/resvg/pdf-exporter__formula-accents.webp"><img src="render/resvg/pdf-exporter__formula-accents.webp" width="200" alt="pdf-exporter__formula-accents in resvg"></a> | <a href="render/weasyprint/pdf-exporter__formula-accents.webp"><img src="render/weasyprint/pdf-exporter__formula-accents.webp" width="200" alt="pdf-exporter__formula-accents in WeasyPrint"></a> | <a href="render/weasysvg/pdf-exporter__formula-accents.webp"><img src="render/weasysvg/pdf-exporter__formula-accents.webp" width="200" alt="pdf-exporter__formula-accents in weasysvg"></a> |
+
+### pdf-exporter__formula-matrix
+
+[`pdf-exporter/formula-matrix.svg`](svg/pdf-exporter/formula-matrix.svg)
+
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg draws the glyphs thinner: their stroke of 1 unit is 0.04 px, which PDFium draws as a hairline of one device pixel in the PDF of Chromium. |
+| ✅ | weasysvg | **matches the reference** | Matches: the glyphs are the same paths, within antialiasing. |
+| ✅ | WeasyPrint | **matches the reference** | Matches: the glyphs are the same paths, within antialiasing. |
+
+| Chromium | resvg | WeasyPrint | weasysvg |
+|---|---|---|---|
+| <a href="render/chromium/pdf-exporter__formula-matrix.webp"><img src="render/chromium/pdf-exporter__formula-matrix.webp" width="200" alt="pdf-exporter__formula-matrix in Chromium"></a> | <a href="render/resvg/pdf-exporter__formula-matrix.webp"><img src="render/resvg/pdf-exporter__formula-matrix.webp" width="200" alt="pdf-exporter__formula-matrix in resvg"></a> | <a href="render/weasyprint/pdf-exporter__formula-matrix.webp"><img src="render/weasyprint/pdf-exporter__formula-matrix.webp" width="200" alt="pdf-exporter__formula-matrix in WeasyPrint"></a> | <a href="render/weasysvg/pdf-exporter__formula-matrix.webp"><img src="render/weasysvg/pdf-exporter__formula-matrix.webp" width="200" alt="pdf-exporter__formula-matrix in weasysvg"></a> |
+
+### pdf-exporter__formula-quadratic
+
+[`pdf-exporter/formula-quadratic.svg`](svg/pdf-exporter/formula-quadratic.svg)
+
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg draws the glyphs thinner: their stroke of 1 unit is 0.04 px, which PDFium draws as a hairline of one device pixel in the PDF of Chromium. |
+| ✅ | weasysvg | **matches the reference** | Matches: the glyphs are the same paths, the red part included, within antialiasing. |
+| ✅ | WeasyPrint | **matches the reference** | Matches: the glyphs are the same paths, the red part included, within antialiasing. |
+
+| Chromium | resvg | WeasyPrint | weasysvg |
+|---|---|---|---|
+| <a href="render/chromium/pdf-exporter__formula-quadratic.webp"><img src="render/chromium/pdf-exporter__formula-quadratic.webp" width="200" alt="pdf-exporter__formula-quadratic in Chromium"></a> | <a href="render/resvg/pdf-exporter__formula-quadratic.webp"><img src="render/resvg/pdf-exporter__formula-quadratic.webp" width="200" alt="pdf-exporter__formula-quadratic in resvg"></a> | <a href="render/weasyprint/pdf-exporter__formula-quadratic.webp"><img src="render/weasyprint/pdf-exporter__formula-quadratic.webp" width="200" alt="pdf-exporter__formula-quadratic in WeasyPrint"></a> | <a href="render/weasysvg/pdf-exporter__formula-quadratic.webp"><img src="render/weasysvg/pdf-exporter__formula-quadratic.webp" width="200" alt="pdf-exporter__formula-quadratic in weasysvg"></a> |
+
+### pdf-exporter__shapes-in-ellipse
+
+[`pdf-exporter/shapes-in-ellipse.svg`](svg/pdf-exporter/shapes-in-ellipse.svg)
+
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium and resvg |  |
+| ✅ | weasysvg | **matches the reference** | Matches. |
+| 🟡 | WeasyPrint | **close to the reference** | The outline of the ellipse runs up to 1 px outside at the diagonals: WeasyPrint draws each quarter with control points at 1/sqrt(pi) of the radius, not 0.552. |
+
+| Chromium | resvg | WeasyPrint | weasysvg |
+|---|---|---|---|
+| <a href="render/chromium/pdf-exporter__shapes-in-ellipse.webp"><img src="render/chromium/pdf-exporter__shapes-in-ellipse.webp" width="200" alt="pdf-exporter__shapes-in-ellipse in Chromium"></a> | <a href="render/resvg/pdf-exporter__shapes-in-ellipse.webp"><img src="render/resvg/pdf-exporter__shapes-in-ellipse.webp" width="200" alt="pdf-exporter__shapes-in-ellipse in resvg"></a> | <a href="render/weasyprint/pdf-exporter__shapes-in-ellipse.webp"><img src="render/weasyprint/pdf-exporter__shapes-in-ellipse.webp" width="200" alt="pdf-exporter__shapes-in-ellipse in WeasyPrint"></a> | <a href="render/weasysvg/pdf-exporter__shapes-in-ellipse.webp"><img src="render/weasysvg/pdf-exporter__shapes-in-ellipse.webp" width="200" alt="pdf-exporter__shapes-in-ellipse in weasysvg"></a> |
 
 ## Wikimedia Commons
 

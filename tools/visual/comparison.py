@@ -44,6 +44,7 @@ GROUPS = {
     "diagrams": "Diagrams from kroki and mermaid.ink",
     "drawio": "draw.io",
     "fo": "foreignObject",
+    "pdf-exporter": "SBB pdf-exporter",
     "real": "Wikimedia Commons",
     "resvg": "resvg feature tests",
     "text": "Text written for this corpus",

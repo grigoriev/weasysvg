@@ -608,6 +608,86 @@
   ]
  },
  {
+  "name": "pdf-exporter__drawio-font-label",
+  "source": "pdf-exporter/drawio-font-label.svg",
+  "group": "pdf-exporter",
+  "width": 351,
+  "reference_box": [
+   0,
+   0,
+   355,
+   355
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "pdf-exporter__formula-accents",
+  "source": "pdf-exporter/formula-accents.svg",
+  "group": "pdf-exporter",
+  "width": 145,
+  "reference_box": [
+   0,
+   2,
+   146,
+   39
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "pdf-exporter__formula-matrix",
+  "source": "pdf-exporter/formula-matrix.svg",
+  "group": "pdf-exporter",
+  "width": 495,
+  "reference_box": [
+   0,
+   0,
+   489,
+   229
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "pdf-exporter__formula-quadratic",
+  "source": "pdf-exporter/formula-quadratic.svg",
+  "group": "pdf-exporter",
+  "width": 344,
+  "reference_box": [
+   0,
+   1,
+   344,
+   100
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
+  "name": "pdf-exporter__shapes-in-ellipse",
+  "source": "pdf-exporter/shapes-in-ellipse.svg",
+  "group": "pdf-exporter",
+  "width": 450,
+  "reference_box": [
+   14,
+   19,
+   436,
+   381
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
   "name": "real__wm-Bitmap_VS_SVG",
   "source": "real/wm-Bitmap_VS_SVG.svg",
   "group": "real",

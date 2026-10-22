@@ -107,9 +107,9 @@ change between releases.
 
 ## How it compares to Chromium
 
-The bench in [`tools/visual`](https://github.com/grigoriev/weasysvg/tree/main/tools/visual) renders a corpus of 117 SVGs. The corpus holds draw.io,
-Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
-the resvg suite. Every SVG has a reference: Chromium, resvg, or both where they agree (68 SVGs). For the resvg tests the expected
+The bench in [`tools/visual`](https://github.com/grigoriev/weasysvg/tree/main/tools/visual) renders a corpus of 122 SVGs. The corpus holds draw.io,
+Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, MathJax formulas, and tests of
+the resvg suite. Every SVG has a reference: Chromium, resvg, or both where they agree (69 SVGs). For the resvg tests the expected
 image of the resvg suite decides between Chromium and resvg where they differ. `make review` compares the
 renderings at twice the resolution of the panels, in an 8 x 8 grid, and a look at each cell that differs
 gives the verdict:
@@ -117,9 +117,9 @@ gives the verdict:
 | Verdict | WeasyPrint 70 | WeasyPrint 70 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 111 |
-| 🟡 close to the reference | 22 | 5 |
-| ❌ differs from the reference | 56 | 0 |
+| ✅ matches the reference | 41 | 115 |
+| 🟡 close to the reference | 23 | 6 |
+| ❌ differs from the reference | 58 | 0 |
 
 Of the 36 diagrams from draw.io, kroki and mermaid.ink, 31 match the reference and 5 are close.
 Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](https://github.com/grigoriev/weasysvg/blob/main/corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)
