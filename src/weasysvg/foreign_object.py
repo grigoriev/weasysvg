@@ -354,7 +354,69 @@ def _element_to_box(*args: Any, **kwargs: Any) -> Any:
             # but a later version may, as Chromium does
             if isinstance(box, (wp_boxes.BlockContainerBox, wp_boxes.InlineBox)) and not ITEM_LAYOUTS.intersection(box.style["display"]):
                 box.children = [child for child in box.children if not _plain_empty(child, box)]
+            if isinstance(box, wp_boxes.BlockContainerBox):
+                _trim_at_breaks(box)
     return found
+
+
+# ---------------- white space at a line break ----------------
+
+# A <br> in the inline content of a block, and what ends a run of white space: an atomic inline or a block
+BREAK, STOP = "break", "stop"
+COLLAPSIBLE = frozenset(("normal", "nowrap"))
+WHITE_SPACE = " \t\n\r\f"
+
+
+def _line_items(box: Any, items: list[Any]) -> None:
+    """The text boxes and the <br> of the inline content of box, in order."""
+    for child in box.children:
+        if isinstance(child, wp_boxes.TextBox):
+            items.append(child)
+        elif type(child) is wp_boxes.InlineBox:
+            if child.element_tag == "br":
+                items.append(BREAK)
+            else:
+                _line_items(child, items)
+        else:
+            items.append(STOP)
+
+
+def _trim(items: Any, strip: Any) -> None:
+    """Strip collapsible white space off the texts in items, up to the first one that keeps text."""
+    for item in items:
+        if item in (BREAK, STOP) or item.style["white_space"] not in COLLAPSIBLE:
+            return
+        item.text = strip(item.text, WHITE_SPACE)
+        if item.text:
+            return
+
+
+def _prune(box: Any) -> None:
+    """Drop the text boxes trimming emptied, and the inline boxes it left empty, which would hold a line of their own."""
+    kept = []
+    for child in box.children:
+        if type(child) is wp_boxes.InlineBox:
+            _prune(child)
+        if not (isinstance(child, wp_boxes.TextBox) and not child.text) and not _plain_empty(child, box):
+            kept.append(child)
+    box.children = kept
+
+
+def _trim_at_breaks(box: Any) -> None:
+    """Remove the collapsible white space on either side of each <br> in the inline content of box.
+
+    White space at the end or the start of a line goes, as Chromium does. WeasyPrint kept a space before a
+    <br> in the line, which moved centered text left by half a space. White space alone after the last <br>
+    made an empty line box, and an inline-block took its baseline from that line.
+    """
+    items: list[Any] = []
+    _line_items(box, items)
+    for index, item in enumerate(items):
+        if item == BREAK:
+            _trim(reversed(items[:index]), str.rstrip)
+            _trim(items[index + 1 :], str.lstrip)
+    if BREAK in items:
+        _prune(box)
 
 
 # ---------------- list markers ----------------

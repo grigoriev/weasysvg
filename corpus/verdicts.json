@@ -345,8 +345,8 @@
   "name": "pdf-exporter__drawio-font-label",
   "reference": "chromium",
   "reference_why": "resvg draws the fallback 'Courier New...' and 'Text is not SVG - cannot display': it has no foreignObject.",
-  "verdict": "close",
-  "what": "Both lines of the label sit 10.8 px left and 5 px above Chromium. WeasyPrint keeps the space before each <br/> in the centered line, and the white space after the last <br/> makes an empty line, which sets the baseline of the inline-block.",
+  "verdict": "same",
+  "what": "Matches: both lines of the label sit where Chromium puts them, as the white space around each <br/> goes.",
   "native_verdict": "differs",
   "native_what": "The fallback 'Courier New...' at 12 px replaces the HTML label, and 'Text is not SVG - cannot display' shows."
  },

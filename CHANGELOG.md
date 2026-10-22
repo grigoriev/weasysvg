@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- In a `<foreignObject>`, collapsible white space on either side of a `<br>` goes, as at the end and the start
+  of any line in Chromium. draw.io writes HTML labels indented, with a newline before each `<br/>`: WeasyPrint
+  kept a space at the end of each line, which moved centered text left by half a space, and white space after
+  the last `<br/>` made an empty line, which moved a label centered in a flex box up. A label of pdf-exporter
+  sat 10.8 px left and 5 px above Chromium, and now matches it.
+
 ## [0.3.0] - 2026-10-22
 
 ### Changed

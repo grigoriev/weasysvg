@@ -7,8 +7,8 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 41 | 115 |
-| 🟡 close to the reference | 23 | 6 |
+| ✅ matches the reference | 41 | 116 |
+| 🟡 close to the reference | 23 | 5 |
 | ❌ differs from the reference | 58 | 0 |
 
 References: Chromium 42, resvg 11, Chromium and resvg 69.
@@ -568,7 +568,7 @@ References: Chromium 42, resvg 11, Chromium and resvg 69.
 | | Renderer | Verdict | What |
 |---|---|---|---|
 | 📌 | Reference | Chromium | resvg draws the fallback &#x27;Courier New...&#x27; and &#x27;Text is not SVG - cannot display&#x27;: it has no foreignObject. |
-| 🟡 | weasysvg | **close to the reference** | Both lines of the label sit 10.8 px left and 5 px above Chromium. WeasyPrint keeps the space before each &lt;br/&gt; in the centered line, and the white space after the last &lt;br/&gt; makes an empty line, which sets the baseline of the inline-block. |
+| ✅ | weasysvg | **matches the reference** | Matches: both lines of the label sit where Chromium puts them, as the white space around each &lt;br/&gt; goes. |
 | ❌ | WeasyPrint | **differs from the reference** | The fallback &#x27;Courier New...&#x27; at 12 px replaces the HTML label, and &#x27;Text is not SVG - cannot display&#x27; shows. |
 
 | Chromium | resvg | WeasyPrint | weasysvg |
