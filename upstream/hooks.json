@@ -15,7 +15,11 @@
   },
   "weasyprint.images:SVGImage.draw": {
    "fingerprint": "16c489bb134cdeb8",
-   "used_by": "conditional.svgimage_draw: nested SVGs are built while it draws"
+   "used_by": "_core._svgimage_draw wraps it: conditional.svgimage_draw, nested SVGs are built while it draws; xobject.draw_as_form draws it into a form"
+  },
+  "weasyprint.draw:draw_replacedbox": {
+   "fingerprint": "84ed6fa40ef2ba36",
+   "used_by": "xobject.draw_replacedbox: the overflow of an inline <svg>"
   },
   "weasyprint.images:get_image_from_uri": {
    "fingerprint": "92a9810c10716ca3",
@@ -227,7 +231,7 @@
   },
   "weasyprint.pdf.stream:Stream.add_group": {
    "fingerprint": "d8781b7b3242be5e",
-   "used_by": "_core._add_group keeps the absolute matrix; _core.measure_text and text._record remove their scratch group from _resources; _core, filters, paint groups"
+   "used_by": "_core._add_group keeps the absolute matrix; _core.measure_text and text._record remove their scratch group from _resources; _core, filters, paint groups; xobject._new_form drops its Group"
   },
   "weasyprint.pdf.stream:Stream.set_alpha_state": {
    "fingerprint": "1c570e0b507a14dd",

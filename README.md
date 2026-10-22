@@ -79,6 +79,7 @@ weasysvg.install(filters=False, fonts=False)
 | `fetch_cache` | `True` | one fetch per URL and SVG |
 | `markers` | `True` | marker orientation as in Chromium |
 | `paint_order` | `True` | `paint-order` of shapes and text |
+| `form_xobject` | `True` | each SVG image as one Form XObject, its BBox the viewport |
 | `language` | `"en"` | the language `systemLanguage` reads where the document has no `lang` |
 
 weasysvg targets WeasyPrint 70.x and warns on any other major version: it patches internals that
@@ -94,19 +95,20 @@ change between releases.
 | Masks and clips | A mask is set before the path starts, so viewers apply it. `maskContentUnits`, the region of an `objectBoundingBox` mask, self-referencing masks, and `mask` on a `<mask>` ignored as in Chromium. A clip path with `clip-rule="evenodd"`, text, `<use>` or clipped children becomes a soft mask. |
 | Gradients and patterns | Tiles start at the user space origin, `patternTransform` moves the tile origin too, patterns used twice, a gradient cell that covers the shape under any `gradientTransform`, colors mixed unpremultiplied as in Chromium, radial `r` and `fr` percentages, `href` stops used twice, a gradient cell that Quartz and Splash do not drop. |
 | Blending and opacity | `mix-blend-mode` as an isolated group. Opacity groups are no longer clipped to the bounding box, which cut off shifted text. |
-| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright from the vertical origin of the font (`VORG`, `vmtx`), other scripts sideways, `rotate` about the origin of each glyph as in resvg. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; laid out one character at a time, on a path or down a column, Arabic in one text node still takes its joining forms and runs right to left; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized from the font tables as WeasyPrint draws it on HTML text, through the glyphs (on purpose not as Chromium, which draws a tenth of the font size and skips the ink; resvg reads the font too), text laid out one character at a time (`textLength`, `x`, `y`, `dx`, `dy` lists) carries the lines under each character on its own baseline and leaves the room added between characters bare, font-size keywords, a relative font size inherited as computed and `ex` from the x-height of the font, nested `<text>` ignored, the text after a child of a `<tspan>` drawn (`Don<wbr/>e` in a Polarion chart label), `text-anchor` per text chunk. A filter, mask or clip on text uses the box of the text as drawn. |
+| Text | Vertical `writing-mode` (`tb`, `vertical-rl`): CJK upright from the vertical origin of the font (`VORG`, `vmtx`), other scripts sideways, `rotate` about the origin of each glyph as in resvg. `textPath` (SVG 2 `path` attribute, `href`, `startOffset`, `text-anchor`, `<tspan>` inside, decorations). A run with one position at most is laid out whole, so Arabic joins, bidi orders and kerning and ligatures apply; laid out one character at a time, on a path or down a column, Arabic in one text node still takes its joining forms and runs right to left; `letter-spacing` skips cursive scripts. `dominant-baseline` and `alignment-baseline` from real font metrics, `text-decoration` placed and sized from the font tables as WeasyPrint draws it on HTML text, through the glyphs (on purpose not as Chromium, which draws a tenth of the font size and skips the ink; resvg reads the font too), text laid out one character at a time (`textLength`, `x`, `y`, `dx`, `dy` lists) carries the lines under each character on its own baseline and leaves the room added between characters bare, font-size keywords, the 13px default of the generic `monospace` alone as in Chromium (keyword sizes from its table, relative sizes scaled by 13/16), a relative font size inherited as computed and `ex` from the x-height of the font, nested `<text>` ignored, the text after a child of a `<tspan>` drawn (`Don<wbr/>e` in a Polarion chart label), `text-anchor` per text chunk. A filter, mask or clip on text uses the box of the text as drawn. |
 | Fonts | A CSS family list resolves to one family as Chromium on Linux does, with its metric-compatible replacements (Arial to Liberation Sans). A character the family lacks comes from the sans-serif list, as in Chromium. |
 | Markers | `orient="auto"` follows the tangents of lines, curves and arcs, and a mid marker bisects its vertex with the angle wrap of Chromium. |
 | Paint order | `paint-order` (`normal` or any order of `fill`, `stroke` and `markers`, attribute or CSS, inherited) on shapes, their markers, text and its decoration lines, as in Chromium. Each paint is a pass of its own in one graphics state, inside the opacity group, mask, filter and clip of the element. An invalid value is ignored, so the parent value inherits. A translucent stroke over a fill shows the fill under it: WeasyPrint painted both as one knockout object, which showed the backdrop. |
 | Presentation attributes | An empty attribute such as `fill=""` is ignored, as in browsers. |
 | Dashes | A dash that runs through the start point of a closed shape is one dash with its line join, as in Chromium: PDFium drew two, with a seam across the stroke. A dash of length 0 under a round or square cap keeps its place, and a negative offset of an odd array counts back from its whole period. |
+| Output structure | Each SVG image is one Form XObject (`/Subtype /Form`, no transparency group): an `<img>`, an inline `<svg>`, a CSS image, an `<image>` inside an SVG (a form inside the form). Its `/BBox` is the viewport, `[0 0 width height]` after CSS sizing, in the space the page paints it in with `Do`. A reader of the PDF finds each diagram, its size and its place: PDFBox `PDFormXObject`, PyMuPDF `get_xobjects()` and `get_bboxlog()`. The box clips, as Chromium clips an image; an inline `<svg>` with `overflow: visible` gets a box wide enough for its overflow. The same image drawn again at the same size, on the pages or within one group, reuses its form. In a tagged PDF the Figure of the image marks the `Do`. |
 | Path data | An arc of a zero radius draws a straight line to its end, as SVG says: Highcharts closes each slice of a pie with one. An arc wider than 90 degrees is drawn as curves of 90 degrees at most: WeasyPrint drew up to half a circle as one curve, which bulged by 1.8 % of its radius. |
 
 ## How it compares to Chromium
 
-The bench in [`tools/visual`](https://github.com/grigoriev/weasysvg/tree/main/tools/visual) renders a corpus of 115 SVGs. The corpus holds draw.io,
+The bench in [`tools/visual`](https://github.com/grigoriev/weasysvg/tree/main/tools/visual) renders a corpus of 116 SVGs. The corpus holds draw.io,
 Mermaid, PlantUML, Graphviz, D2 and BPMN diagrams, real-world files from Wikimedia Commons, and tests of
-the resvg suite. Every SVG has a reference: Chromium, resvg, or both where they agree (69 SVGs). For the resvg tests the expected
+the resvg suite. Every SVG has a reference: Chromium, resvg, or both where they agree (68 SVGs). For the resvg tests the expected
 image of the resvg suite decides between Chromium and resvg where they differ. `make review` compares the
 renderings at twice the resolution of the panels, in an 8 x 8 grid, and a look at each cell that differs
 gives the verdict:
@@ -115,8 +117,8 @@ gives the verdict:
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
 | ✅ matches the reference | 39 | 110 |
-| 🟡 close to the reference | 22 | 4 |
-| ❌ differs from the reference | 54 | 0 |
+| 🟡 close to the reference | 22 | 5 |
+| ❌ differs from the reference | 55 | 0 |
 
 Of the 35 diagrams from draw.io, kroki and mermaid.ink, 34 match the reference and 1 is close.
 Each verdict says what differs. The verdicts are in [`corpus/verdicts.json`](https://github.com/grigoriev/weasysvg/blob/main/corpus/verdicts.json). The [comparison page](https://grigoriev.github.io/weasysvg/corpus/comparison.html)

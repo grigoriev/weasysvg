@@ -24,6 +24,7 @@ headless Chromium of Playwright, in the visual image.
 | `svg/diagrams/kroki-erd.svg` | 1 | kroki.io, from the example of [BurntSushi/erd](https://github.com/BurntSushi/erd) `erd.cabal`, without the `state` column, commit `d18075d` | Unlicense, which requires no notice |
 | `svg/fo/mdn-foreignobject.svg` | 1 | the `<foreignObject>` example of [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/foreignObject) | CC0-1.0 (MDN code samples) |
 | `svg/fo/rich-html.svg` | 1 | written for this corpus | MIT, as this repository |
+| `svg/text/monospace-default-size.svg` | 1 | written for this corpus | MIT, as this repository |
 | `svg/real/wm-*` | 14 | Wikimedia Commons, one file each, see below | per file |
 
 Fonts embedded by the generators: the D2 diagrams (`kroki-d2*`) carry subsets of Source Sans Pro, and

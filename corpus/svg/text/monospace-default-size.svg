@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="230" viewBox="0 0 420 230">
+  <rect x="0.5" y="0.5" width="419" height="229" fill="#fff" stroke="#99a"/>
+  <!-- MathJax writes a letter it has no path for as text in the generic monospace, with no size -->
+  <text x="12" y="30" font-family="monospace">éàè monospace, no size</text>
+  <g font-family="monospace">
+    <text x="12" y="60">monospace from the group</text>
+    <text x="12" y="95" font-size="2em">2em monospace</text>
+    <text x="12" y="125" font-family="sans-serif">sans-serif inside it</text>
+  </g>
+  <text x="12" y="155" font-family="monospace, serif">monospace, serif</text>
+  <text x="12" y="185" font-family="monospace" font-size="16px">monospace at 16px</text>
+  <text x="12" y="215" font-family="monospace" font-size="large">monospace, large</text>
+</svg>

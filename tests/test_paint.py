@@ -187,9 +187,10 @@ def test_pattern_on_a_shape_without_box() -> None:
 def test_mask_is_set_before_the_path() -> None:
     body = '<defs><mask id="m"><rect width="100" height="100" fill="white"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
     pdf = render(svg(body))
-    page = streams(pdf)[0]
+    # The form of the SVG draws the rect
+    drawing = next(stream for stream in streams(pdf) if "0 0 200 100 re\nf" in stream)
     # The soft mask comes first, then the path: no path construction between them
-    assert re.search(r"/s\d+ gs\n(?:(?!.* re\n).*\n)*?0 0 200 100 re\nf", page)
+    assert re.search(r"/s\d+ gs\n(?:(?!.* re\n).*\n)*?0 0 200 100 re\nf", drawing)
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 120, 30), WHITE)
 

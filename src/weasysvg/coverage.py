@@ -112,6 +112,10 @@ class _State:
         """The state a transparency group starts from, in its matrix: no clip, opacity or blend mode of its own."""
         return _State(ctm, self.width, self.cap, self.join, self.miter, self.dashed, self.fill, self.stroke)
 
+    def in_form(self, ctm: Matrix, clips: tuple[Clip, ...]) -> _State:
+        """The state a form without a group starts from: this one, in its matrix, clipped to its box."""
+        return _State(ctm, self.width, self.cap, self.join, self.miter, self.dashed, self.fill, self.stroke, self.fill_alpha, self.stroke_alpha, clips)
+
 
 @dataclass
 class _Subpath:
@@ -287,7 +291,12 @@ class _Reader:
         # The group is clipped to its box
         x0, y0, x1, y1 = (float(value) for value in extra["BBox"])
         box = [_apply(ctm, x, y) for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
-        inner = Group(alpha=state.fill_alpha, clips=(*state.clips, ((box,), "nonzero")))
+        clips = (*state.clips, ((box,), "nonzero"))
+        if "Group" not in extra:
+            # A form that is no group paints as if its content stood here: the drawing of an SVG image
+            self.read_content(xobject, group, state.in_form(ctm, clips))
+            return
+        inner = Group(alpha=state.fill_alpha, clips=clips)
         self.read_content(xobject, inner, state.in_group(ctm))
         if inner.items:
             group.items.append(inner)

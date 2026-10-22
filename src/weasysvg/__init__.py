@@ -20,6 +20,7 @@ from . import markers as _markers
 from . import paint as _paint
 from . import paint_order as _paint_order
 from . import text as _text
+from . import xobject as _xobject
 from .fonts import resolve_families
 
 __all__ = ["SUPPORTED_MAJOR", "install", "installed", "resolve_families"]
@@ -50,6 +51,7 @@ def install(
     fetch_cache: bool = True,
     markers: bool = True,
     paint_order: bool = True,
+    form_xobject: bool = True,
     language: str | None = None,
 ) -> frozenset[str]:
     """Install the selected features and return all features installed so far.
@@ -57,6 +59,7 @@ def install(
     Idempotent: a feature installed before is skipped. A later call can add features, never remove them.
     ``paint_order`` paints fill, stroke and markers in the order of the paint-order property.
     ``fonts`` resolves font families as Chromium does, in SVG text and inside foreignObject.
+    ``form_xobject`` draws each SVG image as one Form XObject, its BBox the viewport.
     ``language`` is the language systemLanguage reads where the document gives none ("en" by default);
     any call can change it.
     """
@@ -74,6 +77,7 @@ def install(
         "foreign_object": foreign_object,
         "markers": markers,
         "paint_order": paint_order,
+        "form_xobject": form_xobject,
     }
 
     def _install_fonts() -> None:
@@ -93,6 +97,7 @@ def install(
         "foreign_object": _foreign_object.install,
         "markers": _markers.install,
         "paint_order": _paint_order.install,
+        "form_xobject": _xobject.install,
     }
     for name, enabled in wanted.items():
         if enabled and name not in _INSTALLED:

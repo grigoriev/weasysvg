@@ -114,7 +114,8 @@
   "resvg__text-tspan--mixed": 36.1,
   "resvg__text-tspan--only-with-y": 42.1,
   "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor": 71.9,
-  "resvg__text-writing-mode--tb-with-rotate": 51.9
+  "resvg__text-writing-mode--tb-with-rotate": 51.9,
+  "text__monospace-default-size": 55.2
  },
  "weasyprint": "70.0",
  "weasysvg": {
@@ -232,6 +233,7 @@
   "resvg__text-tspan--mixed": 2.7,
   "resvg__text-tspan--only-with-y": 0.0,
   "resvg__text-writing-mode--tb-with-negative-dy-and-text-anchor": 2.1,
-  "resvg__text-writing-mode--tb-with-rotate": 53.5
+  "resvg__text-writing-mode--tb-with-rotate": 53.5,
+  "text__monospace-default-size": 2.1
  }
 }

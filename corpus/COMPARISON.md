@@ -7,17 +7,18 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 109 |
+| ✅ matches the reference | 39 | 110 |
 | 🟡 close to the reference | 22 | 5 |
-| ❌ differs from the reference | 54 | 0 |
+| ❌ differs from the reference | 55 | 0 |
 
-References: Chromium 36, resvg 11, Chromium and resvg 68.
+References: Chromium 37, resvg 11, Chromium and resvg 68.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
 - [draw.io](#drawio) (6)
 - [foreignObject](#foreignobject) (2)
 - [Wikimedia Commons](#wikimedia-commons) (14)
 - [resvg feature tests](#resvg-feature-tests) (64)
+- [Text written for this corpus](#text-written-for-this-corpus) (1)
 
 ## Diagrams from kroki and mermaid.ink
 
@@ -1638,3 +1639,19 @@ References: Chromium 36, resvg 11, Chromium and resvg 68.
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
 | <a href="render/chromium/resvg__text-writing-mode--tb-with-rotate.webp"><img src="render/chromium/resvg__text-writing-mode--tb-with-rotate.webp" width="200" alt="resvg__text-writing-mode--tb-with-rotate in Chromium"></a> | <a href="render/resvg/resvg__text-writing-mode--tb-with-rotate.webp"><img src="render/resvg/resvg__text-writing-mode--tb-with-rotate.webp" width="200" alt="resvg__text-writing-mode--tb-with-rotate in resvg"></a> | <a href="render/weasyprint/resvg__text-writing-mode--tb-with-rotate.webp"><img src="render/weasyprint/resvg__text-writing-mode--tb-with-rotate.webp" width="200" alt="resvg__text-writing-mode--tb-with-rotate in WeasyPrint"></a> | <a href="render/weasysvg/resvg__text-writing-mode--tb-with-rotate.webp"><img src="render/weasysvg/resvg__text-writing-mode--tb-with-rotate.webp" width="200" alt="resvg__text-writing-mode--tb-with-rotate in weasysvg"></a> |
+
+## Text written for this corpus
+
+### text__monospace-default-size
+
+[`text/monospace-default-size.svg`](svg/text/monospace-default-size.svg)
+
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg has no default of 13px for the generic monospace: it sizes the text as any other family. |
+| ✅ | weasysvg | **matches the reference** | Matches: the generic monospace alone takes 13px as medium, the 2em line 26px, the sans-serif line inside the monospace group 16px. |
+| ❌ | WeasyPrint | **differs from the reference** | Monospace text without a size is 16px, the 2em line 32px, and the line in font-size large is missing. |
+
+| Chromium | resvg | WeasyPrint | weasysvg |
+|---|---|---|---|
+| <a href="render/chromium/text__monospace-default-size.webp"><img src="render/chromium/text__monospace-default-size.webp" width="200" alt="text__monospace-default-size in Chromium"></a> | <a href="render/resvg/text__monospace-default-size.webp"><img src="render/resvg/text__monospace-default-size.webp" width="200" alt="text__monospace-default-size in resvg"></a> | <a href="render/weasyprint/text__monospace-default-size.webp"><img src="render/weasyprint/text__monospace-default-size.webp" width="200" alt="text__monospace-default-size in WeasyPrint"></a> | <a href="render/weasysvg/text__monospace-default-size.webp"><img src="render/weasysvg/text__monospace-default-size.webp" width="200" alt="text__monospace-default-size in weasysvg"></a> |

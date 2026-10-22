@@ -1,7 +1,8 @@
 """Conditional processing: <switch>, requiredExtensions, systemLanguage.
 
-Touches: a tree pass in ``images.SVGImage.__init__``; ``html.handle_element``, which notes the
-language of the element an image belongs to; and ``document.original_get_image_from_uri``, which keys
+Touches: a tree pass in ``images.SVGImage.__init__``; a wrapper of ``images.SVGImage.draw``, which draws
+in the language the image was built in; ``html.handle_element``, which notes the language of the element
+an image belongs to; and ``document.original_get_image_from_uri``, which keys
 the cache of images by that language. WeasyPrint draws every child of a <switch> and ignores
 the conditional attributes, so draw.io drew both its foreignObject and its fallback text.
 
@@ -18,7 +19,6 @@ from xml.etree import ElementTree as ET
 
 from weasyprint import document as wp_document
 from weasyprint import html as wp_html
-from weasyprint import images as wp_images
 
 from . import _core
 
@@ -32,7 +32,6 @@ DEFAULT_LANGUAGE = "en"
 LANGUAGE: ContextVar[str | None] = ContextVar("weasysvg_language", default=None)
 _ORIGINAL_HANDLE_ELEMENT = wp_html.handle_element
 _ORIGINAL_GET_IMAGE_FROM_URI = wp_document.original_get_image_from_uri
-_ORIGINAL_SVGIMAGE_DRAW = wp_images.SVGImage.draw
 
 
 def local_name(tag: object) -> str | None:
@@ -140,14 +139,14 @@ def _note_language(image: Any) -> None:
     image.weasysvg_language = LANGUAGE.get()
 
 
-def svgimage_draw(self: Any, *args: Any, **kwargs: Any) -> Any:
+def svgimage_draw(image: Any, stream: Any, _width: float, _height: float, _style: Any, draw: Callable[[Any], None]) -> None:
     """SVGImage.draw of WeasyPrint in the language the image was built in.
 
     An SVG it draws, an <image> or the content of a foreignObject, is built while it draws.
     """
-    token = LANGUAGE.set(getattr(self, "weasysvg_language", None))
+    token = LANGUAGE.set(getattr(image, "weasysvg_language", None))
     try:
-        return _ORIGINAL_SVGIMAGE_DRAW(self, *args, **kwargs)
+        draw(stream)
     finally:
         LANGUAGE.reset(token)
 
@@ -155,7 +154,7 @@ def svgimage_draw(self: Any, *args: Any, **kwargs: Any) -> Any:
 def install() -> None:
     _core.add_tree_pass(10, "conditional", apply_conditionals)
     _core.add_image_hook(_note_language)
-    wp_images.SVGImage.draw = svgimage_draw
+    _core.add_draw_wrapper(10, svgimage_draw)
     wp_html.handle_element = handle_element
     # document.py builds its partial from this name on each rendering
     wp_document.original_get_image_from_uri = get_image_from_uri

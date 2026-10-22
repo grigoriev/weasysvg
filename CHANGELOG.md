@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Each SVG image is one Form XObject: an `<img>`, an inline `<svg>`, a CSS image and an `<image>` inside an
+  SVG. Its `/BBox` is the viewport, and the page paints it with `Do` under the matrix that places it, so a
+  PDF reader such as PDFBox or PyMuPDF finds each diagram with its size and position. WeasyPrint drew the
+  operators straight into the page. The form is no transparency group: it renders as before. The same
+  image drawn again at the same size, on the pages or within one group, reuses its form. The
+  `form_xobject` argument of `install()` turns it off.
+- An SVG background or list marker is clipped at its viewport, as in Chromium: content past it showed.
+  An inline `<svg>` with `overflow: visible` still shows its overflow, and its form box grows to let it through.
+
 ### Fixed
 
+- SVG text in the generic `monospace` family alone takes 13px as its medium size, as in Chromium and Firefox:
+  MathJax writes accented letters as `<text font-family="monospace">` with no size, and they came out 1.23
+  times too large. A size from a keyword reads the monospace table of Chromium (`large` is 16px), and a size
+  relative to one (`2em`, `50%`, `smaller`) scales by 13/16 where the family turns monospace and back where
+  it leaves. A family list (`monospace, serif`) and an absolute length keep their size.
+- A tagged PDF (`pdf/ua-1`, `pdf/a-2a`) of an SVG with a `<foreignObject>` renders: WeasyPrint failed on
+  the tags of its HTML, which belong to no box of the page. The Figure of the image marks the whole SVG.
 - A hole in a blurred shape keeps its size: it grew by one sample on each side, so the ring of the lens in
   the OpenStreetMap logo came out thinner and its shadow lighter than in Chromium.
 

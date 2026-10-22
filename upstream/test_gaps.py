@@ -296,6 +296,13 @@ def test_relative_font_size_applies_twice() -> None:
     still_broken(sizes == [64], "font-size inherited as computed", "text.cascade")
 
 
+def test_monospace_takes_16px() -> None:
+    # Chromium and Firefox give the generic monospace alone a medium size of 13px
+    pdf, _ = render(svg('<text x="10" y="50" font-family="monospace">Text</text>'))
+    sizes = [float(value) for value in re.findall(r" ([\d.]+) Tf", content(pdf))]
+    still_broken(sizes == [16], "the 13px default of monospace", "text._monospace_px")
+
+
 def test_ex_is_half_the_em() -> None:
     pdf, _ = render(svg('<text x="10" y="50" font-family="Liberation Sans" font-size="4ex">Text</text>'))
     sizes = [float(value) for value in re.findall(r" ([\d.]+) Tf", content(pdf))]
@@ -395,3 +402,12 @@ def test_lines_keep_fractional_font_metrics() -> None:
     x, y = ctypes.c_double(), ctypes.c_double()
     pdfium_c.FPDFText_GetCharOrigin(page.get_textpage().raw, 0, x, y)
     still_broken(abs((page.get_height() - y.value) / 0.75 - 17) > 0.25, "line metrics rounded to whole px", "foreign_object._strut and _split_text_box")
+
+
+# ---------------- output structure ----------------
+
+
+def test_svg_is_drawn_into_the_page() -> None:
+    # The operators of the SVG stand in the stream of the page: no Form XObject holds the diagram
+    pdf, _ = render(svg('<rect width="200" height="100" fill="red"/>'))
+    still_broken(b"/Subtype /Form" not in pdf, "an SVG image as a Form XObject", "xobject")

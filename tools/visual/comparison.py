@@ -46,6 +46,7 @@ GROUPS = {
     "fo": "foreignObject",
     "real": "Wikimedia Commons",
     "resvg": "resvg feature tests",
+    "text": "Text written for this corpus",
 }
 # Each verdict compares a rendering with the reference of its SVG
 VERDICTS = ("better", "same", "close", "differs")

@@ -12,9 +12,9 @@ from weasyprint import svg as wp_svg
 from weasyprint.matrix import Matrix
 
 import weasysvg
-from weasysvg import _core, paint_order
+from weasysvg import _core, conditional, paint_order, xobject
 
-ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object", "markers", "paint_order"}
+ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object", "markers", "paint_order", "form_xobject"}
 
 
 def test_install_returns_every_feature() -> None:
@@ -37,6 +37,8 @@ def test_hooks_are_in_place() -> None:
     assert _core.original_draw_node() is _core._ORIGINAL_DRAW_NODE
     assert [name for _, name, _ in _core._TREE_PASSES] == ["conditional", "nested_text", "invalid_rotate", "nested_tails", "trailing_space", "empty_presentation", "arcs", "paint_order", "foreign_object"]
     assert wp_svg.SVG.fill_stroke is paint_order.fill_stroke
+    assert wp_images.SVGImage.draw is _core._svgimage_draw
+    assert [function for _, function in _core._DRAW_WRAPPERS] == [conditional.svgimage_draw, xobject.draw_as_form]
 
 
 def test_tree_pass_and_wrapper_are_added_once() -> None:
@@ -46,6 +48,9 @@ def test_tree_pass_and_wrapper_are_added_once() -> None:
     wrappers = list(_core._FETCHER_WRAPPERS)
     _core.add_fetcher_wrapper(wrappers[0])
     assert wrappers == _core._FETCHER_WRAPPERS
+    draw_wrappers = list(_core._DRAW_WRAPPERS)
+    _core.add_draw_wrapper(99, draw_wrappers[0][1])
+    assert draw_wrappers == _core._DRAW_WRAPPERS
 
 
 def test_version_check_warns_on_other_major(monkeypatch: pytest.MonkeyPatch) -> None:
