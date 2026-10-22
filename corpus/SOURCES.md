@@ -10,7 +10,8 @@ headless Chromium of Playwright, in the visual image.
 
 | Path | Files | Source | License |
 |---|---|---|---|
-| `svg/drawio/` | 6 | [jgraph/drawio-diagrams](https://github.com/jgraph/drawio-diagrams), `diagrams/`, commit `380ac88` | Apache-2.0, see [licenses/drawio-diagrams-LICENSE.txt](licenses/drawio-diagrams-LICENSE.txt) |
+| `svg/drawio/`, all but `light-dark-pipeline.svg` | 6 | [jgraph/drawio-diagrams](https://github.com/jgraph/drawio-diagrams), `diagrams/`, commit `380ac88` | Apache-2.0, see [licenses/drawio-diagrams-LICENSE.txt](licenses/drawio-diagrams-LICENSE.txt) |
+| `svg/drawio/light-dark-pipeline.svg` | 1 | written for this corpus in the form of a theme-aware draw.io export: three shapes, three connectors, HTML labels | MIT, as this repository |
 | `svg/resvg/` | 64 | [linebender/resvg](https://github.com/linebender/resvg) `crates/resvg/tests/tests/`, commit `054ccf3` | MIT (dual Apache-2.0 or MIT), see [licenses/resvg-LICENSE-MIT.txt](licenses/resvg-LICENSE-MIT.txt) |
 | `reference/resvg/` | 64 | the reference PNGs of the same resvg tests | as above |
 | `fonts/` | 9 | the fonts the resvg tests ask for, from `crates/resvg/tests/fonts/` of the same commit: Amiri, M+ 1p, Noto Sans (regular, bold, italic), Noto Serif, Noto Mono, Noto Sans Devanagari, Source Sans Pro | SIL Open Font License 1.1, see the license files next to them |
