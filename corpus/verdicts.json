@@ -297,6 +297,15 @@
   "native_what": "'Not supported by viewer' fallbacks show in large orange type."
  },
  {
+  "name": "drawio__light-dark-pipeline",
+  "reference": "chromium",
+  "reference_why": "resvg fills every shape black, drops the strokes and the connectors and shows the fallback 'Text is not SVG'.",
+  "verdict": "same",
+  "what": "Matches: the shapes take their light colors, as light-dark() and var() resolve in the light color scheme.",
+  "native_verdict": "differs",
+  "native_what": "The Commit box is filled black: the fill var(--ge-adaptive-bg, #ffffff) is read as a color. The fallback 'Text is not SVG' shows."
+ },
+ {
   "name": "drawio__notion-template.drawio",
   "reference": "chromium",
   "reference_why": "resvg shows the fallback 'Click Here to...'.",

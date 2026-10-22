@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the tags of its HTML, which belong to no box of the page. The Figure of the image marks the whole SVG.
 - A hole in a blurred shape keeps its size: it grew by one sample on each side, so the ring of the lens in
   the OpenStreetMap logo came out thinner and its shadow lighter than in Chromium.
+- The shapes of a theme-aware draw.io export are white, as in Chromium, not black. weasysvg reads the CSS of
+  an SVG as Chromium does when it prints: `@supports` blocks apply when their condition holds, custom
+  properties and `var()` substitute, also in presentation attributes, and `light-dark()` takes its light
+  color. A value that `var()` makes invalid is unset, and an invalid color declaration or attribute is
+  ignored, so the attribute or the parent value applies. WeasyPrint painted each of these black. The `css`
+  argument of `install()` turns it off.
 
 ## [0.2.0] - 2026-10-21
 

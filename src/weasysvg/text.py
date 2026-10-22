@@ -1136,7 +1136,11 @@ def _draw_text(svg: Any, node: Any, font_size: float) -> Any:
 
 
 def install(*, fonts: bool = True, baseline: bool = True, decoration: bool = True) -> None:
+    global _ORIGINAL_CASCADE
     FEATURES.update(fonts=fonts, baseline=baseline, decoration=decoration)
+    # Wrap the cascade in place, the one of the css feature if it came first
+    if wp_svg.Node.cascade is not cascade:
+        _ORIGINAL_CASCADE = wp_svg.Node.cascade
     wp_svg.Node.cascade = cascade
     _core.add_tree_pass(15, "nested_text", drop_nested_text)
     _core.add_tree_pass(16, "invalid_rotate", drop_invalid_rotate)

@@ -51,7 +51,7 @@
   },
   "weasyprint.svg:Node.cascade": {
    "fingerprint": "3918fd436da24f7d",
-   "used_by": "text.cascade; restylers cascade children before they change a node; text._cascade_without_rules swaps Node._style"
+   "used_by": "css.cascade computes values after it, text.cascade wraps that; restylers cascade children before they change a node; text._cascade_without_rules swaps Node._style"
   },
   "weasyprint.svg:Node.__iter__": {
    "fingerprint": "a89ec74388b81e9f",
@@ -123,7 +123,15 @@
   },
   "weasyprint.svg.css:parse_declarations": {
    "fingerprint": "55a5890696d6d514",
-   "used_by": "paint_order._valid_style reads a style attribute as the cascade does"
+   "used_by": "css.parse_declarations replaces it, also as weasyprint.svg.parse_declarations; paint_order._valid_style reads a style attribute as the cascade does"
+  },
+  "weasyprint.svg.css:find_stylesheets_rules": {
+   "fingerprint": "3d21b28691ffa250",
+   "used_by": "css.find_stylesheets_rules opens @supports blocks and hands it every other rule, one at a time"
+  },
+  "weasyprint.svg.css:parse_stylesheets": {
+   "fingerprint": "5948953bc7a35a10",
+   "used_by": "calls find_stylesheets_rules and parse_declarations through the module, where css replaces them"
   },
   "weasyprint.svg.text:TextBox": {
    "fingerprint": "af3cf2f8fbba9a1c",

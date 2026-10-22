@@ -12,9 +12,9 @@ from weasyprint import svg as wp_svg
 from weasyprint.matrix import Matrix
 
 import weasysvg
-from weasysvg import _core, conditional, paint_order, xobject
+from weasysvg import _core, conditional, css, paint_order, text, xobject
 
-ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object", "markers", "paint_order", "form_xobject"}
+ALL = {"conditional", "paint", "blend", "text", "fonts", "fetch", "filters", "foreign_object", "markers", "paint_order", "form_xobject", "css"}
 
 
 def test_install_returns_every_feature() -> None:
@@ -39,6 +39,16 @@ def test_hooks_are_in_place() -> None:
     assert wp_svg.SVG.fill_stroke is paint_order.fill_stroke
     assert wp_images.SVGImage.draw is _core._svgimage_draw
     assert [function for _, function in _core._DRAW_WRAPPERS] == [conditional.svgimage_draw, xobject.draw_as_form]
+    # The cascade of text wraps the one of css, which wraps WeasyPrint
+    assert wp_svg.Node.cascade is text.cascade
+    assert text._ORIGINAL_CASCADE is css.cascade
+
+
+def test_css_installs_once() -> None:
+    cascade = wp_svg.Node.cascade
+    css.install()
+    assert wp_svg.Node.cascade is cascade
+    assert css._ORIGINAL_CASCADE[0] is not text.cascade
 
 
 def test_tree_pass_and_wrapper_are_added_once() -> None:
