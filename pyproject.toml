@@ -17,7 +17,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -28,7 +27,7 @@ classifiers = [
     "Topic :: Printing",
     "Typing :: Typed",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     # ink.py reads glyph outlines; WeasyPrint 70 requires it already
     "fonttools>=4.59.2",
@@ -66,7 +65,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 240
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
@@ -92,7 +91,7 @@ exclude_lines = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true

@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ignored, so the attribute or the parent value applies. WeasyPrint painted each of these black. The `css`
   argument of `install()` turns it off.
 
+### Removed
+
+- Python 3.10, which reaches its end of life in October 2026. Pillow 13.0.0 requires Python 3.11, and it
+  fixes the vulnerabilities that Dependabot reports for Pillow 12.3.0 in the lock file.
+
 ## [0.2.0] - 2026-10-21
 
 ### Added
