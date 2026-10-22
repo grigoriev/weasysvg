@@ -73,6 +73,12 @@ jobs:
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "New version: $NEW_VERSION"
 
+      # The release commit may change only the project version in uv.lock. uv
+      # lock re-resolves a lock that no longer matches pyproject.toml, and that
+      # result would reach main unreviewed. Fail the bump instead.
+      - name: Check that uv.lock is up to date
+        run: uv lock --check
+
       - name: Update version in pyproject.toml
         env:
           NEW_VERSION: ${{ steps.new.outputs.version }}
@@ -81,8 +87,8 @@ jobs:
           cat pyproject.toml | grep version
 
       # uv.lock records the version of the project itself. Without this step it
-      # keeps the old one, and the next uv run rewrites it. uv lock keeps every
-      # locked dependency: it upgrades nothing without --upgrade.
+      # keeps the old one, and the next uv run rewrites it. The lock matched
+      # pyproject.toml before the bump, so uv lock changes only that version.
       - name: Update version in uv.lock
         run: |
           uv lock
