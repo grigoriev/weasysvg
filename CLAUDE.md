@@ -146,5 +146,5 @@ run in a process of their own: `tests/helpers.py` installs weasysvg on import.
 
 1. Add each change under `## [Unreleased]` in `CHANGELOG.md`, in the pull request that makes it.
 2. Run the **Bump Version & Release** workflow with `patch`, `minor` or `major`. It writes the
-   version to `pyproject.toml`, cuts the changelog, commits, tags `vX.Y.Z` and pushes.
+   version to `pyproject.toml` and `uv.lock`, cuts the changelog, commits, tags `vX.Y.Z` and pushes.
 3. The tag triggers `release.yml`, which publishes to PyPI and creates the GitHub release.
