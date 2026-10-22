@@ -413,8 +413,9 @@ def _trim_at_breaks(box: Any) -> None:
     _line_items(box, items)
     for index, item in enumerate(items):
         if item == BREAK:
-            _trim(reversed(items[:index]), str.rstrip)
-            _trim(items[index + 1 :], str.lstrip)
+            # Iterators over the neighbors: a slice would copy the run for each <br> of an untrusted label
+            _trim((items[at] for at in range(index - 1, -1, -1)), str.rstrip)
+            _trim((items[at] for at in range(index + 1, len(items))), str.lstrip)
     if BREAK in items:
         _prune(box)
 

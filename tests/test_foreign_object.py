@@ -493,6 +493,17 @@ def test_pre_line_keeps_a_newline_before_a_line_break() -> None:
     assert lines(style, "Car\n<br/>x") == pytest.approx([15.0, 55.0])
 
 
+def test_many_line_breaks_take_linear_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Untrusted HTML may hold any number of <br>: each one looks at its neighbors only, never copies the run
+    import time
+
+    monkeypatch.setattr(foreign_object, "_line_items", lambda _box, items: items.extend([foreign_object.BREAK] * 40000))
+    monkeypatch.setattr(foreign_object, "_prune", lambda _box: None)
+    start = time.perf_counter()
+    foreign_object._trim_at_breaks(None)
+    assert time.perf_counter() - start < 0.5
+
+
 @pytest.mark.parametrize("tail", [" ", "\n   ", "<span> </span>", "<span>\n</span>\n"])
 def test_white_space_after_the_last_line_break_adds_no_line(tail: str) -> None:
     # In Chromium white space alone after the last <br> makes no line. WeasyPrint made an empty line box, and
