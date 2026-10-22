@@ -480,6 +480,19 @@ def test_a_space_before_a_line_break_is_not_centered(line: str) -> None:
     assert first_character_x(f'<p style="{CENTERED}">{line}</p>') == pytest.approx(first_character_x(f'<p style="{CENTERED}">Car<br/>x</p>'))
 
 
+@pytest.mark.parametrize("line", ["Car \t <br/>x", "<span>Car </span><br/>x"])
+def test_pre_line_drops_the_spaces_before_a_line_break_too(line: str) -> None:
+    # pre-line collapses spaces and tabs, and keeps newlines: the spaces before <br> go as in Chromium
+    style = f"{CENTERED};white-space:pre-line"
+    assert first_character_x(f'<p style="{style}">{line}</p>') == pytest.approx(first_character_x(f'<p style="{style}">Car<br/>x</p>'))
+
+
+def test_pre_line_keeps_a_newline_before_a_line_break() -> None:
+    # A newline of pre-line is a line break of its own: "Car\n<br/>" leaves an empty line, as in Chromium
+    style = "margin:0;white-space:pre-line;font:16px/20px 'DejaVu Sans'"
+    assert lines(style, "Car\n<br/>x") == pytest.approx([15.0, 55.0])
+
+
 @pytest.mark.parametrize("tail", [" ", "\n   ", "<span> </span>", "<span>\n</span>\n"])
 def test_white_space_after_the_last_line_break_adds_no_line(tail: str) -> None:
     # In Chromium white space alone after the last <br> makes no line. WeasyPrint made an empty line box, and

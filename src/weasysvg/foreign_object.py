@@ -363,8 +363,8 @@ def _element_to_box(*args: Any, **kwargs: Any) -> Any:
 
 # A <br> in the inline content of a block, and what ends a run of white space: an atomic inline or a block
 BREAK, STOP = "break", "stop"
-COLLAPSIBLE = frozenset(("normal", "nowrap"))
-WHITE_SPACE = " \t\n\r\f"
+# The white space each value of white-space collapses: pre-line keeps its newlines, which break the line
+COLLAPSIBLE = {"normal": " \t\n\r\f", "nowrap": " \t\n\r\f", "pre-line": " \t"}
 
 
 def _line_items(box: Any, items: list[Any]) -> None:
@@ -386,7 +386,7 @@ def _trim(items: Any, strip: Any) -> None:
     for item in items:
         if item in (BREAK, STOP) or item.style["white_space"] not in COLLAPSIBLE:
             return
-        item.text = strip(item.text, WHITE_SPACE)
+        item.text = strip(item.text, COLLAPSIBLE[item.style["white_space"]])
         if item.text:
             return
 
