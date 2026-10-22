@@ -560,6 +560,22 @@
   ]
  },
  {
+  "name": "drawio__light-dark-pipeline",
+  "source": "drawio/light-dark-pipeline.svg",
+  "group": "drawio",
+  "width": 382,
+  "reference_box": [
+   0,
+   0,
+   385,
+   100
+  ],
+  "page_size": [
+   2000,
+   2000
+  ]
+ },
+ {
   "name": "fo__mdn-foreignobject",
   "source": "fo/mdn-foreignobject.svg",
   "group": "fo",

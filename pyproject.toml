@@ -106,7 +106,7 @@ warn_no_return = true
 follow_imports = "normal"
 show_error_codes = true
 
-# WeasyPrint ships no type information
+# WeasyPrint and its CSS parsers ship no type information
 [[tool.mypy.overrides]]
-module = ["weasyprint.*", "weasyprint", "pydyf", "pypdfium2.*", "numpy.*", "fontTools.*"]
+module = ["weasyprint.*", "weasyprint", "pydyf", "pypdfium2.*", "numpy.*", "fontTools.*", "tinycss2", "tinycss2.*", "cssselect2"]
 ignore_missing_imports = true

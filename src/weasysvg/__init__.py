@@ -12,6 +12,7 @@ import warnings
 import weasyprint
 
 from . import conditional as _conditional
+from . import css as _css
 from . import fetch as _fetch
 from . import filters as _filters
 from . import fonts as _fonts
@@ -52,6 +53,7 @@ def install(
     markers: bool = True,
     paint_order: bool = True,
     form_xobject: bool = True,
+    css: bool = True,
     language: str | None = None,
 ) -> frozenset[str]:
     """Install the selected features and return all features installed so far.
@@ -60,6 +62,8 @@ def install(
     ``paint_order`` paints fill, stroke and markers in the order of the paint-order property.
     ``fonts`` resolves font families as Chromium does, in SVG text and inside foreignObject.
     ``form_xobject`` draws each SVG image as one Form XObject, its BBox the viewport.
+    ``css`` reads @supports, custom properties, var() and light-dark() as Chromium does when it prints,
+    in the light color scheme, and drops invalid color values.
     ``language`` is the language systemLanguage reads where the document gives none ("en" by default);
     any call can change it.
     """
@@ -70,6 +74,8 @@ def install(
         "conditional": conditional_processing,
         "paint": paint,
         "blend": paint and blend,
+        # Before text: its cascade then wraps this one, and a font size reads its var() substituted
+        "css": css,
         "text": text,
         "fonts": fonts,
         "fetch": fetch_cache,
@@ -89,6 +95,7 @@ def install(
         "conditional": _conditional.install,
         "paint": lambda: _paint.install(blend=False),
         "blend": lambda: _paint.install(blend=True),
+        "css": _css.install,
         # fonts installed by an earlier call stays on: a later call only adds
         "text": lambda: _text.install(fonts=fonts or "fonts" in _INSTALLED),
         "fonts": _install_fonts,

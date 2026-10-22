@@ -281,6 +281,28 @@ def test_mid_marker_at_a_cusp_points_down() -> None:
     still_broken(pixel(pdf, 57, 15) != (0, 0, 255), "marker orientation", "markers")
 
 
+# ---------------- css ----------------
+
+BLACK = (0, 0, 0)
+
+
+def test_custom_properties_are_dropped() -> None:
+    body = '<g style="--c: blue"><rect width="200" height="100" fill="blue" style="fill: var(--c)"/></g>'
+    pdf, _ = render(svg(body))
+    still_broken(near(pixel(pdf, 30, 30), BLACK), "custom properties and var()", "css.parse_declarations, css.cascade")
+
+
+def test_supports_rules_are_ignored() -> None:
+    body = '<style>@supports (display: block) { rect { fill: blue } }</style><rect width="200" height="100" fill="red"/>'
+    pdf, _ = render(svg(body))
+    still_broken(near(pixel(pdf, 30, 30), RED), "@supports", "css.find_stylesheets_rules")
+
+
+def test_an_invalid_fill_declaration_paints_black() -> None:
+    pdf, _ = render(svg('<rect width="200" height="100" fill="blue" style="fill: foo"/>'))
+    still_broken(near(pixel(pdf, 30, 30), BLACK), "invalid fill declarations", "css.parse_declarations")
+
+
 # ---------------- text ----------------
 
 

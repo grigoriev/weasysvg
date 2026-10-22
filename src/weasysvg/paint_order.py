@@ -28,7 +28,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 from weasyprint import svg as wp_svg
-from weasyprint.svg.css import parse_declarations
+from weasyprint.svg import css as wp_css
 from weasyprint.svg.utils import alpha_value, color, size
 
 from . import _core, dashes
@@ -66,7 +66,8 @@ def _valid(value: str) -> bool:
 
 def _valid_style(style: str) -> str | None:
     """The style without its invalid paint-order declarations, as WeasyPrint reads it; None when it has none."""
-    normal, important = parse_declarations(style)
+    # Through the module: the css feature replaces it, and keeps custom properties
+    normal, important = wp_css.parse_declarations(style)
     kept = [(name, value, "") for name, value in normal] + [(name, value, " !important") for name, value in important]
     valid = [(name, value, flag) for name, value, flag in kept if name != PROPERTY or _valid(value)]
     if len(valid) == len(kept):

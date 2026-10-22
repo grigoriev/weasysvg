@@ -7,14 +7,14 @@ Each SVG of the corpus in four renderings: Chromium; resvg (resvg-py 0.5.0); Wea
 | Verdict | WeasyPrint 70.0 | WeasyPrint 70.0 with weasysvg |
 |---|---|---|
 | ⬆️ better than the reference | 0 | 1 |
-| ✅ matches the reference | 39 | 110 |
+| ✅ matches the reference | 39 | 111 |
 | 🟡 close to the reference | 22 | 5 |
-| ❌ differs from the reference | 55 | 0 |
+| ❌ differs from the reference | 56 | 0 |
 
-References: Chromium 37, resvg 11, Chromium and resvg 68.
+References: Chromium 38, resvg 11, Chromium and resvg 68.
 
 - [Diagrams from kroki and mermaid.ink](#diagrams-from-kroki-and-mermaidink) (29)
-- [draw.io](#drawio) (6)
+- [draw.io](#drawio) (7)
 - [foreignObject](#foreignobject) (2)
 - [Wikimedia Commons](#wikimedia-commons) (14)
 - [resvg feature tests](#resvg-feature-tests) (64)
@@ -513,6 +513,20 @@ References: Chromium 37, resvg 11, Chromium and resvg 68.
 | Chromium | resvg | WeasyPrint | weasysvg |
 |---|---|---|---|
 | <a href="render/chromium/drawio__svgfile.webp"><img src="render/chromium/drawio__svgfile.webp" width="200" alt="drawio__svgfile in Chromium"></a> | <a href="render/resvg/drawio__svgfile.webp"><img src="render/resvg/drawio__svgfile.webp" width="200" alt="drawio__svgfile in resvg"></a> | <a href="render/weasyprint/drawio__svgfile.webp"><img src="render/weasyprint/drawio__svgfile.webp" width="200" alt="drawio__svgfile in WeasyPrint"></a> | <a href="render/weasysvg/drawio__svgfile.webp"><img src="render/weasysvg/drawio__svgfile.webp" width="200" alt="drawio__svgfile in weasysvg"></a> |
+
+### drawio__light-dark-pipeline
+
+[`drawio/light-dark-pipeline.svg`](svg/drawio/light-dark-pipeline.svg)
+
+| | Renderer | Verdict | What |
+|---|---|---|---|
+| 📌 | Reference | Chromium | resvg fills every shape black, drops the strokes and the connectors and shows the fallback &#x27;Text is not SVG&#x27;. |
+| ✅ | weasysvg | **matches the reference** | Matches: the shapes take their light colors, as light-dark() and var() resolve in the light color scheme. |
+| ❌ | WeasyPrint | **differs from the reference** | The Commit box is filled black: the fill var(--ge-adaptive-bg, #ffffff) is read as a color. The fallback &#x27;Text is not SVG&#x27; shows. |
+
+| Chromium | resvg | WeasyPrint | weasysvg |
+|---|---|---|---|
+| <a href="render/chromium/drawio__light-dark-pipeline.webp"><img src="render/chromium/drawio__light-dark-pipeline.webp" width="200" alt="drawio__light-dark-pipeline in Chromium"></a> | <a href="render/resvg/drawio__light-dark-pipeline.webp"><img src="render/resvg/drawio__light-dark-pipeline.webp" width="200" alt="drawio__light-dark-pipeline in resvg"></a> | <a href="render/weasyprint/drawio__light-dark-pipeline.webp"><img src="render/weasyprint/drawio__light-dark-pipeline.webp" width="200" alt="drawio__light-dark-pipeline in WeasyPrint"></a> | <a href="render/weasysvg/drawio__light-dark-pipeline.webp"><img src="render/weasysvg/drawio__light-dark-pipeline.webp" width="200" alt="drawio__light-dark-pipeline in weasysvg"></a> |
 
 ## foreignObject
 
