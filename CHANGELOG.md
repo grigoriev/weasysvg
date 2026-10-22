@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A hole in a blurred shape keeps its size: it grew by one sample on each side, so the ring of the lens in
   the OpenStreetMap logo came out thinner and its shadow lighter than in Chromium.
 
+### Removed
+
+- Python 3.10, which reaches its end of life in October 2026. Pillow 13.0.0 requires Python 3.11, and it
+  fixes the vulnerabilities that Dependabot reports for Pillow 12.3.0 in the lock file.
+
 ## [0.2.0] - 2026-10-21
 
 ### Added

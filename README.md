@@ -3,7 +3,7 @@
 [![CI](https://github.com/grigoriev/weasysvg/actions/workflows/ci.yml/badge.svg)](https://github.com/grigoriev/weasysvg/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/grigoriev/weasysvg/badge)](https://scorecard.dev/viewer/?uri=github.com/grigoriev/weasysvg)
 [![Release](https://img.shields.io/github/v/release/grigoriev/weasysvg)](https://github.com/grigoriev/weasysvg/releases)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/grigoriev/weasysvg/blob/main/LICENSE)
@@ -25,7 +25,7 @@ service needs no browser.
 
 ## Installation
 
-weasysvg runs on CPython 3.10 to 3.14 and on PyPy 3.11, as WeasyPrint 70 does. On PyPy a C compiler
+weasysvg runs on CPython 3.11 to 3.14 and on PyPy 3.11. On PyPy a C compiler
 must be present: zopfli, which WeasyPrint needs, has no PyPy wheel and builds from source.
 
 Install it from PyPI:
