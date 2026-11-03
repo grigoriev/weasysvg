@@ -426,7 +426,17 @@ def test_portable_mask_in_bounding_box_units() -> None:
     assert near(pixel(pdf, 135, 37), RED)
 
 
-@pytest.mark.parametrize("white", ['<rect width="0" height="100" fill="white"/>', '<circle cx="100" cy="50" r="0" fill="white"/>'])
+@pytest.mark.parametrize(
+    "white",
+    [
+        '<rect width="0" height="100" fill="white"/>',
+        '<circle cx="100" cy="50" r="0" fill="white"/>',
+        "",
+        '<rect width="200" height="100" fill="black"/>',
+        # A rect without a size, black by default: the resvg test of an invalid child
+        "<rect/>",
+    ],
+)
 def test_portable_mask_without_white_area_hides_the_element(white: str) -> None:
     body = f'<defs><mask id="m">{white}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
     pdf = portable_render(body)
@@ -448,9 +458,6 @@ def test_portable_mask_without_white_area_hides_the_element(white: str) -> None:
         '<rect width="200" height="100" fill="white" display="none"/>',
         '<path d="M0 0H200V100H0Z" fill="white"/>',
         '<g><rect width="200" height="100" fill="white"/></g>',
-        # No white area to start from: empty, or black first
-        "",
-        '<rect width="200" height="100" fill="black"/>',
         # White over black needs more than one clip
         '<rect width="200" height="100" fill="black"/><rect width="100" height="100" fill="white"/>',
         '<rect width="200" height="100" fill="white"/><rect width="10" height="10" fill="black"/><rect width="5" height="5" fill="white"/>',

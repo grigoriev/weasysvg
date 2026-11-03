@@ -801,7 +801,8 @@ def _binary_shapes(mask: Any, bounding_box_units: bool) -> list[tuple[Any, bool]
     """The shapes of a mask that is opaque white areas, then opaque black ones, else None.
 
     Such a mask shows the union of the white areas less the union of the black ones: a clip path draws
-    the same picture without a soft mask. A D2 diagram cuts the edges under its labels this way.
+    the same picture without a soft mask. A D2 diagram cuts the edges under its labels this way. Without
+    a white area it hides the element.
     """
     shapes: list[tuple[Any, bool]] = []
     for child in mask:
@@ -809,8 +810,6 @@ def _binary_shapes(mask: Any, bounding_box_units: bool) -> list[tuple[Any, bool]
         if white is None or (white and shapes and not shapes[-1][1]):
             return None  # a white area over a black one needs more than one clip
         shapes.append((child, white))
-    if not shapes or not shapes[0][1]:
-        return None
     return shapes
 
 
