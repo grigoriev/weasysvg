@@ -101,6 +101,10 @@
    "fingerprint": "848a3b9f26224482",
    "used_by": "restylers and clips walk <use> trees"
   },
+  "weasyprint.svg.defs:get_use_tree": {
+   "fingerprint": "4c827dbc5088cc90",
+   "used_by": "filters._used_shape blurs the shape of a <use> in a portable PDF"
+  },
   "weasyprint.svg.defs:apply_filters": {
    "fingerprint": "7bba33c377db9f89",
    "used_by": "_core removes filter before draw_node applies it"

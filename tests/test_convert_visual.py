@@ -96,6 +96,11 @@ FEATURES = {
     "clip-hole": svg(
         '<defs><clipPath id="c" clipPathUnits="objectBoundingBox"><path d="M0 0H1V1H0Z M0.3 0.3H0.7V0.7H0.3Z" clip-rule="evenodd"/></clipPath></defs><rect x="20" y="10" width="160" height="80" fill="purple" clip-path="url(#c)"/>'
     ),
+    # The glare of Tux: a <use> of a shape filled with a gradient, blurred
+    "blur-use-gradient": svg(
+        '<defs><radialGradient id="g"><stop stop-color="white"/><stop offset="1" stop-color="gold"/></radialGradient><filter id="f"><feGaussianBlur stdDeviation="3"/></filter>'
+        '<path id="p" d="M10 10 C60 0 90 30 70 60 L20 50 Z"/></defs><rect width="200" height="100" fill="#335"/><use href="#p" x="15" y="20" fill="url(#g)" filter="url(#f)"/>'
+    ),
     "binary-mask": svg(
         '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="200" height="100" fill="white"/>'
         '<rect x="70" y="40" width="60" height="20" fill="black"/><circle cx="40" cy="50" r="10" fill="black"/></mask></defs>'
