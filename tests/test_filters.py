@@ -320,6 +320,12 @@ PORTABLE_BLURS = {
     "bowtie": filtered('<feGaussianBlur stdDeviation="3"/>', GRAY_SHADOW, target='<path d="M20 20 L80 80 L20 80 L80 20 Z" fill="red" fill-rule="evenodd" filter="url(#f)"/>'),
     # Where the colors meet, each covers half: together they cover all
     "two colors side by side": filtered('<feGaussianBlur stdDeviation="4"/>', GRAY_SHADOW, target='<g filter="url(#f)"><rect x="20" y="20" width="40" height="60" fill="red"/><rect x="60" y="20" width="40" height="60" fill="blue"/></g>'),
+    # Faded, the colors still meet without a seam: the fade applies to their sum
+    "faded colors side by side": filtered(
+        '<feComponentTransfer><feFuncA type="linear" slope="0.6"/></feComponentTransfer><feGaussianBlur stdDeviation="4"/>',
+        GRAY_SHADOW,
+        target='<g filter="url(#f)"><rect x="20" y="20" width="40" height="60" fill="red"/><rect x="60" y="20" width="40" height="60" fill="blue"/></g>',
+    ),
     # The alpha function sees the fill opacity first: slope 2 makes the faded fill opaque again
     "alpha transfer": filtered(
         '<feComponentTransfer><feFuncA type="linear" slope="2"/></feComponentTransfer><feGaussianBlur stdDeviation="3"/>',

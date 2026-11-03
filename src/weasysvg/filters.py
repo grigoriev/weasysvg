@@ -1470,7 +1470,8 @@ def _content_fields(svg: Any, original: Callable[..., None], node: Any, font_siz
     total, shares = raster.coverage()
     if layer.kind == "alpha":
         return [_Field(None, total.filter(ImageFilter.GaussianBlur(grid.per_sigma)), grid)]
-    blurred = [shares[rgb].filter(ImageFilter.GaussianBlur(grid.per_sigma)) for rgb in colors]
+    # The fade of the layer applies to the sum of the colors: each share takes it before they stack
+    blurred = [shares[rgb].filter(ImageFilter.GaussianBlur(grid.per_sigma)).point(lambda value: round(value * layer.opacity)) for rgb in colors]
     return [_Field(rgb, opacity, grid) for rgb, opacity in zip(colors, stacked_opacities(blurred), strict=True)]
 
 
@@ -1546,7 +1547,8 @@ def _level_paint(layer: Layer, level: _Field, solid: Any) -> tuple[Any, float]:
     if layer.kind == "alpha":
         return layer.rgba, layer.rgba.alpha * layer.opacity
     if level.rgb is not None:
-        return color("rgb({:.4f}%,{:.4f}%,{:.4f}%)".format(*(100 * channel for channel in level.rgb))), layer.opacity
+        # Its field holds the fade of the layer already (_content_fields)
+        return color("rgb({:.4f}%,{:.4f}%,{:.4f}%)".format(*(100 * channel for channel in level.rgb))), 1.0
     if solid is not None:
         return solid, solid.alpha * layer.opacity
     return None, layer.opacity
