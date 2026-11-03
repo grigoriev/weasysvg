@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are filled one over the other, each with a constant opacity, within 1/64 of the blur. The contours come from
   the blurred coverage of the shape (`levelsets.py`), and a rect takes its exact blur, at any size. cairo
   keeps them vector in a flat SVG, and Word draws the shadows of draw.io, Mermaid and blockdiag.
+- The flat SVG of `weasysvg-convert` writes the opacity of a group as an `opacity`. cairo writes it as a mask of
+  one rect over the whole drawing, and Word draws only some masks.
 
 ### Fixed
 

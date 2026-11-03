@@ -77,7 +77,8 @@ once.
 - `fetch.py`: one fetch per URL and SVG.
 - `convert.py`: the `weasysvg-convert` command line, compatible with the `rsvg-convert` options pandoc passes.
   `-f svg` draws inside `_core.portable()` and reads the PDF back with `pdftocairo -svg`; it sets the root
-  size in pt, since Poppler 25.03 writes it without a unit. Its tests need `poppler-utils` (Dockerfile.test, CI).
+  size in pt, since Poppler 25.03 writes it without a unit, and writes the constant masks cairo makes of a group
+  opacity back as `opacity`. Its tests need `poppler-utils` (Dockerfile.test, CI).
 - `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. `paint.paint_mask`
   draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips. `filters._portable_blur`
   draws a blurred layer as stacked level sets: the field of `shapeblur.Field` (a rect: the product of its two

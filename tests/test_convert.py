@@ -18,7 +18,7 @@ from helpers import SVG_NS, close, svg
 from PIL import Image
 
 from weasysvg import convert
-from weasysvg.convert import ConvertError, length_px, root_attributes, size_px, sized, to_pdf, to_png, to_svg
+from weasysvg.convert import ConvertError, constant_masks_as_opacity, length_px, root_attributes, size_px, sized, to_pdf, to_png, to_svg
 
 RED_RECT = svg('<rect width="200" height="100" fill="red"/>')
 # A red rect cut by a binary mask: a soft mask by default, a clip in the portable PDF
@@ -278,3 +278,52 @@ def test_flat_svg_reports_pdftocairo_it_cannot_run(monkeypatch: pytest.MonkeyPat
     document = RED_RECT.encode()
     with pytest.raises(ConvertError, match=message):
         to_svg(document)
+
+
+def cairo_svg(mask: str, use: str, view_box: str = ' viewBox="0 0 100 50"') -> bytes:
+    """A flat SVG as cairo writes a group with an opacity."""
+    return (f'<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="{SVG_NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="100pt" height="50pt"{view_box}><defs><filter id="filter-remove-color"/>{mask}</defs>{use}</svg>').encode()
+
+
+CONSTANT = '<mask id="mask-0"><g filter="url(#filter-remove-color)"><rect x="-10" y="-5" width="120" height="60" fill="rgb(0%, 0%, 0%)" fill-opacity="0.5"/></g></mask>'
+
+
+def test_a_constant_mask_becomes_an_opacity() -> None:
+    flat = constant_masks_as_opacity(cairo_svg(CONSTANT, '<g mask="url(#mask-0)" opacity="0.8"><rect width="10" height="10"/></g>')).decode()
+    assert "<mask" not in flat
+    assert 'opacity="0.4"' in flat
+    assert flat.startswith('<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg"')
+
+
+@pytest.mark.parametrize(
+    "mask",
+    [
+        # Not over all of the drawing
+        CONSTANT.replace('width="120"', 'width="20"'),
+        # Not through the filter that keeps the alpha
+        CONSTANT.replace("url(#filter-remove-color)", "url(#other)"),
+        # More than one rect, or another shape
+        CONSTANT.replace("</g></mask>", '<rect width="1" height="1"/></g></mask>'),
+        CONSTANT.replace("<rect ", '<circle r="1" ').replace("/></g>", "/></g>"),
+        CONSTANT.replace("<rect ", '<rect transform="scale(2)" '),
+        CONSTANT.replace('fill-opacity="0.5"', 'fill-opacity="half"'),
+        CONSTANT.replace('fill-opacity="0.5"', 'fill-opacity="2"'),
+    ],
+)
+def test_other_masks_stay(mask: str) -> None:
+    document = cairo_svg(mask, '<g mask="url(#mask-0)"><rect width="10" height="10"/></g>')
+    assert constant_masks_as_opacity(document) == document
+
+
+def test_a_mask_on_a_transformed_element_stays() -> None:
+    # The mask then lies in the space of the transform, where it may not cover the drawing
+    document = cairo_svg(CONSTANT, '<g mask="url(#mask-0)" transform="scale(3)"><rect width="10" height="10"/></g><g mask="url(#mask-0)"><rect width="5" height="5"/></g>')
+    flat = constant_masks_as_opacity(document).decode()
+    assert flat.count('mask="url(#mask-0)"') == 1
+    assert '<mask id="mask-0">' in flat
+    assert 'opacity="0.5"' in flat
+
+
+def test_an_svg_without_a_view_box_stays() -> None:
+    document = cairo_svg(CONSTANT, '<g mask="url(#mask-0)"/>', view_box="")
+    assert constant_masks_as_opacity(document) == document

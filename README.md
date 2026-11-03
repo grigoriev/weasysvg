@@ -131,7 +131,8 @@ fetched: an SVG cannot read a local file or the network.
 
 `-f svg` writes a flat SVG for Word and LibreOffice, which draw no `<foreignObject>`, no filters and only
 some masks. It draws a portable PDF and reads it back with `pdftocairo -svg` of Poppler, which must be on
-the `PATH`. Text becomes glyph outlines. A soft mask the portable PDF keeps becomes an image.
+the `PATH`. Text becomes glyph outlines. A soft mask the portable PDF keeps becomes an image. The opacity of
+a group, which cairo writes as a mask over the whole drawing, becomes an `opacity` again.
 
 ## Features
 
