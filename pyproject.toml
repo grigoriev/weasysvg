@@ -33,7 +33,14 @@ dependencies = [
     "weasyprint>=70,<71",
 ]
 
+[project.scripts]
+weasysvg-convert = "weasysvg.convert:main"
+
 [project.optional-dependencies]
+# weasysvg-convert -f png rasterizes through PDFium; -f svg needs pdftocairo of Poppler on the PATH
+convert = [
+    "pypdfium2>=5.14.0",
+]
 dev = [
     "pytest==9.2.0",
     "pytest-cov==7.1.0",

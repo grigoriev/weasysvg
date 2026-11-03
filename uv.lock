@@ -1270,6 +1270,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+convert = [
+    { name = "pypdfium2" },
+]
 dev = [
     { name = "mypy" },
     { name = "pypdfium2" },
@@ -1289,6 +1292,7 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = "==2.4.1" },
     { name = "numpy", marker = "python_full_version >= '3.12' and extra == 'visual'", specifier = "==2.5.4" },
     { name = "playwright", marker = "extra == 'visual'", specifier = "==1.64.1" },
+    { name = "pypdfium2", marker = "extra == 'convert'", specifier = ">=5.14.0" },
     { name = "pypdfium2", marker = "extra == 'dev'", specifier = "==5.14.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==9.2.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = "==7.1.0" },
@@ -1296,7 +1300,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.3" },
     { name = "weasyprint", specifier = ">=70,<71" },
 ]
-provides-extras = ["dev", "visual"]
+provides-extras = ["convert", "dev", "visual"]
 
 [[package]]
 name = "webencodings"

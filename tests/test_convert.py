@@ -1,0 +1,280 @@
+"""weasysvg-convert: the size rsvg-convert gives an SVG, the PDF, PNG and flat SVG, and the command line."""
+
+from __future__ import annotations
+
+import contextlib
+import io
+import re
+import subprocess
+import sys
+import zlib
+from pathlib import Path
+from types import SimpleNamespace
+from typing import cast
+
+import pypdfium2 as pdfium
+import pytest
+from helpers import SVG_NS, close, svg
+from PIL import Image
+
+from weasysvg import convert
+from weasysvg.convert import ConvertError, length_px, root_attributes, size_px, sized, to_pdf, to_png, to_svg
+
+RED_RECT = svg('<rect width="200" height="100" fill="red"/>')
+# A red rect cut by a binary mask: a soft mask by default, a clip in the portable PDF
+KNOCKOUT = svg(
+    '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100">'
+    '<rect width="200" height="100" fill="white"/><rect x="80" width="40" height="100" fill="black"/></mask></defs>'
+    '<rect width="200" height="100" fill="red" mask="url(#m)"/>'
+)
+LABEL = svg('<foreignObject width="200" height="100"><div xmlns="http://www.w3.org/1999/xhtml">Label</div></foreignObject>')
+
+
+def page_size(pdf: bytes) -> tuple[float, float]:
+    document = pdfium.PdfDocument(pdf)
+    page = document[0]
+    try:
+        width, height = page.get_size()
+        return width, height
+    finally:
+        close(page, document)
+
+
+# ---------------- size ----------------
+
+
+@pytest.mark.parametrize(
+    ("value", "dpi", "expected"),
+    [
+        ("200", 96, 200.0),
+        (" 1.5e2px ", 96, 150.0),
+        ("1in", 96, 96.0),
+        ("1in", 72, 72.0),
+        ("2.54cm", 96, 96.0),
+        ("25.4mm", 96, 96.0),
+        ("72pt", 96, 96.0),
+        ("6pc", 96, 96.0),
+        ("2em", 96, 32.0),
+        ("2ex", 192, 32.0),
+        ("100%", 96, None),
+        ("auto", 96, None),
+        ("10vw", 96, None),
+        ("", 96, None),
+        (None, 96, None),
+    ],
+)
+def test_length_px(value: str | None, dpi: float, expected: float | None) -> None:
+    assert length_px(value, dpi) == pytest.approx(expected) if expected is not None else length_px(value, dpi) is None
+
+
+@pytest.mark.parametrize(
+    ("attributes", "expected"),
+    [
+        ('width="200" height="100"', (200.0, 100.0)),
+        ('width="1in" height="2in"', (96.0, 192.0)),
+        ('viewBox="0 0 40 30"', (40.0, 30.0)),
+        ('viewBox="0,0,40,30" width="80"', (80.0, 60.0)),
+        ('viewBox="0 0 40 30" height="60"', (80.0, 60.0)),
+        ('viewBox="0 0 40 30" width="100%" height="100%"', (40.0, 30.0)),
+        # The viewBox does not change a size the root gives
+        ('viewBox="0 0 40 30" width="10" height="10"', (10.0, 10.0)),
+        # An invalid viewBox is ignored, as in Chromium
+        ('viewBox="0 0 10px 10px" width="10" height="20"', (10.0, 20.0)),
+    ],
+)
+def test_size_px(attributes: str, expected: tuple[float, float]) -> None:
+    assert size_px(f'<svg xmlns="{SVG_NS}" {attributes}/>'.encode(), 96, 96) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("attributes", ["", 'width="100"', 'viewBox="0 0 none 30"', 'width="100%" height="100%"', 'viewBox="0 0 0 30"', 'viewBox="0 0 40"', 'width="0" height="10"'])
+def test_size_px_without_a_size(attributes: str) -> None:
+    document = f'<svg xmlns="{SVG_NS}" {attributes}/>'.encode()
+    with pytest.raises(ConvertError, match="no size"):
+        size_px(document, 96, 96)
+
+
+@pytest.mark.parametrize("document", [b"", b"not xml", b"<svg><g></svg>", f'<svg xmlns="{SVG_NS}" width="1" height="1"/><extra/>'.encode()])
+def test_root_attributes_of_a_broken_document(document: bytes) -> None:
+    with pytest.raises(ConvertError, match="not an SVG document"):
+        root_attributes(document)
+
+
+# ---------------- PDF, PNG and flat SVG ----------------
+
+
+def test_pdf_page_has_the_size_of_the_svg() -> None:
+    # 200 x 100 px at 96 dpi: 150 x 75 pt, as rsvg-convert writes it
+    assert page_size(to_pdf(RED_RECT.encode())) == pytest.approx((150, 75))
+    # At 72 dpi a px is a pt
+    assert page_size(to_pdf(RED_RECT.encode(), 72, 72)) == pytest.approx((200, 100))
+
+
+def inflated(pdf: bytes) -> bytes:
+    """The PDF with every compressed stream inflated: WeasyPrint keeps the dictionaries in object streams."""
+    parts = [pdf]
+    for data in re.findall(rb"stream\r?\n(.*?)\r?\nendstream", pdf, re.S):
+        with contextlib.suppress(zlib.error):
+            parts.append(zlib.decompress(data))
+    return b"\n".join(parts)
+
+
+def test_portable_pdf_has_no_soft_mask() -> None:
+    assert b"/SMask" in inflated(to_pdf(KNOCKOUT.encode()))
+    assert b"/SMask" not in inflated(to_pdf(KNOCKOUT.encode(), portable=True))
+
+
+def test_png_has_the_size_of_the_svg_and_a_transparent_background() -> None:
+    document = svg('<rect width="100" height="100" fill="red"/>')
+    image = Image.open(io.BytesIO(to_png(document.encode())))
+    assert image.size == (200, 100)
+    assert image.mode == "RGBA"
+    assert image.getpixel((50, 50)) == (255, 0, 0, 255)
+    assert image.getchannel("A").getpixel((150, 50)) == 0
+
+
+def test_png_with_another_vertical_dpi() -> None:
+    # A length in inches follows the dpi, a length in px does not
+    document = f'<svg xmlns="{SVG_NS}" width="200" height="1in"><rect width="200" height="100" fill="red"/></svg>'
+    image = Image.open(io.BytesIO(to_png(document.encode(), 96, 192)))
+    assert image.size == (200, 192)
+
+
+def test_png_draws_foreign_object() -> None:
+    image = Image.open(io.BytesIO(to_png(LABEL.encode())))
+    # The text of the label paints some pixels
+    lowest, highest = cast("tuple[int, int]", image.getchannel("A").getextrema())
+    assert lowest == 0
+    assert highest > 0
+
+
+def test_only_data_urls_are_fetched(tmp_path: Path) -> None:
+    picture = tmp_path / "red.png"
+    Image.new("RGB", (10, 10), "red").save(picture)
+    document = svg(f'<image href="{picture.as_uri()}" width="200" height="100"/>')
+    image = Image.open(io.BytesIO(to_png(document.encode())))
+    assert image.getchannel("A").getextrema() == (0, 0)
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<img src="{uri}" style="width:200px;height:100px"/>',
+        '<div style="width:200px;height:100px;background:url({uri})"></div>',
+    ],
+)
+def test_only_data_urls_are_fetched_inside_foreign_object(tmp_path: Path, html: str) -> None:
+    picture = tmp_path / "red.png"
+    Image.new("RGB", (10, 10), "red").save(picture)
+    body = html.format(uri=picture.as_uri())
+    document = svg(f'<foreignObject width="200" height="100"><div xmlns="http://www.w3.org/1999/xhtml">{body}</div></foreignObject>')
+    image = Image.open(io.BytesIO(to_png(document.encode())))
+    assert image.getchannel("A").getextrema() == (0, 0)
+
+
+def test_flat_svg_keeps_the_drawing_vector() -> None:
+    flat = to_svg(KNOCKOUT.encode()).decode()
+    assert 'width="150pt" height="75pt"' in flat
+    assert "<image" not in flat
+    assert "<mask" not in flat
+    assert "<clipPath" in flat
+
+
+def test_flat_svg_has_no_foreign_object() -> None:
+    flat = to_svg(LABEL.encode()).decode()
+    assert "foreignObject" not in flat
+    # The text is glyph outlines
+    assert "<path" in flat
+
+
+@pytest.mark.parametrize("root", [b'<svg xmlns="x" width="150" height="75" viewBox="0 0 150 75">', b'<svg height="75pt" width="150pt">'])
+def test_flat_svg_size_is_in_points(root: bytes) -> None:
+    # Poppler 25.03 writes the size without a unit, newer versions in pt
+    flat = sized(b'<?xml version="1.0"?>\n' + root + b'<rect width="1" height="1"/></svg>', 150, 75)
+    assert b'width="150pt"' in flat
+    assert b'height="75pt"' in flat
+    assert b'<rect width="1" height="1"/>' in flat
+
+
+def test_flat_svg_reports_a_failing_pdftocairo(monkeypatch: pytest.MonkeyPatch) -> None:
+    def failing(*_args: object, **_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(returncode=1, stderr=b"Syntax Error\n")
+
+    monkeypatch.setattr(subprocess, "run", failing)
+    document = RED_RECT.encode()
+    with pytest.raises(ConvertError, match="pdftocairo failed: Syntax Error"):
+        to_svg(document)
+
+
+# ---------------- command line ----------------
+
+
+@pytest.mark.parametrize(("output_format", "magic"), [("pdf", b"%PDF"), ("png", b"\x89PNG"), ("svg", b"<?xml")])
+def test_main_writes_the_output_file(tmp_path: Path, output_format: str, magic: bytes) -> None:
+    source = tmp_path / "in.svg"
+    source.write_text(RED_RECT)
+    target = tmp_path / f"out.{output_format}"
+    # The options pandoc passes
+    assert convert.main(["-f", output_format, "-a", "--dpi-x", "96", "--dpi-y", "96", "-o", str(target), str(source)]) == 0
+    assert target.read_bytes().startswith(magic)
+
+
+def test_main_reads_stdin_and_writes_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
+    stdout = io.BytesIO()
+    monkeypatch.setattr("sys.stdin", SimpleNamespace(buffer=io.BytesIO(RED_RECT.encode())))
+    monkeypatch.setattr("sys.stdout", SimpleNamespace(buffer=stdout))
+    assert convert.main(["-f", "png", "-a", "--dpi-x", "96", "--dpi-y", "96"]) == 0
+    assert stdout.getvalue().startswith(b"\x89PNG")
+
+
+@pytest.mark.parametrize("content", [None, "not an svg"])
+def test_main_fails_with_a_message(tmp_path: Path, capsys: pytest.CaptureFixture[str], content: str | None) -> None:
+    source = tmp_path / "in.svg"
+    if content is not None:
+        source.write_text(content)
+    assert convert.main(["-f", "pdf", "-o", str(tmp_path / "out.pdf"), str(source)]) == 1
+    assert capsys.readouterr().err.startswith("weasysvg-convert: ")
+    assert not (tmp_path / "out.pdf").exists()
+
+
+def test_png_too_large_is_refused() -> None:
+    document = f'<svg xmlns="{SVG_NS}" width="100000" height="100000"/>'.encode()
+    with pytest.raises(ConvertError, match="too large"):
+        to_png(document)
+
+
+def test_png_without_the_convert_extra(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A None entry in sys.modules makes the import fail
+    monkeypatch.setitem(sys.modules, "pypdfium2", None)
+    document = RED_RECT.encode()
+    with pytest.raises(ConvertError, match=r"weasysvg\[convert\]"):
+        to_png(document)
+
+
+def test_main_reports_an_output_it_cannot_write(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    source = tmp_path / "in.svg"
+    source.write_text(RED_RECT)
+    assert convert.main(["-f", "pdf", "-o", str(tmp_path / "missing" / "out.pdf"), str(source)]) == 1
+    assert capsys.readouterr().err.startswith("weasysvg-convert: ")
+
+
+@pytest.mark.parametrize("dpi", ["0", "-96", "nan", "inf", "x"])
+def test_main_refuses_a_dpi_that_is_not_positive(dpi: str, tmp_path: Path) -> None:
+    source = tmp_path / "in.svg"
+    source.write_text(RED_RECT)
+    with pytest.raises(SystemExit) as raised:
+        convert.main(["-f", "pdf", "--dpi-x", dpi, "-o", str(tmp_path / "out.pdf"), str(source)])
+    assert raised.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("failure", "message"),
+    [(FileNotFoundError(2, "No such file or directory"), "needs pdftocairo of Poppler"), (subprocess.TimeoutExpired("pdftocairo", 60), "pdftocairo took longer than")],
+)
+def test_flat_svg_reports_pdftocairo_it_cannot_run(monkeypatch: pytest.MonkeyPatch, failure: Exception, message: str) -> None:
+    def failing(*_args: object, **_kwargs: object) -> None:
+        raise failure
+
+    monkeypatch.setattr(subprocess, "run", failing)
+    document = RED_RECT.encode()
+    with pytest.raises(ConvertError, match=message):
+        to_svg(document)

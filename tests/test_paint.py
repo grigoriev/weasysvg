@@ -13,6 +13,7 @@ from xml.etree import ElementTree as ET
 import pytest
 from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, streams, svg
 
+import weasysvg
 from weasysvg import paint
 from weasysvg.paint import GRADIENT_CELL, drop_empty_presentation
 
@@ -224,6 +225,115 @@ def test_mask_attribute_on_a_mask_is_ignored(cycle: bool) -> None:
     pdf = render(svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="red" mask="url(#a)"/>'))
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 120, 30), RED)
+
+
+# ---------------- binary masks in a portable PDF ----------------
+
+# A red rect of the whole SVG, cut by a mask. Pixels at 72 dpi: x 30 is 40 px, x 75 is 100 px, x 135 is 180 px
+KNOCKOUT = (
+    '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100">'
+    '<rect width="200" height="100" fill="white"/><rect x="80" y="20" width="40" height="60" fill="black"/></mask></defs>'
+    '<rect width="200" height="100" fill="red" mask="url(#m)"/>'
+)
+
+
+def portable_render(body: str) -> bytes:
+    with weasysvg.portable():
+        return render(svg(body))
+
+
+def test_portable_binary_mask_is_a_clip() -> None:
+    pdf = portable_render(KNOCKOUT)
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert "h\nW*\nn" in content(pdf)
+    assert near(pixel(pdf, 30, 37), RED)
+    assert near(pixel(pdf, 75, 37), WHITE)
+    assert near(pixel(pdf, 135, 37), RED)
+
+
+def test_portable_mask_matches_the_soft_mask() -> None:
+    soft, clipped = render(svg(KNOCKOUT)), portable_render(KNOCKOUT)
+    assert "/SMask" in soft.decode("latin-1")
+    for x, y in ((30, 37), (75, 37), (75, 10), (135, 37)):
+        assert pixel(soft, x, y) == pixel(clipped, x, y)
+
+
+def test_portable_resets_after_the_block() -> None:
+    portable_render(KNOCKOUT)
+    assert "/SMask" in render(svg(KNOCKOUT)).decode("latin-1")
+
+
+@pytest.mark.parametrize(
+    ("shapes", "inside", "outside"),
+    [
+        # A black circle around 100, 50 px
+        ('<rect width="200" height="100" fill="white"/><circle cx="100" cy="50" r="30" fill="#000"/>', (30, 37), (75, 37)),
+        ('<rect width="200" height="100" fill="white"/><ellipse cx="100" cy="50" rx="30" ry="20" fill="rgb(0,0,0)"/>', (30, 37), (75, 37)),
+        # The union of two white areas, the gap between them hidden
+        ('<rect width="60" height="100" fill="white"/><rect x="140" width="60" height="100" fill="#fff"/>', (135, 37), (75, 37)),
+        # A white circle alone
+        ('<circle cx="100" cy="50" r="30" fill="white"/>', (75, 37), (30, 37)),
+        # currentColor is the color it stands for
+        ('<rect width="200" height="100" fill="currentColor" color="white"/><rect x="80" width="40" height="100" fill="currentColor"/>', (30, 37), (75, 37)),
+    ],
+)
+def test_portable_binary_shapes(shapes: str, inside: tuple[int, int], outside: tuple[int, int]) -> None:
+    body = f'<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100">{shapes}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    pdf = portable_render(body)
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert near(pixel(pdf, *inside), RED)
+    assert near(pixel(pdf, *outside), WHITE)
+
+
+def test_portable_mask_in_bounding_box_units() -> None:
+    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="white"/><rect x="0.4" width="0.2" height="1" fill="black"/></mask>'
+    pdf = portable_render(f'<defs>{mask}</defs><g mask="url(#m)"><rect width="200" height="100" fill="red"/></g>')
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert near(pixel(pdf, 30, 37), RED)
+    assert near(pixel(pdf, 75, 37), WHITE)
+    assert near(pixel(pdf, 135, 37), RED)
+
+
+@pytest.mark.parametrize("white", ['<rect width="0" height="100" fill="white"/>', '<circle cx="100" cy="50" r="0" fill="white"/>'])
+def test_portable_mask_without_white_area_hides_the_element(white: str) -> None:
+    body = f'<defs><mask id="m">{white}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    pdf = portable_render(body)
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert near(pixel(pdf, 75, 37), WHITE)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        '<rect width="200" height="100" fill="gray"/>',
+        '<rect width="200" height="100" fill="white" fill-opacity="0.5"/>',
+        '<rect width="200" height="100" fill="white" opacity="0.5"/>',
+        '<rect width="200" height="100" fill="white" stroke="black"/>',
+        '<rect width="200" height="100" fill="white" transform="scale(0.5)"/>',
+        '<rect width="200" height="100" fill="white" rx="5"/>',
+        '<rect width="200" height="100" fill="url(#g)"/>',
+        '<rect width="200" height="100" fill="rgba(255,255,255,0.5)"/>',
+        '<rect width="200" height="100" fill="white" display="none"/>',
+        '<path d="M0 0H200V100H0Z" fill="white"/>',
+        '<g><rect width="200" height="100" fill="white"/></g>',
+        # No white area to start from: empty, or black first
+        "",
+        '<rect width="200" height="100" fill="black"/>',
+        # White over black needs more than one clip
+        '<rect width="200" height="100" fill="black"/><rect width="100" height="100" fill="white"/>',
+        '<rect width="200" height="100" fill="white"/><rect width="10" height="10" fill="black"/><rect width="5" height="5" fill="white"/>',
+    ],
+)
+def test_portable_keeps_the_soft_mask_of_other_masks(shapes: str) -> None:
+    gradient = '<linearGradient id="g"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="black"/></linearGradient>'
+    body = f'<defs>{gradient}<mask id="m">{shapes}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    assert "/SMask" in portable_render(body).decode("latin-1")
+
+
+def test_portable_bounding_box_units_keep_percentages_soft() -> None:
+    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="100%" height="1" fill="white"/></mask>'
+    pdf = portable_render(f'<defs>{mask}</defs><rect width="200" height="100" fill="red" mask="url(#m)"/>')
+    assert "/SMask" in pdf.decode("latin-1")
 
 
 # ---------------- clip paths ----------------
