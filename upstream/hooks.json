@@ -245,9 +245,9 @@
    "fingerprint": "1c570e0b507a14dd",
    "used_by": "filters blur masks, paint clip masks; paint._set_alpha_state hands a gradient of a portable PDF an _AlphaSink, which takes add_shading and stream"
   },
-  "weasyprint.pdf.stream:Stream.paint_shading": {
-   "fingerprint": "missing",
-   "used_by": "paint._paint_shading paints the color shading of a portable gradient in levels, once per draw_gradient"
+  "pydyf:Stream.paint_shading": {
+   "fingerprint": "c1b7b1514ae3fb55",
+   "used_by": "WeasyPrint inherits it; paint._paint_shading paints the color shading of a portable gradient in levels, once per draw_gradient"
   },
   "weasyprint.pdf.stream:Stream.add_pattern": {
    "fingerprint": "a904666c25081fe1",
