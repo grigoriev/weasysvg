@@ -10,10 +10,13 @@ Touches:
   restored after each use.
 - ``svg.defs.paint_mask``: replaced. Region of an objectBoundingBox mask, maskContentUnits, a cycle
   through mask="..." is broken, mask="..." on the <mask> itself is ignored as in Chromium, and the tag
-  of the <mask> is restored, else the walk draws it as a <g>.
+  of the <mask> is restored, else the walk draws it as a <g>. In a portable PDF a mask of opaque white and
+  black shapes is a clip, and a mask of one gray or translucent shape an opacity of the element.
 - a complex clip path, through ``_core``: one in objectBoundingBox units, or whose children carry
-  clip-path, clip-rule="evenodd", text or <use>. One W clip cannot express it: it becomes an alpha soft mask, each child filled by its
-  clip-rule. WeasyPrint dropped such children, ignored clip-rule and painted clip text in black.
+  clip-path, clip-rule="evenodd", text or <use>, or with several children. It becomes one path of all its
+  fills where that holds them (``clippaths.py``), else an alpha soft mask, each child filled by its
+  clip-rule. WeasyPrint dropped such children, ignored clip-rule, painted clip text in black and cut a
+  hole where two children turn opposite ways.
 - ``svg.Node.override_iter``: a list instead of a one-shot iterator, so a node can be walked twice.
 - ``svg.SVG.draw_node``, through ``_core``: mix-blend-mode as an isolated group, and a mask on a container
   is set before its children are drawn. ``svg.NOT_INHERITED_ATTRIBUTES`` gains mix-blend-mode.
@@ -29,6 +32,7 @@ Touches:
 
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -44,7 +48,9 @@ from weasyprint.pdf import stream as wp_stream
 from weasyprint.svg import defs as wp_defs
 from weasyprint.svg import utils as wp_utils
 
-from . import _core, levelsets, pathdata
+from . import _core, clippaths, coverage, levelsets, pathdata
+
+LOGGER = logging.getLogger("weasysvg")
 
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
 DASH_FRACTION = 2.5e-5  # of the dash period: the length a dash of length 0 gets, 0.001 units of a period of 40
@@ -747,6 +753,121 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
             mask.attrib["transform"] = saved_transform
 
 
+# ---------------- gray masks as an opacity, for a portable PDF ----------------
+
+# What a luminosity soft mask takes of each channel: DeviceRGB converted to DeviceGray
+LUMINANCE = (0.3, 0.59, 0.11)
+# Children of a mask that draw nothing
+UNDRAWN = frozenset(("defs", "desc", "linearGradient", "metadata", "radialGradient", "style", "title"))
+
+
+@dataclass
+class GrayMask:
+    """A mask of one shape in one color: the element in a group, clipped to the shape, at one opacity.
+
+    A gradient mask stays a soft mask. Drawn as nested levels it copied the element once per level, and a
+    renderer with 8 bit layers lost the faint levels over light colors: Chromium and librsvg faded too fast.
+    """
+
+    region: tuple[float, float, float, float]
+    outline: list[clippaths.Subpath]
+    opacity: float
+    content: Any = None
+
+    def start(self, stream: Any, box: tuple[float, float, float, float]) -> Any:
+        """The group to draw the element into."""
+        self.content = stream.add_group(*box)
+        return self.content
+
+    def draw(self, stream: Any, blend: str | None = None) -> None:
+        """Draw the element through the mask onto stream, blended as blend says."""
+        if not self.outline or self.opacity <= 0:
+            return
+        stream.push_state()
+        try:
+            # The element blends with what lies under it: inside its group there is nothing to blend with
+            if blend is not None:
+                stream.set_blend_mode(blend)
+            stream.rectangle(*self.region)
+            stream.clip()
+            stream.end()
+            clippaths.add(stream, self.outline)
+            stream.clip()
+            stream.end()
+            stream.set_alpha(self.opacity, stroke=True, fill=True)
+            stream.draw_x_object(self.content.id)
+        finally:
+            stream.pop_state()
+
+
+def gray_mask(svg: Any, node: Any, mask: Any, font_size: float) -> GrayMask | None:
+    """The mask of one shape in one color, gray or translucent, in a portable PDF; None for any other mask.
+
+    A clip draws opaque white and black alone (_binary_shapes): those stay clips.
+    """
+    # Definitions inside the mask draw nothing
+    children = [child for child in mask if child.tag not in UNDRAWN]
+    if not _core.PORTABLE.get() or len(children) != 1:
+        return None
+    shape = children[0]
+    paint = str(shape.get("fill", "black")).strip()
+    if _mask_effects(mask):
+        return None
+    # Its own transform moves its outline
+    if shape.tag not in SHAPES or paint.startswith("url(") or any(shape.get(key) not in (None, "", "none", "0") for key in BINARY_EXCLUDED if key != "transform"):
+        return None
+    if _binary_shapes(mask, mask.get("maskContentUnits") == "objectBoundingBox") is not None:
+        return None
+    region = _mask_region(svg, node, mask, font_size)
+    if region is None:
+        return None
+    content = Matrix()
+    if mask.get("maskContentUnits") == "objectBoundingBox":
+        box = svg.calculate_bounding_box(node, font_size, stroke=False)
+        if not wp_defs.is_valid_bounding_box(box):
+            return None
+        content = Matrix(a=box[2], d=box[3], e=box[0], f=box[1])
+    try:
+        outline = _shape_outline(svg, shape, font_size, content)
+    except coverage.Unsupported:
+        return None
+    # fill="none" is black for the binary check already: a clip of nothing
+    value = wp_utils.color(paint)
+    red, green, blue = (min(max(float(channel), 0.0), 1.0) for channel in value.to("srgb").coordinates)
+    fade = wp_utils.alpha_value(shape.get("opacity", 1)) * wp_utils.alpha_value(shape.get("fill-opacity", 1)) * wp_utils.alpha_value(mask.get("opacity", 1))
+    return GrayMask(region, outline, (LUMINANCE[0] * red + LUMINANCE[1] * green + LUMINANCE[2] * blue) * float(value.alpha) * fade)
+
+
+def _shape_outline(svg: Any, shape: Any, font_size: float, content: Any) -> list[clippaths.Subpath]:
+    """The outline of shape in user space, as one nonzero path."""
+    stream = svg.stream
+    scratch = stream.add_group(0, 0, 0, 0)
+    plain = {"fill": "black", "stroke": "none", "opacity": "1", "fill-opacity": "1"}
+    saved = {key: shape.attrib.get(key) for key in plain}
+    try:
+        scratch.transform(*content.values)
+        # The outline alone: an opacity would draw it in a group
+        shape.attrib.update(plain)
+        svg.stream = scratch
+        svg.draw_node(shape, font_size)
+    finally:
+        svg.stream = stream
+        for key, value in saved.items():
+            if value is None:
+                shape.attrib.pop(key, None)
+            else:
+                shape.attrib[key] = value
+        stream._resources["XObject"].pop(scratch.id, None)
+    return clippaths.union(clippaths.read(scratch), _budget(svg))
+
+
+def _budget(svg: Any) -> Callable[[int], bool]:
+    """The charge of work against the budget of the SVG that filters keeps."""
+    from . import filters
+
+    return lambda cost: filters._charge(svg, cost)
+
+
 # ---------------- binary masks as clips, for a portable PDF ----------------
 
 # The shapes a binary mask may hold: each has an outline in the same turning direction, so that nonzero
@@ -792,20 +913,27 @@ def _binary_paint(child: Any, bounding_box_units: bool) -> bool | None:
     return _luminance_of(child.get("fill", "black"))
 
 
+def _mask_effects(mask: Any) -> bool:
+    """Whether the <mask> itself has an effect a clip cannot draw: a filter, a clip path or a transform."""
+    return any(mask.get(key) not in (None, "", "none") for key in ("filter", "clip-path", "transform"))
+
+
 def _binary_shapes(mask: Any, bounding_box_units: bool) -> list[tuple[Any, bool]] | None:
     """The shapes of a mask that is opaque white areas, then opaque black ones, else None.
 
     Such a mask shows the union of the white areas less the union of the black ones: a clip path draws
-    the same picture without a soft mask. A D2 diagram cuts the edges under its labels this way.
+    the same picture without a soft mask. A D2 diagram cuts the edges under its labels this way. Without
+    a white area it hides the element.
     """
+    # The soft mask draws the <mask> as a group, with its own opacity and effects
+    if _mask_effects(mask) or wp_utils.alpha_value(mask.get("opacity", 1)) != 1:
+        return None
     shapes: list[tuple[Any, bool]] = []
     for child in mask:
         white = _binary_paint(child, bounding_box_units)
         if white is None or (white and shapes and not shapes[-1][1]):
             return None  # a white area over a black one needs more than one clip
         shapes.append((child, white))
-    if not shapes or not shapes[0][1]:
-        return None
     return shapes
 
 
@@ -911,7 +1039,11 @@ def complex_clip(svg: Any, node: Any) -> Any:
     # WeasyPrint sizes an objectBoundingBox clip by x, y, width and height: right for a <rect> only
     if clip.get("clipPathUnits") == "objectBoundingBox":
         return clip
-    for child in clip:
+    children = list(clip)
+    # WeasyPrint adds the outlines of several children to one nonzero path: two that turn opposite ways cut a hole
+    if len(children) > 1:
+        return clip
+    for child in children:
         if child.get("clip-path") or child.get("clip-rule") == "evenodd" or child.tag in ("text", "use"):
             return clip
     return None
@@ -933,19 +1065,31 @@ def clip_restyle(_svg: Any, node: Any, _font_size: float) -> dict[str, str | Non
 
 
 def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
-    """Set clip as the alpha soft mask of the current state, with every child filled."""
+    """Clip the current state to clip, each child filled by its clip-rule.
+
+    The fills become one path where it can hold them (clippaths.py), else the alpha soft mask of clip: Word
+    draws no soft mask, and a printer may rasterize it.
+    """
     stream = svg.stream
-    mask = stream.set_alpha_state(*_core.group_box(svg, node, font_size), mode="alpha")
+    box = _core.group_box(svg, node, font_size)
+    if _clip_as_path(svg, node, clip, font_size, box):
+        return
+    _draw_clip_content(svg, node, clip, font_size, stream.set_alpha_state(*box, mode="alpha"))
+
+
+def _draw_clip_content(svg: Any, node: Any, clip: Any, font_size: float, target: Any) -> bool:
+    """Draw the children of clip on target, filled; False when its box units leave nothing to draw."""
     if clip.get("clipPathUnits") == "objectBoundingBox":
         box = svg.calculate_bounding_box(node, font_size, stroke=False)
         if not wp_defs.is_valid_bounding_box(box):
-            return  # an empty mask: the node is clipped away, as in Chromium
-        mask.transform(a=box[2], d=box[3], e=box[0], f=box[1])
+            return False  # an empty mask: the node is clipped away, as in Chromium
+        target.transform(a=box[2], d=box[3], e=box[0], f=box[1])
+    stream = svg.stream
     tag = clip._etree_node.tag
     token = _CLIPPING.set(True)
     styles = _plain_content()
     try:
-        svg.stream = mask
+        svg.stream = target
         clip._etree_node.tag = "g"
         svg.draw_node(clip, font_size)
     finally:
@@ -953,6 +1097,27 @@ def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
         svg.stream = stream
         _CLIPPING.reset(token)
         _restore_content(styles)
+    return True
+
+
+def _clip_as_path(svg: Any, node: Any, clip: Any, font_size: float, box: tuple[float, float, float, float]) -> bool:
+    """Clip the current state to the fills of clip as one path; False when they need the soft mask."""
+    stream = svg.stream
+    scratch = stream.add_group(*box)
+    try:
+        subpaths = clippaths.union(clippaths.read(scratch), _budget(svg)) if _draw_clip_content(svg, node, clip, font_size, scratch) else []
+    except coverage.Unsupported as error:
+        LOGGER.debug("SVG clip path keeps its soft mask: %s", error)
+        return False
+    finally:
+        stream._resources["XObject"].pop(scratch.id, None)
+    if subpaths:
+        clippaths.add(stream, subpaths)
+    else:
+        stream.rectangle(box[0], box[1], 0, 0)  # nothing drawn: the node is clipped away
+    stream.clip()
+    stream.end()
+    return True
 
 
 # ---------------- draw_node helpers, used by _core ----------------

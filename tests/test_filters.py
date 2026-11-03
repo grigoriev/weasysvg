@@ -335,6 +335,7 @@ PORTABLE_BLURS = {
     # Its peak stays below most levels: those have no contour
     "faint dot": filtered('<feGaussianBlur stdDeviation="4"/>', GRAY_SHADOW, target='<circle cx="60" cy="50" r="1" fill="red" filter="url(#f)"/>'),
     "silhouette": filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', target='<circle cx="60" cy="50" r="25" fill="red" filter="url(#f)"/>'),
+    "use of a rect": svg('<defs><rect id="r" x="10" y="10" width="50" height="30"/><filter id="f"><feGaussianBlur stdDeviation="3"/></filter></defs><use href="#r" x="20" y="15" fill="red" filter="url(#f)"/>'),
 }
 
 
@@ -349,6 +350,36 @@ def test_portable_blur_has_no_soft_mask_and_matches(name: str) -> None:
     # soft mask sample off center. Each channel on its own: a light seam shows in one channel most
     assert max(ImageStat.Stat(difference).mean) < 1.5
     assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 48
+
+
+def test_portable_blur_of_a_use_is_the_blur_of_its_shape() -> None:
+    # The glare of Tux: a <use> of a shape it fills with a gradient. The soft mask of a <use> takes the levels of
+    # the nearest edge, the shape itself its exact blur
+    defs = '<radialGradient id="g"><stop stop-color="white"/><stop offset="1" stop-color="gold"/></radialGradient><filter id="f"><feGaussianBlur stdDeviation="3"/></filter>'
+    shape = 'd="M10 10 C60 0 90 30 70 60 L20 50 Z"'
+    used = svg(f'<defs>{defs}<path id="p" {shape}/></defs><rect width="200" height="100" fill="#335"/><use href="#p" x="15" y="20" fill="url(#g)" filter="url(#f)"/>')
+    placed = svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="#335"/><path transform="translate(15 20)" {shape} fill="url(#g)" filter="url(#f)"/>')
+    flat = portable(used)
+    assert soft_masks(flat) == 0
+    assert ImageChops.difference(rasterize(flat, 2), rasterize(portable(placed), 2)).getbbox() is None
+    difference = ImageChops.difference(rasterize(flat, 2), rasterize(render(placed), 2))
+    assert max(ImageStat.Stat(difference).mean) < 1.5
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 48
+
+
+@pytest.mark.parametrize(
+    "used",
+    [
+        '<path id="p" d="M10 10 H70 V60 Z" transform="rotate(5)"/>',
+        '<path id="p" d="M10 10 H70 V60 Z" opacity="0.5"/>',
+        '<g id="p"><path d="M10 10 H70 V60 Z"/></g>',
+    ],
+)
+def test_portable_blur_of_a_use_takes_a_plain_shape_alone(used: str) -> None:
+    # The shape has an effect of its own, or is a group: the coverage of drawn content reads no gradient
+    gradient = '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>'
+    document = svg(f'<defs>{gradient}{used}<filter id="f"><feGaussianBlur stdDeviation="3"/></filter></defs><use href="#p" fill="url(#g)" filter="url(#f)"/><use href="#nowhere" filter="url(#f)"/>')
+    assert soft_masks(portable(document)) > 0
 
 
 def test_portable_blur_follows_the_gaussian() -> None:

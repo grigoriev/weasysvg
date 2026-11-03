@@ -1524,6 +1524,16 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
     A level in one color is a filled path: cairo writes it as one SVG path, where a clip and a group
     cost a clip path and a mask each.
     """
+    used = _used_shape(svg, node, font_size)
+    if used is not None:
+        # The shape of a <use> blurs as if it stood there: Tux blurs the glare of a wing this way
+        shape, x, y = used
+        stream.push_state()
+        try:
+            stream.transform(e=x, f=y)
+            return _portable_blur(svg, original, shape, font_size, context, layer, stream, (big[0] - x, big[1] - y, big[2], big[3]))
+        finally:
+            stream.pop_state()
     fields = _portable_fields(svg, original, node, font_size, context, layer)
     if fields is None:
         return False
@@ -1540,6 +1550,29 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
             if traced[threshold]:
                 _draw_level(stream, level, traced[threshold], rgba, alpha, paint)
     return True
+
+
+# What makes the shape a <use> draws more than its outline in its paint
+USED_EFFECTS = ("transform", "filter", "mask", "clip-path", "mix-blend-mode")
+
+
+def _used_shape(svg: Any, node: Any, font_size: float) -> tuple[Any, float, float] | None:
+    """The one shape a <use> draws, with the style it inherits, and its offset; None for anything else.
+
+    The coverage of drawn content reads no gradient or pattern: a shape of its own takes any paint.
+    """
+    if node.tag != "use":
+        return None
+    shape = wp_defs.get_use_tree(svg, node, font_size)
+    if shape is None or shape.tag not in shapeblur.SHAPES:
+        return None
+    if any(shape.get(key) not in (None, "", "none") for key in USED_EFFECTS) or alpha_value(shape.get("opacity", 1)) != 1:
+        return None
+    # As the <use> of WeasyPrint does: the copy takes the style of the <use>
+    shape._children = None
+    node.cascade(shape)
+    x, y = svg.point(node.get("x"), node.get("y"), font_size)
+    return shape, x, y
 
 
 def _level_paint(layer: Layer, level: _Field, solid: Any) -> tuple[Any, float]:

@@ -52,6 +52,7 @@ HOOKS: dict[str, str] = {
     "weasyprint.svg.bounding_box:BOUNDING_BOX_METHODS": "_core gives <a> a box (bounding_box_a)",
     "weasyprint.svg.bounding_box:bounding_box_g": "_core.bounding_box_a for an <a> around shapes",
     "weasyprint.svg.defs:use": "restylers and clips walk <use> trees",
+    "weasyprint.svg.defs:get_use_tree": "filters._used_shape blurs the shape of a <use> in a portable PDF",
     "weasyprint.svg.defs:apply_filters": "_core removes filter before draw_node applies it",
     "weasyprint.svg.utils:color": "filters._color recolors through it",
     "weasyprint.svg.utils:alpha_value": "paint._visible_stops, filters",

@@ -426,7 +426,17 @@ def test_portable_mask_in_bounding_box_units() -> None:
     assert near(pixel(pdf, 135, 37), RED)
 
 
-@pytest.mark.parametrize("white", ['<rect width="0" height="100" fill="white"/>', '<circle cx="100" cy="50" r="0" fill="white"/>'])
+@pytest.mark.parametrize(
+    "white",
+    [
+        '<rect width="0" height="100" fill="white"/>',
+        '<circle cx="100" cy="50" r="0" fill="white"/>',
+        "",
+        '<rect width="200" height="100" fill="black"/>',
+        # A rect without a size, black by default: the resvg test of an invalid child
+        "<rect/>",
+    ],
+)
 def test_portable_mask_without_white_area_hides_the_element(white: str) -> None:
     body = f'<defs><mask id="m">{white}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
     pdf = portable_render(body)
@@ -437,20 +447,9 @@ def test_portable_mask_without_white_area_hides_the_element(white: str) -> None:
 @pytest.mark.parametrize(
     "shapes",
     [
-        '<rect width="200" height="100" fill="gray"/>',
-        '<rect width="200" height="100" fill="white" fill-opacity="0.5"/>',
-        '<rect width="200" height="100" fill="white" opacity="0.5"/>',
+        '<rect width="200" height="100" fill="white" stroke="black"/><rect width="5" height="5" fill="gray"/>',
         '<rect width="200" height="100" fill="white" stroke="black"/>',
-        '<rect width="200" height="100" fill="white" transform="scale(0.5)"/>',
-        '<rect width="200" height="100" fill="white" rx="5"/>',
-        '<rect width="200" height="100" fill="url(#g)"/>',
-        '<rect width="200" height="100" fill="rgba(255,255,255,0.5)"/>',
-        '<rect width="200" height="100" fill="white" display="none"/>',
-        '<path d="M0 0H200V100H0Z" fill="white"/>',
         '<g><rect width="200" height="100" fill="white"/></g>',
-        # No white area to start from: empty, or black first
-        "",
-        '<rect width="200" height="100" fill="black"/>',
         # White over black needs more than one clip
         '<rect width="200" height="100" fill="black"/><rect width="100" height="100" fill="white"/>',
         '<rect width="200" height="100" fill="white"/><rect width="10" height="10" fill="black"/><rect width="5" height="5" fill="white"/>',
@@ -462,10 +461,201 @@ def test_portable_keeps_the_soft_mask_of_other_masks(shapes: str) -> None:
     assert "/SMask" in portable_render(body).decode("latin-1")
 
 
-def test_portable_bounding_box_units_keep_percentages_soft() -> None:
-    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="100%" height="1" fill="white"/></mask>'
-    pdf = portable_render(f'<defs>{mask}</defs><rect width="200" height="100" fill="red" mask="url(#m)"/>')
-    assert "/SMask" in pdf.decode("latin-1")
+def test_portable_bounding_box_units_draw_percentages_as_an_opacity() -> None:
+    # A percentage has no meaning in bounding box units: no clip, the opacity draws what the soft mask draws
+    body = '<defs><mask id="m" maskContentUnits="objectBoundingBox"><rect width="100%" height="1" fill="white"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" not in flat.decode("latin-1")
+    assert "W*" not in content(flat)
+    assert pixel(soft, 75, 37) == pixel(flat, 75, 37)
+
+
+# ---------------- clip paths as one path ----------------
+
+PATH_CLIPS = {
+    # Tux and the Inkscape logo clip to the outline of a shape they draw elsewhere
+    "use": '<path id="p" d="M20 10 C120 -20 220 40 120 90 L30 80 Z"/><clipPath id="c"><use href="#p"/></clipPath>',
+    "use-moved": '<path id="p" d="M20 10 H90 V60 Z"/><clipPath id="c"><use href="#p" x="80" y="20"/></clipPath>',
+    "use-of-a-group": '<g id="p"><rect x="10" y="10" width="60" height="60"/><circle cx="140" cy="50" r="30"/></g><clipPath id="c"><use href="#p"/></clipPath>',
+    # Two shapes overlap and turn opposite ways: nonzero of both as written is a hole where they meet
+    "opposite-turns": '<clipPath id="c"><use href="#a"/><path d="M60 10 V90 H150 V10 Z"/></clipPath><rect id="a" x="20" y="20" width="100" height="60"/>',
+    "evenodd": '<clipPath id="c"><path d="M10 10H190V90H10Z M60 30H140V70H60Z" clip-rule="evenodd"/><rect x="90" y="40" width="80" height="50"/></clipPath>',
+    # The same turns, nonzero: the inner square adds to the outer one, no hole
+    "nonzero-same-turns": '<clipPath id="c"><path d="M10 10H190V90H10Z M60 30H140V70H60Z"/><rect x="2" y="40" width="6" height="20"/></clipPath>',
+    # A hole as nonzero writes it, with a shape over part of it
+    "nonzero-hole": '<clipPath id="c"><path d="M10 10H190V90H10Z M60 30V70H140V30Z"/><circle cx="60" cy="50" r="15"/></clipPath>',
+    "nested-islands": '<clipPath id="c"><path d="M10 10H190V90H10Z M30 20V80H170V20Z M60 35H140V65H60Z" clip-rule="evenodd"/></clipPath>',
+    "transformed": '<clipPath id="c" transform="rotate(10 100 50)"><rect x="30" y="20" width="60" height="50" transform="skewX(20)"/><polygon points="120,10 190,50 120,90"/></clipPath>',
+    "bounding-box": '<clipPath id="c" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.4"/><rect width="0.2" height="0.2"/></clipPath>',
+    # One curve back to its start encloses an area
+    "one curve": '<path id="p" d="M20 10 C220 0 20 140 20 10 Z"/><clipPath id="c"><use href="#p"/></clipPath>',
+    "curves": '<clipPath id="c"><ellipse cx="70" cy="50" rx="60" ry="35"/><path d="M100 50 Q150 -20 190 50 T100 50" clip-rule="evenodd"/></clipPath>',
+}
+
+
+@pytest.mark.parametrize("name", PATH_CLIPS)
+def test_clip_is_one_path_and_matches_its_mask(name: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    body = f'<defs>{PATH_CLIPS[name]}</defs><g clip-path="url(#c)"><rect width="200" height="100" fill="red"/><rect x="40" width="40" height="100" fill="blue" opacity="0.5"/></g>'
+    flat = render(svg(body))
+    assert "/SMask" not in flat.decode("latin-1")
+    monkeypatch.setattr(paint, "_clip_as_path", lambda *_: False)
+    soft = render(svg(body))
+    assert "/SMask" in soft.decode("latin-1")
+    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
+    assert max(ImageStat.Stat(difference).mean) < 0.5
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 64
+
+
+@pytest.mark.parametrize(
+    "clip",
+    [
+        '<clipPath id="c"><rect width="0" height="100"/></clipPath>',
+        '<clipPath id="c"><use href="#nowhere"/><rect width="10" height="100" display="none"/></clipPath>',
+        '<clipPath id="c" clipPathUnits="objectBoundingBox"><use href="#nowhere"/></clipPath>',
+    ],
+)
+def test_clip_of_nothing_hides_the_element(clip: str) -> None:
+    pdf = render(svg(f'<defs>{clip}</defs><rect x="10" y="10" width="180" height="80" fill="red" clip-path="url(#c)"/>'))
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert near(pixel(pdf, 75, 37), WHITE)
+
+
+def test_clip_in_box_units_without_a_box_hides_the_element() -> None:
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.5"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><g clip-path="url(#c)"/><g clip-path="url(#c)"><rect width="0" height="10"/></g>'))
+    assert "/SMask" not in pdf.decode("latin-1")
+
+
+@pytest.mark.parametrize(
+    "clip",
+    [
+        '<clipPath id="c"><text x="10" y="80" font-size="80">II</text></clipPath>',
+        # A child clipped by a clip of its own: the union of two intersections
+        '<clipPath id="c"><rect width="100" height="100" clip-path="url(#d)"/><use href="#r"/></clipPath><clipPath id="d"><circle cx="50" cy="50" r="40"/></clipPath>',
+        # A star crosses itself
+        '<clipPath id="c"><path d="M100 5 L130 95 L50 35 H150 L70 95 Z"/><use href="#r"/></clipPath>',
+        # A symbol clips to its viewport
+        '<symbol id="s" viewBox="0 0 10 10"><rect width="10" height="10"/></symbol><clipPath id="c"><use href="#s" width="50" height="50"/><use href="#r"/></clipPath>',
+        '<clipPath id="c"><image width="50" height="50" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E"/><use href="#r"/></clipPath>',
+    ],
+)
+def test_other_clips_keep_the_soft_mask(clip: str) -> None:
+    body = f'<defs><rect id="r" x="150" width="50" height="50"/>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'
+    assert "/SMask" in render(svg(body)).decode("latin-1")
+
+
+def test_clip_keeps_its_soft_mask_once_the_budget_is_spent(monkeypatch: pytest.MonkeyPatch) -> None:
+    from weasysvg import filters
+
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 1)
+    body = f'<defs>{PATH_CLIPS["use"]}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'
+    assert "/SMask" in render(svg(body)).decode("latin-1")
+
+
+def test_clip_children_that_turn_opposite_ways_unite() -> None:
+    # Chromium fills the union of the children; WeasyPrint added both to one nonzero path, a hole where they meet
+    clip = '<clipPath id="c"><rect x="20" y="20" width="100" height="60"/><path d="M60 10 V90 H150 V10 Z"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 67, 37), RED)
+    assert near(pixel(pdf, 30, 37), RED)
+    assert near(pixel(pdf, 120, 37), WHITE)
+
+
+# ---------------- gray masks as an opacity ----------------
+
+LINEAR = '<linearGradient id="g"><stop stop-color="white"/><stop offset="1" stop-color="black"/></linearGradient>'
+GRAY_MASKS = {
+    "gray": '<rect x="20" y="10" width="160" height="80" fill="gray"/>',
+    "faded white circle": '<circle cx="100" cy="50" r="40" fill="white" fill-opacity="0.6" opacity="0.8"/>',
+    "translucent white": '<rect x="20" y="10" width="160" height="80" fill="rgba(255,255,255,0.5)"/>',
+    "rounded white": '<rect x="20" y="10" width="160" height="80" rx="20" fill="white"/>',
+    "turned color": f'<defs>{LINEAR}</defs><rect x="20" y="20" width="160" height="60" fill="#3a8" transform="rotate(30 100 50)"/>',
+}
+
+
+@pytest.mark.parametrize("name", GRAY_MASKS)
+def test_portable_gray_mask_matches_the_soft_mask(name: str) -> None:
+    body = f'<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100">{GRAY_MASKS[name]}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" in soft.decode("latin-1")
+    assert "/SMask" not in flat.decode("latin-1")
+    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
+    assert max(ImageStat.Stat(difference).mean) < 1
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 24
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # The opacity of the <mask> itself fades it, for a gray shape and for a clip of white and black
+        '<defs><mask id="m" opacity="0.5"><rect x="20" y="10" width="160" height="80" fill="#ccc"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>',
+        KNOCKOUT.replace('<mask id="m"', '<mask id="m" opacity="0.5"'),
+        # A blend of the element sees what lies under the mask
+        '<rect width="200" height="100" fill="yellow"/><defs><mask id="m"><rect x="20" y="10" width="160" height="80" fill="#ccc"/></mask></defs><rect width="200" height="100" fill="blue" mask="url(#m)" style="mix-blend-mode:multiply"/>',
+    ],
+)
+def test_portable_mask_keeps_the_effects_of_the_mask_and_element(body: str) -> None:
+    difference = ImageChops.difference(rasterize(render(svg(body)), 2), rasterize(portable_render(body), 2))
+    assert max(ImageStat.Stat(difference).mean) < 1
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 24
+
+
+@pytest.mark.parametrize("effect", ['filter="url(#f)"', 'clip-path="url(#c)"', 'transform="scale(0.5)"'])
+def test_portable_mask_with_an_effect_of_its_own_stays_soft(effect: str) -> None:
+    defs = '<filter id="f"><feGaussianBlur stdDeviation="2"/></filter><clipPath id="c"><rect width="100" height="100"/></clipPath>'
+    for shapes in ('<rect x="20" y="10" width="160" height="80" fill="#ccc"/>', '<rect x="20" y="10" width="160" height="80" fill="white"/>'):
+        body = f'<defs>{defs}<mask id="m" {effect}>{shapes}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+        assert "/SMask" in portable_render(body).decode("latin-1")
+
+
+def test_portable_gray_mask_in_bounding_box_units() -> None:
+    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="1" height="0.5" fill="#777"/></mask>'
+    body = f'<defs>{mask}</defs><g mask="url(#m)"><rect x="20" y="20" width="160" height="60" fill="red"/></g>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" not in flat.decode("latin-1")
+    assert max(ImageStat.Stat(ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))).mean) < 1
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [
+        '<rect width="200" height="100" fill="none"/>',
+        '<rect width="0" height="100" fill="gray"/>',
+        '<rect width="200" height="100" fill="gray" opacity="0"/>',
+        '<rect width="200" height="100" fill="white" display="none"/>',
+    ],
+)
+def test_portable_gray_mask_of_nothing_hides_the_element(shape: str) -> None:
+    pdf = portable_render(f'<defs><mask id="m">{shape}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>')
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert near(pixel(pdf, 75, 37), WHITE)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        # Two shapes, text, a stroke, an effect of its own, a gradient, a pattern
+        '<rect width="100" height="100" fill="gray"/><rect x="100" width="100" height="100" fill="white"/>',
+        '<text x="10" y="80" font-size="80" fill="gray">II</text>',
+        '<rect width="200" height="100" fill="gray" stroke="white"/>',
+        '<rect width="200" height="100" fill="gray" filter="url(#f)"/>',
+        '<rect width="200" height="100" fill="url(#g)"/>',
+        '<rect width="200" height="100" fill="url(#p)"/>',
+        # An outline that crosses itself
+        '<path d="M100 5 L130 95 L50 35 H150 L70 95 Z" fill="gray"/>',
+    ],
+)
+def test_portable_keeps_the_soft_mask_of_other_gray_masks(shapes: str) -> None:
+    defs = f'{LINEAR}<filter id="f"><feGaussianBlur stdDeviation="1"/></filter><pattern id="p" width="10" height="10"><rect width="5" height="5" fill="white"/></pattern>'
+    body = f'<defs>{defs}<mask id="m">{shapes}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    assert "/SMask" in portable_render(body).decode("latin-1")
+
+
+def test_portable_gray_mask_needs_a_region() -> None:
+    mask = '<mask id="m"><rect width="200" height="100" fill="gray"/></mask>'
+    units = '<mask id="n" maskUnits="userSpaceOnUse" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="gray"/></mask>'
+    for target in ('<g mask="url(#m)"/>', '<g mask="url(#n)"/>'):
+        assert "/SMask" not in portable_render(f"<defs>{mask}{units}</defs>{target}").decode("latin-1")
 
 
 # ---------------- clip paths ----------------

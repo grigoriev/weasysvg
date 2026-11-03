@@ -96,7 +96,8 @@ with weasysvg.portable():
 ```
 
 - A mask of opaque white areas, then opaque black ones (`rect`, `circle`, `ellipse`), becomes a clip path.
-  D2 cuts its edges under the labels with such a mask.
+  D2 cuts its edges under the labels with such a mask. A mask without a white area hides the element.
+- A mask of one gray or translucent shape becomes a clip to the shape and an opacity of the element.
 - A blur, and the shadow of `feDropShadow` or `drop-shadow()`, becomes the regions where the blurred
   coverage reaches each level, one inside the next, each filled with a constant opacity. Painted in order,
   they add up to the blur within 1/64 of opacity. The contours are traced through the blurred coverage, so
@@ -106,9 +107,11 @@ with weasysvg.portable():
   the gradient: strips across a linear gradient, rings of a radial one, each painted with the color shading at
   a constant opacity, within 1/64. A radial gradient whose circles do not hold each other keeps its soft mask.
   Where the opacity jumps at one offset, a viewer may show a line of one pixel.
+- The blur of a `<use>` of one shape is the blur of that shape, in any paint.
 
-Text, images and other masks and blend modes still use soft masks. The
-setting holds per thread and task.
+A clip path that one PDF clip cannot express becomes one path of all its fills, in any PDF: a `<use>`, several
+children, an even-odd child. Text in a clip path, a gradient mask, images and blend modes still use soft masks.
+The setting holds per thread and task.
 
 ## Command line: weasysvg-convert
 
