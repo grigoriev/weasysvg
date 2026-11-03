@@ -33,16 +33,18 @@ import math
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
 
 from weasyprint import svg as wp_svg
 from weasyprint.matrix import Matrix
+from weasyprint.pdf import stream as wp_stream
 from weasyprint.svg import defs as wp_defs
 from weasyprint.svg import utils as wp_utils
 
-from . import _core, pathdata
+from . import _core, levelsets, pathdata
 
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
 DASH_FRACTION = 2.5e-5  # of the dash period: the length a dash of length 0 gets, 0.001 units of a period of 40
@@ -281,10 +283,14 @@ def draw_gradient(svg: Any, node: Any, gradient: Any, font_size: float, opacity:
             changed.setdefault("fr", gradient.attrib.get("fr"))
             gradient.attrib["fr"] = "0"
             gradient.__class__ = type(cls.__name__, (cls,), {"__iter__": lambda _: iter(ring)})
+        # In a portable PDF the opacity of the stops paints in bands, not through a soft mask
+        capture = _GRADIENT_ALPHA.set(_AlphaCapture()) if _core.PORTABLE.get() else None
         try:
             with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
                 return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)
         finally:
+            if capture is not None:
+                _GRADIENT_ALPHA.reset(capture)
             if ring is not None:
                 gradient.__class__ = cls
     finally:
@@ -402,6 +408,229 @@ def _pattern_origin(svg: Any, node: Any, pattern: Any, font_size: float, stroke:
     if not wp_defs.is_valid_bounding_box(box):
         return 0.0, 0.0
     return box[0] + wp_utils.size(px, font_size, 1) * box[2], box[1] + wp_utils.size(py, font_size, 1) * box[3]
+
+
+# ---------------- gradient opacity in bands, for a portable PDF ----------------
+
+# How far an open band reaches past the gradient, in its own units: the pattern cell clips it
+FAR = 1e5
+
+
+@dataclass
+class _AlphaCapture:
+    """The soft mask WeasyPrint sets for the stop opacities of one gradient, kept instead of set."""
+
+    shading: tuple[int, Any, Any, bool, Any] | None = None
+    painted: bool = False
+
+
+_GRADIENT_ALPHA: ContextVar[_AlphaCapture | None] = ContextVar("weasysvg_gradient_alpha", default=None)
+_ORIGINAL_SET_ALPHA_STATE = wp_stream.Stream.set_alpha_state
+_ORIGINAL_PAINT_SHADING = wp_stream.Stream.paint_shading
+
+
+@dataclass
+class _AlphaSink:
+    """What set_alpha_state returns while a gradient of a portable PDF draws: it keeps the alpha shading.
+
+    A shading the bands cannot follow goes to a real soft mask after all, made then on the group.
+    """
+
+    group: Any
+    box: tuple[float, float, float, float]
+    capture: _AlphaCapture
+    real: Any = None
+    stream: Any = field(default=None)
+
+    def add_shading(self, shading_type: int, domain: Any, coords: Any, extend: bool, function: Any, color_space: str | None = None) -> Any:
+        if _bands_possible(shading_type, coords):
+            self.capture.shading = (shading_type, domain, coords, extend, function)
+            # WeasyPrint names it in the stream of the alpha group, which nothing draws
+            return SimpleNamespace(id="weasysvg-bands")
+        self.real = _ORIGINAL_SET_ALPHA_STATE(self.group, *self.box)
+        return self.real.add_shading(shading_type, domain, coords, extend, function, color_space)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        # WeasyPrint writes the operators of the alpha group into its stream
+        if name == "stream" and getattr(self, "real", None) is not None:
+            self.real.stream = value
+        object.__setattr__(self, name, value)
+
+
+def _set_alpha_state(self: Any, x: float, y: float, width: float, height: float, mode: str = "luminosity") -> Any:
+    capture = _GRADIENT_ALPHA.get()
+    if capture is None or capture.shading is not None or mode != "luminosity":
+        return _ORIGINAL_SET_ALPHA_STATE(self, x, y, width, height, mode)
+    return _AlphaSink(self, (x, y, width, height), capture)
+
+
+def _paint_shading(self: Any, name: str) -> None:
+    capture = _GRADIENT_ALPHA.get()
+    if capture is None or capture.shading is None or capture.painted:
+        _ORIGINAL_PAINT_SHADING(self, name)
+        return
+    capture.painted = True
+    _paint_in_bands(self, name, capture.shading)
+
+
+def _bands_possible(shading_type: int, coords: Any) -> bool:
+    """Whether bands of a constant opacity can follow the shading: an axis, or circles one inside the next."""
+    if shading_type == 2:
+        x1, y1, x2, y2 = (float(value) for value in coords)
+        return (x1, y1) != (x2, y2)
+    fx, fy, fr, cx, cy, r = (float(value) for value in coords)
+    # The circle of each offset holds the one before: the end circle holds the focal one
+    return math.hypot(cx - fx, cy - fy) <= r - fr and r > fr
+
+
+def _alpha_pieces(function: Any, domain: Any) -> list[tuple[float, float, float, float]]:
+    """The pieces of the alpha function: start and end offset, start and end opacity, each linear."""
+    start, end = float(domain[0]), float(domain[1])
+    if int(function["FunctionType"]) == 2:
+        return [(start, end, float(function["C0"][0]), float(function["C1"][0]))]
+    bounds = [start, *(float(bound) for bound in function["Bounds"]), end]
+    encode = [float(value) for value in function["Encode"]]
+    out = []
+    for index, piece in enumerate(function["Functions"]):
+        c0, c1 = float(piece["C0"][0]), float(piece["C1"][0])
+        e0, e1 = encode[2 * index], encode[2 * index + 1]
+        # Encode maps the piece onto its own domain: the opacity at its ends
+        out.append((bounds[index], bounds[index + 1], c0 + (c1 - c0) * e0, c0 + (c1 - c0) * e1))
+    return out
+
+
+Interval = tuple[float, float]
+
+
+def _above(start: float, end: float, a0: float, a1: float, level: float) -> Interval | None:
+    """The offsets of one linear piece where its opacity reaches level, or None."""
+    if a0 >= level and a1 >= level:
+        return start, end
+    if a0 < level and a1 < level:
+        return None
+    cross = start + (level - a0) / (a1 - a0) * (end - start)
+    return (start, cross) if a0 >= level else (cross, end)
+
+
+def levels(function: Any, domain: Any, extend: bool) -> list[tuple[float, list[Interval]]]:
+    """The level sets of the stop opacity along the gradient: the opacity each adds, and where.
+
+    Level k holds the offsets where the opacity reaches (k - 0.5) / n of its peak, a union of intervals, one
+    inside the next as for a blur (levelsets.thresholds). Painted in order they add up to the opacity within
+    1/64, rising and falling alike, and each meets the one below with its own edge only: two regions side by
+    side would each smooth their shared edge, a light seam in any viewer. Levels over the same offsets merge.
+    With extend the ends reach on without end.
+    """
+    pieces = [piece for piece in _alpha_pieces(function, domain) if piece[1] > piece[0]]
+    peak = max((max(piece[2], piece[3]) for piece in pieces), default=0.0)
+    out: list[tuple[float, list[Interval]]] = []
+    for threshold, opacity in levelsets.thresholds(peak) if peak > 0 else []:
+        intervals: list[Interval] = []
+        for index, piece in enumerate(pieces):
+            found = _above(*piece, threshold * peak)
+            if found is None:
+                continue
+            low, high = found
+            if extend and index == 0 and low == piece[0]:
+                low = -math.inf
+            if extend and index == len(pieces) - 1 and high == piece[1]:
+                high = math.inf
+            if intervals and math.isclose(intervals[-1][1], low):
+                intervals[-1] = (intervals[-1][0], high)
+            else:
+                intervals.append((low, high))
+        # Each level lies below the peak, which reaches it: a level is never empty
+        if out and out[-1][1] == intervals:
+            # Two coats over the same offsets are one coat of their combined opacity
+            out[-1] = (1 - (1 - out[-1][0]) * (1 - opacity), intervals)
+        else:
+            out.append((opacity, intervals))
+    return out
+
+
+def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any]) -> None:
+    """Paint the color shading once per level of its opacity, clipped to the level and at the opacity it adds."""
+    shading_type, domain, coords, extend, function = shading
+    first, last = float(domain[0]), float(domain[1])
+    # A level reaches past the group as far as its diagonal: far enough, and short enough for the precision of a
+    # viewer. The group draws its shading under a matrix of its own (a cell of about 1000 units): the diagonal
+    # is measured in the space of the shading
+    left, top, right, bottom = (float(value) for value in stream.extra["BBox"])
+    inverse = stream.ctm.invert
+    corners = [inverse.transform_point(x, y) for x in (left, right) for y in (top, bottom)]
+    points = [float(value) for value in coords]
+    # From the start of the axis, or the focal point, no corner lies farther than this
+    far = 2 * max(math.dist(corner, (points[0], points[1])) for corner in corners)
+    # Where the opacity jumps at one offset, as between two cycles of spreadMethod="repeat", the edge of a level
+    # meets the jump of the color: a viewer that takes the color of a shading at the center of each pixel paints
+    # the pixel across the edge in the color of the far side, a line of one pixel
+    for opacity, intervals in levels(function, domain, extend):
+        stream.push_state()
+        try:
+            for low, high in intervals:
+                # The offsets as shares of the axis: 0 at its start, 1 at its end
+                share = [(value - first) / (last - first) if math.isfinite(value) else math.copysign(FAR, value) for value in (low, high)]
+                if shading_type == 2:
+                    _add_strip(stream, points, share[0], share[1], far)
+                else:
+                    _add_ring(stream, points, share[0], share[1], far)
+            # The intervals do not overlap: even-odd is their union, and a ring is the outer circle less the inner one
+            stream.clip(even_odd=True)
+            stream.end()
+            stream.set_alpha(opacity, stroke=True, fill=True)
+            _ORIGINAL_PAINT_SHADING(stream, name)
+        finally:
+            stream.pop_state()
+
+
+def _add_strip(stream: Any, coords: list[float], low: float, high: float, far: float) -> None:
+    """Add the points whose projection on the axis falls between shares low and high of it, out to far on either side."""
+    x1, y1, x2, y2 = coords
+    dx, dy = x2 - x1, y2 - y1
+    length = math.hypot(dx, dy)
+    # An open end reaches far along the axis
+    low, high = max(low, -far / length), min(high, 1 + far / length)
+    nx, ny = -dy / length * far, dx / length * far
+    a = (x1 + dx * low, y1 + dy * low)
+    b = (x1 + dx * high, y1 + dy * high)
+    stream.move_to(a[0] + nx, a[1] + ny)
+    stream.line_to(b[0] + nx, b[1] + ny)
+    stream.line_to(b[0] - nx, b[1] - ny)
+    stream.line_to(a[0] - nx, a[1] - ny)
+    stream.close()
+
+
+def _circle_path(stream: Any, cx: float, cy: float, r: float) -> None:
+    k = ARC_CONSTANT * r
+    stream.move_to(cx + r, cy)
+    stream.curve_to(cx + r, cy + k, cx + k, cy + r, cx, cy + r)
+    stream.curve_to(cx - k, cy + r, cx - r, cy + k, cx - r, cy)
+    stream.curve_to(cx - r, cy - k, cx - k, cy - r, cx, cy - r)
+    stream.curve_to(cx + k, cy - r, cx + r, cy - k, cx + r, cy)
+    stream.close()
+
+
+def _add_ring(stream: Any, coords: list[float], low: float, high: float, far: float) -> None:
+    """Add the circle of share high and the circle of share low: even-odd, the points between them.
+
+    An open end grows as far as far past the end circle, the diagonal of the group: past it nothing shows.
+    """
+    fx, fy, fr, cx, cy, r = coords
+    high = min(high, 1 + far / (r - fr))
+
+    def circle(share: float) -> tuple[float, float, float]:
+        # Before the focal circle a band holds all of its inside: a circle of no size
+        share = max(share, 0.0) if fr == 0 else share
+        radius = fr + (r - fr) * share
+        if radius <= 0:
+            return fx, fy, 0.0
+        return fx + (cx - fx) * share, fy + (cy - fy) * share, radius
+
+    outer = circle(high)
+    _circle_path(stream, *outer)
+    inner = circle(low)
+    if inner[2] > 0:
+        _circle_path(stream, *inner)
 
 
 # ---------------- masks ----------------
@@ -736,6 +965,8 @@ def install(*, blend: bool = True) -> None:
     _core.add_tree_pass(20, "empty_presentation", drop_empty_presentation)
     _core.add_tree_pass(20, "arcs", fix_arcs)
     wp_defs.draw_gradient = wp_svg.draw_gradient = draw_gradient
+    wp_stream.Stream.set_alpha_state = _set_alpha_state
+    wp_stream.Stream.paint_shading = _paint_shading
     wp_defs.draw_pattern = wp_svg.draw_pattern = draw_pattern
     wp_defs.paint_mask = wp_svg.paint_mask = paint_mask
     wp_svg.SVG.set_graphical_state = set_graphical_state

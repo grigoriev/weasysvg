@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, streams, svg
+from PIL import ImageChops, ImageStat
 
 import weasysvg
 from weasysvg import paint
@@ -225,6 +226,105 @@ def test_mask_attribute_on_a_mask_is_ignored(cycle: bool) -> None:
     pdf = render(svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="red" mask="url(#a)"/>'))
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 120, 30), RED)
+
+
+# ---------------- gradient opacity in a portable PDF ----------------
+
+
+def linear(*stops: tuple[float, float]) -> dict[str, Any]:
+    """The opacity of stops at their offsets as WeasyPrint writes it: a stitching function of linear pieces."""
+    functions = [{"FunctionType": 2, "C0": [a0], "C1": [a1]} for (_, a0), (_, a1) in zip(stops, stops[1:], strict=False)]
+    return {"FunctionType": 3, "Bounds": [offset for offset, _ in stops[1:-1]], "Encode": [0, 1] * len(functions), "Functions": functions}
+
+
+def test_levels_of_a_rising_opacity_nest() -> None:
+    found = paint.levels(linear((0, 0.0), (1, 1.0)), (0, 1), False)
+    assert len(found) == 64
+    # Each level starts later and reaches the end: one inside the next
+    starts = [intervals[0][0] for _, intervals in found]
+    assert starts == sorted(starts)
+    assert all(intervals == [(intervals[0][0], 1)] for _, intervals in found)
+
+
+def test_levels_of_a_peak_are_one_interval_each() -> None:
+    found = paint.levels(linear((0, 0.0), (0.5, 1.0), (1, 0.0)), (0, 1), False)
+    assert all(len(intervals) == 1 for _, intervals in found)
+    # Symmetric around the peak
+    assert all(low == pytest.approx(1 - high) for _, [(low, high)] in found)
+
+
+def test_levels_of_a_valley_split_in_two() -> None:
+    found = paint.levels(linear((0, 1.0), (0.5, 0.0), (1, 1.0)), (0, 1), True)
+    # Above the valley floor a level holds both sides, open at either end
+    low, high = found[-1][1]
+    assert low[0] == -math.inf and high[1] == math.inf
+
+
+def test_levels_skip_a_clear_piece() -> None:
+    # Clear up to the middle, then rising: no level reaches into the clear half
+    found = paint.levels(linear((0, 0.0), (0.5, 0.0), (1, 1.0)), (0, 1), True)
+    assert all(low >= 0.5 and high == math.inf for _, [(low, high)] in found)
+
+
+def test_levels_of_one_opacity_are_one_coat() -> None:
+    found = paint.levels(linear((0, 0.4), (1, 0.4)), (0, 1), True)
+    assert len(found) == 1
+    opacity, intervals = found[0]
+    assert opacity == pytest.approx(0.4)
+    assert intervals == [(-math.inf, math.inf)]
+
+
+def test_levels_of_no_opacity() -> None:
+    assert paint.levels(linear((0, 0.0), (1, 0.0)), (0, 1), False) == []
+    assert paint.levels({"FunctionType": 2, "C0": [0.0], "C1": [0.0]}, (0, 1), False) == []
+
+
+@pytest.mark.parametrize(
+    "gradient",
+    [
+        '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.2"/></linearGradient>',
+        '<linearGradient id="g" x2="0" y2="1"><stop stop-color="red" stop-opacity="0"/><stop offset="0.5" stop-color="green"/><stop offset="1" stop-color="blue" stop-opacity="0"/></linearGradient>',
+        '<linearGradient id="g" gradientTransform="rotate(30)"><stop stop-color="red" stop-opacity="0.8"/><stop offset="1" stop-color="blue" stop-opacity="0.1"/></linearGradient>',
+        '<linearGradient id="g" x2="0.3" spreadMethod="reflect"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.3"/></linearGradient>',
+        '<linearGradient id="g" gradientUnits="userSpaceOnUse" x1="50" x2="150"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0"/></linearGradient>',
+        '<radialGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.1"/></radialGradient>',
+        '<radialGradient id="g" fx="0.4" fy="0.45" r="0.6"><stop stop-color="yellow" stop-opacity="0.2"/><stop offset="0.7" stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.5"/></radialGradient>',
+        '<radialGradient id="g" fr="0.2"><stop stop-color="red" stop-opacity="0.5"/><stop offset="1" stop-color="blue" stop-opacity="0"/></radialGradient>',
+        # Opaque stops faded by the fill opacity: one coat
+        '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>',
+    ],
+)
+def test_portable_gradient_opacity_has_no_soft_mask_and_matches(gradient: str) -> None:
+    body = f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)" fill-opacity="0.7"/><rect x="20" y="40" width="160" height="20" fill="none" stroke="url(#g)" stroke-width="8"/>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" in soft.decode("latin-1")
+    assert "/SMask" not in flat.decode("latin-1")
+    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
+    # Within a step of 1/64 of the opacity, and the edges of the levels
+    assert max(ImageStat.Stat(difference).mean) < 3
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 24
+
+
+def test_portable_gradient_that_repeats() -> None:
+    # The opacity jumps between two cycles: the pixel across the jump takes the color of one side, a line of one
+    # pixel the soft mask does not have. The rest matches
+    gradient = '<linearGradient id="g" x2="0.3" spreadMethod="repeat"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.3"/></linearGradient>'
+    body = f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)"/>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" not in flat.decode("latin-1")
+    assert max(ImageStat.Stat(ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))).mean) < 3
+
+
+def test_portable_gradient_of_circles_outside_each_other_keeps_the_mask() -> None:
+    # The focal circle sticks out of the end circle: no circle holds the one before, a band has no ring
+    gradient = '<radialGradient id="g" fx="0.05" fy="0.5" fr="0.2" r="0.3"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.2"/></radialGradient>'
+    flat = portable_render(f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)"/>')
+    assert "/SMask" in flat.decode("latin-1")
+
+
+def test_portable_gradient_opacity_without_portable_keeps_the_mask() -> None:
+    gradient = '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.2"/></linearGradient>'
+    assert "/SMask" in render(svg(f'<defs>{gradient}</defs><rect width="200" height="100" fill="url(#g)"/>')).decode("latin-1")
 
 
 # ---------------- binary masks in a portable PDF ----------------

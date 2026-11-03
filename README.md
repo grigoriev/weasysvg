@@ -102,7 +102,12 @@ with weasysvg.portable():
   they add up to the blur within 1/64 of opacity. The contours are traced through the blurred coverage, so
   any shape keeps the profile of a real Gaussian; a rect takes its exact blur.
 
-Text, images and other masks, gradients with transparency and blend modes still use soft masks. The
+- The opacity of the stops of a gradient, and a fill opacity on it, become the level sets of that opacity along
+  the gradient: strips across a linear gradient, rings of a radial one, each painted with the color shading at
+  a constant opacity, within 1/64. A radial gradient whose circles do not hold each other keeps its soft mask.
+  Where the opacity jumps at one offset, a viewer may show a line of one pixel.
+
+Text, images and other masks and blend modes still use soft masks. The
 setting holds per thread and task.
 
 ## Command line: weasysvg-convert
