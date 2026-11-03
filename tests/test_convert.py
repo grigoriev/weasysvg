@@ -88,8 +88,9 @@ def test_size_px(attributes: str, expected: tuple[float, float]) -> None:
 
 @pytest.mark.parametrize("attributes", ["", 'width="100"', 'viewBox="0 0 none 30"', 'width="100%" height="100%"', 'viewBox="0 0 0 30"', 'viewBox="0 0 40"', 'width="0" height="10"'])
 def test_size_px_without_a_size(attributes: str) -> None:
+    document = f'<svg xmlns="{SVG_NS}" {attributes}/>'.encode()
     with pytest.raises(ConvertError, match="no size"):
-        size_px(f'<svg xmlns="{SVG_NS}" {attributes}/>'.encode(), 96, 96)
+        size_px(document, 96, 96)
 
 
 @pytest.mark.parametrize("document", [b"", b"not xml", b"<svg><g></svg>", f'<svg xmlns="{SVG_NS}" width="1" height="1"/><extra/>'.encode()])
@@ -199,8 +200,9 @@ def test_flat_svg_reports_a_failing_pdftocairo(monkeypatch: pytest.MonkeyPatch) 
         return SimpleNamespace(returncode=1, stderr=b"Syntax Error\n")
 
     monkeypatch.setattr(subprocess, "run", failing)
+    document = RED_RECT.encode()
     with pytest.raises(ConvertError, match="pdftocairo failed: Syntax Error"):
-        to_svg(RED_RECT.encode())
+        to_svg(document)
 
 
 # ---------------- command line ----------------
@@ -235,16 +237,17 @@ def test_main_fails_with_a_message(tmp_path: Path, capsys: pytest.CaptureFixture
 
 
 def test_png_too_large_is_refused() -> None:
-    document = f'<svg xmlns="{SVG_NS}" width="100000" height="100000"/>'
+    document = f'<svg xmlns="{SVG_NS}" width="100000" height="100000"/>'.encode()
     with pytest.raises(ConvertError, match="too large"):
-        to_png(document.encode())
+        to_png(document)
 
 
 def test_png_without_the_convert_extra(monkeypatch: pytest.MonkeyPatch) -> None:
     # A None entry in sys.modules makes the import fail
     monkeypatch.setitem(sys.modules, "pypdfium2", None)
+    document = RED_RECT.encode()
     with pytest.raises(ConvertError, match=r"weasysvg\[convert\]"):
-        to_png(RED_RECT.encode())
+        to_png(document)
 
 
 def test_main_reports_an_output_it_cannot_write(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -272,5 +275,6 @@ def test_flat_svg_reports_pdftocairo_it_cannot_run(monkeypatch: pytest.MonkeyPat
         raise failure
 
     monkeypatch.setattr(subprocess, "run", failing)
+    document = RED_RECT.encode()
     with pytest.raises(ConvertError, match=message):
-        to_svg(RED_RECT.encode())
+        to_svg(document)

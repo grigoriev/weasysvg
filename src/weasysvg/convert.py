@@ -35,7 +35,6 @@ DEFAULT_DPI = 96.0
 UNIT_INCHES = {"in": 1.0, "cm": 1 / 2.54, "mm": 1 / 25.4, "pt": 1 / 72, "pc": 1 / 6}
 # What rsvg takes for a font-relative length on the root, in pixels at 96 DPI
 FONT_PX = {"em": 16.0, "ex": 8.0}
-LENGTH = re.compile(r"\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*([a-zA-Z%]*)\s*$")
 VIEWBOX_PARTS = 4
 # The largest PNG drawn from an untrusted SVG: one side, and its pixels. The limits of pandoc-service for Chromium
 MAX_PNG_SIDE = 10_000
@@ -63,12 +62,14 @@ def root_attributes(svg: bytes) -> dict[str, str]:
 
 def length_px(value: str | None, dpi: float) -> float | None:
     """A length of the root in pixels at dpi, or None when it is missing, relative or invalid."""
-    if not value:
+    text = (value or "").strip()
+    # The unit is the letters or percent sign at the end; an exponent is followed by a digit
+    digits = text.rstrip("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ%")
+    unit = text[len(digits) :].lower()
+    try:
+        number = float(digits.rstrip())
+    except ValueError:
         return None
-    match = LENGTH.match(value)
-    if not match:
-        return None
-    number, unit = float(match.group(1)), match.group(2).lower()
     if unit in ("", "px"):
         return number
     if unit in UNIT_INCHES:

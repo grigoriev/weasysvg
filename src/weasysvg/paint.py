@@ -500,6 +500,25 @@ def _luminance_of(value: str | None) -> bool | None:
     return None
 
 
+def _binary_paint(child: Any, bounding_box_units: bool) -> bool | None:
+    """True for a shape of opaque white, False for one of opaque black, None for anything else a clip cannot draw."""
+    if child.tag not in BINARY_SHAPES or len(list(child)) > 0:
+        return None
+    if any(child.get(key) not in (None, "", "none", "0") for key in BINARY_EXCLUDED):
+        return None
+    # A rounded rect has no outline here
+    if child.tag == "rect" and any(child.get(key) not in (None, "", "0") for key in ("rx", "ry")):
+        return None
+    if child.get("display") == "none" or child.get("visibility") in ("hidden", "collapse"):
+        return None
+    if any(wp_utils.alpha_value(child.get(key, "1")) != 1 for key in ("opacity", "fill-opacity")):
+        return None
+    # Percentages of the viewport have no meaning in bounding box units
+    if bounding_box_units and any("%" in str(child.get(key, "")) for key in ("x", "y", "width", "height", "cx", "cy", "r", "rx", "ry")):
+        return None
+    return _luminance_of(child.get("fill", "black"))
+
+
 def _binary_shapes(mask: Any, bounding_box_units: bool) -> list[tuple[Any, bool]] | None:
     """The shapes of a mask that is opaque white areas, then opaque black ones, else None.
 
@@ -508,21 +527,7 @@ def _binary_shapes(mask: Any, bounding_box_units: bool) -> list[tuple[Any, bool]
     """
     shapes: list[tuple[Any, bool]] = []
     for child in mask:
-        if child.tag not in BINARY_SHAPES or len(list(child)) > 0:
-            return None
-        if any(child.get(key) not in (None, "", "none", "0") for key in BINARY_EXCLUDED):
-            return None
-        # A rounded rect has no outline here
-        if child.tag == "rect" and any(child.get(key) not in (None, "", "0") for key in ("rx", "ry")):
-            return None
-        if child.get("display") == "none" or child.get("visibility") in ("hidden", "collapse"):
-            return None
-        if any(wp_utils.alpha_value(child.get(key, "1")) != 1 for key in ("opacity", "fill-opacity")):
-            return None
-        # Percentages of the viewport have no meaning in bounding box units
-        if bounding_box_units and any("%" in str(child.get(key, "")) for key in ("x", "y", "width", "height", "cx", "cy", "r", "rx", "ry")):
-            return None
-        white = _luminance_of(child.get("fill", "black"))
+        white = _binary_paint(child, bounding_box_units)
         if white is None or (white and shapes and not shapes[-1][1]):
             return None  # a white area over a black one needs more than one clip
         shapes.append((child, white))
