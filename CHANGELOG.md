@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-03
+
 ### Added
 
 - `weasysvg-convert`, a command line converter from SVG to PDF, PNG or a flat SVG. It accepts the options
