@@ -218,7 +218,8 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 def read_input(name: str, stdin: IO[bytes]) -> bytes:
     if name == "-":
         return stdin.read()
-    with open(name, "rb") as handle:
+    # A command line tool reads the file its caller names, as rsvg-convert does
+    with open(name, "rb") as handle:  # NOSONAR
         return handle.read()
 
 
@@ -230,7 +231,8 @@ def main(argv: list[str] | None = None) -> int:
         converter = {"pdf": to_pdf, "png": to_png, "svg": to_svg}[args.format]
         result = converter(svg, args.dpi_x, args.dpi_y)
         if args.output:
-            with open(args.output, "wb") as handle:
+            # A command line tool writes the file its caller names, as rsvg-convert does
+            with open(args.output, "wb") as handle:  # NOSONAR
                 handle.write(result)
         else:
             sys.stdout.buffer.write(result)
