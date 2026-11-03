@@ -1,10 +1,11 @@
 """The flat SVG of weasysvg-convert, drawn by another renderer, against the PDF weasysvg draws itself.
 
 The flat SVG goes to Word, which draws no soft mask and no filter. Each diagram of the corpus and a few
-cases of each feature the portable PDF changes are flattened, drawn by resvg, and compared with the
-default PDF in PDFium, soft masks and all. Both are blurred by 2 px first: PDFium snaps thin strokes to
-whole pixels and resvg does not, which moves a line by a pixel. A shape, a label or a shadow the
-flattening loses stays a blot after the blur.
+cases of each feature the portable PDF changes are flattened, drawn by librsvg (rsvg-convert), and
+compared with the default PDF in PDFium, soft masks and all. Both are blurred by 2 px first: PDFium snaps
+thin strokes to whole pixels and librsvg does not, which moves a line by a pixel. A shape, a label or a
+shadow the flattening loses stays a blot after the blur. resvg drew no stroke painted by a pattern and
+faded a gradient inside one, where librsvg, Chromium and Word draw them as PDFium does.
 
 A failing case writes the reference, the flat drawing and their difference next to the test run. With
 WEASYSVG_VISUAL_OUT set to a directory, every case writes them there, to look at by eye.
@@ -15,6 +16,8 @@ from __future__ import annotations
 import io
 import os
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import cast
 
@@ -27,17 +30,16 @@ from test_paint import KNOCKOUT
 
 from weasysvg.convert import size_px, to_pdf, to_svg
 
-resvg_py = pytest.importorskip("resvg_py")
+RSVG = shutil.which("rsvg-convert")
+pytestmark = pytest.mark.skipif(RSVG is None, reason="needs rsvg-convert of librsvg (Dockerfile.test and CI install it)")
 
 CORPUS = Path(__file__).resolve().parent.parent / "corpus" / "svg"
 # Pixels per CSS px of both drawings
 SCALE = 2
 BLUR = 2
-# The worst of the corpus is 1.3 and 36: PDFium and resvg smooth curves and text a little differently
+# The worst case is 1.2 on average and 42 at most: PDFium and librsvg smooth curves and text a little differently
 MAX_MEAN = 2.0
 MAX_PEAK = 64
-# Gradients with transparency still go through a soft mask, which cairo writes as an image
-KNOWN_RASTER = frozenset({"drawio/svgfile.svg"})
 
 SHADOW = ' x="-50%" y="-50%" width="200%" height="200%"'
 FEATURES = {
@@ -67,6 +69,22 @@ FEATURES = {
         '<defs><mask id="m" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="white"/><rect x="0.4" width="0.2" height="1" fill="black"/></mask></defs>'
         '<g mask="url(#m)"><rect x="20" y="10" width="160" height="80" fill="purple"/></g>'
     ),
+    # Gradients with transparent stops and faded fills, linear and radial: draw.io writes them with fillOpacity
+    "gradient-linear": svg(
+        '<defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="#dae8fc"/><stop offset="1" stop-color="#7ea6e0" stop-opacity="0.3"/></linearGradient></defs>'
+        '<rect x="20" y="10" width="160" height="80" rx="8" fill="url(#g)" stroke="#6c8ebf"/>'
+    ),
+    "gradient-faded": svg(
+        '<defs><linearGradient id="g"><stop stop-color="#f8cecc"/><stop offset="1" stop-color="#ea6b66"/></linearGradient></defs><ellipse cx="100" cy="50" rx="80" ry="40" fill="url(#g)" fill-opacity="0.6" stroke="#b85450"/>'
+    ),
+    "gradient-radial": svg(
+        '<defs><radialGradient id="g" fx="0.35" fy="0.35"><stop stop-color="white" stop-opacity="0.9"/><stop offset="0.6" stop-color="gold"/><stop offset="1" stop-color="orange" stop-opacity="0"/></radialGradient></defs>'
+        '<rect width="200" height="100" fill="#eef"/><circle cx="100" cy="50" r="45" fill="url(#g)"/>'
+    ),
+    "gradient-stroke": svg(
+        '<defs><linearGradient id="g" gradientTransform="rotate(20)"><stop stop-color="green" stop-opacity="0.2"/><stop offset="1" stop-color="green"/></linearGradient></defs>'
+        '<path d="M20 80 C60 0 140 100 180 20" fill="none" stroke="url(#g)" stroke-width="10"/>'
+    ),
     "binary-mask": svg(
         '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="200" height="100" fill="white"/>'
         '<rect x="70" y="40" width="60" height="20" fill="black"/><circle cx="40" cy="50" r="10" fill="black"/></mask></defs>'
@@ -92,21 +110,19 @@ def reference(document: bytes, width: int) -> Image.Image:
 
 
 def drawn(flat: bytes, size: tuple[int, int]) -> Image.Image:
-    """The flat SVG in resvg at size: the root takes the size in px, its viewBox keeps the drawing."""
+    """The flat SVG in librsvg at size, on white."""
     width, height = size
-    text = re.sub(r'(<svg\b[^>]*?) width="[^"]*" height="[^"]*"', rf'\1 width="{width}" height="{height}"', flat.decode(), count=1)
-    png = bytes(resvg_py.svg_to_bytes(svg_string=text, width=width, background="white"))
+    png = subprocess.run([cast(str, RSVG), "-w", str(width), "-h", str(height), "-b", "white"], input=flat, capture_output=True, check=True).stdout
     return Image.open(io.BytesIO(png)).convert("RGB").resize(size)
 
 
-def check(name: str, document: bytes, tmp_path: Path, known_raster: bool = False) -> None:
+def check(name: str, document: bytes, tmp_path: Path) -> None:
     flat = to_svg(document)
     text = flat.decode()
     # cairo keeps the alpha of a raster image in a mask through a filter: any other filter is one Word does not draw
     assert 'filter="url(' not in re.sub(r"<mask\b.*?</mask>", "", text, flags=re.DOTALL), "a filter: Word draws none"
-    if not known_raster:
-        # cairo writes the alpha of a raster image as a mask over that image: any other mask is a soft mask
-        assert text.count("<mask") <= text.count("<image") <= document.count(b"<image") + document.count(b"data:image") * 2
+    # cairo writes the alpha of a raster image as a mask over that image: any other mask is a soft mask
+    assert text.count("<mask") <= text.count("<image") <= document.count(b"<image") + document.count(b"data:image") * 2
     width = round(size_px(document, 96, 96)[0] * SCALE)
     expected = reference(document, width)
     actual = drawn(flat, expected.size)
@@ -128,7 +144,7 @@ def check(name: str, document: bytes, tmp_path: Path, known_raster: bool = False
 
 @pytest.mark.parametrize("name", corpus_cases())
 def test_flat_svg_of_a_diagram_looks_like_the_pdf(name: str, tmp_path: Path) -> None:
-    check(name, (CORPUS / name).read_bytes(), tmp_path, known_raster=name in KNOWN_RASTER)
+    check(name, (CORPUS / name).read_bytes(), tmp_path)
 
 
 @pytest.mark.parametrize("name", FEATURES)
