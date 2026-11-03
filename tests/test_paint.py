@@ -487,6 +487,8 @@ PATH_CLIPS = {
     "nested-islands": '<clipPath id="c"><path d="M10 10H190V90H10Z M30 20V80H170V20Z M60 35H140V65H60Z" clip-rule="evenodd"/></clipPath>',
     "transformed": '<clipPath id="c" transform="rotate(10 100 50)"><rect x="30" y="20" width="60" height="50" transform="skewX(20)"/><polygon points="120,10 190,50 120,90"/></clipPath>',
     "bounding-box": '<clipPath id="c" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.4"/><rect width="0.2" height="0.2"/></clipPath>',
+    # One curve back to its start encloses an area
+    "one curve": '<path id="p" d="M20 10 C220 0 20 140 20 10 Z"/><clipPath id="c"><use href="#p"/></clipPath>',
     "curves": '<clipPath id="c"><ellipse cx="70" cy="50" rx="60" ry="35"/><path d="M100 50 Q150 -20 190 50 T100 50" clip-rule="evenodd"/></clipPath>',
 }
 
@@ -542,6 +544,14 @@ def test_other_clips_keep_the_soft_mask(clip: str) -> None:
     assert "/SMask" in render(svg(body)).decode("latin-1")
 
 
+def test_clip_keeps_its_soft_mask_once_the_budget_is_spent(monkeypatch: pytest.MonkeyPatch) -> None:
+    from weasysvg import filters
+
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 1)
+    body = f'<defs>{PATH_CLIPS["use"]}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'
+    assert "/SMask" in render(svg(body)).decode("latin-1")
+
+
 def test_clip_children_that_turn_opposite_ways_unite() -> None:
     # Chromium fills the union of the children; WeasyPrint added both to one nonzero path, a hole where they meet
     clip = '<clipPath id="c"><rect x="20" y="20" width="100" height="60"/><path d="M60 10 V90 H150 V10 Z"/></clipPath>'
@@ -572,6 +582,30 @@ def test_portable_gray_mask_matches_the_soft_mask(name: str) -> None:
     difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
     assert max(ImageStat.Stat(difference).mean) < 1
     assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 24
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # The opacity of the <mask> itself fades it, for a gray shape and for a clip of white and black
+        '<defs><mask id="m" opacity="0.5"><rect x="20" y="10" width="160" height="80" fill="#ccc"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>',
+        KNOCKOUT.replace('<mask id="m"', '<mask id="m" opacity="0.5"'),
+        # A blend of the element sees what lies under the mask
+        '<rect width="200" height="100" fill="yellow"/><defs><mask id="m"><rect x="20" y="10" width="160" height="80" fill="#ccc"/></mask></defs><rect width="200" height="100" fill="blue" mask="url(#m)" style="mix-blend-mode:multiply"/>',
+    ],
+)
+def test_portable_mask_keeps_the_effects_of_the_mask_and_element(body: str) -> None:
+    difference = ImageChops.difference(rasterize(render(svg(body)), 2), rasterize(portable_render(body), 2))
+    assert max(ImageStat.Stat(difference).mean) < 1
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 24
+
+
+@pytest.mark.parametrize("effect", ['filter="url(#f)"', 'clip-path="url(#c)"', 'transform="scale(0.5)"'])
+def test_portable_mask_with_an_effect_of_its_own_stays_soft(effect: str) -> None:
+    defs = '<filter id="f"><feGaussianBlur stdDeviation="2"/></filter><clipPath id="c"><rect width="100" height="100"/></clipPath>'
+    for shapes in ('<rect x="20" y="10" width="160" height="80" fill="#ccc"/>', '<rect x="20" y="10" width="160" height="80" fill="white"/>'):
+        body = f'<defs>{defs}<mask id="m" {effect}>{shapes}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+        assert "/SMask" in portable_render(body).decode("latin-1")
 
 
 def test_portable_gray_mask_in_bounding_box_units() -> None:

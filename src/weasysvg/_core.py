@@ -321,15 +321,17 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
         outer = self.stream
         if gray is not None:
             self.stream = gray.start(outer, group_box(self, node, font_size))
+        # The gray mask blends its group: inside it there is nothing to blend with
+        inner = effects.without_blend() if gray is not None else effects
         try:
             if effects.clip is None:
-                _draw_grouped(self, original, node, font_size, fill_stroke, context, effects, saved.get("opacity", 1))
+                _draw_grouped(self, original, node, font_size, fill_stroke, context, inner, saved.get("opacity", 1))
             else:
-                _draw_clipped(self, original, node, font_size, fill_stroke, context, effects, saved.get("opacity", 1))
+                _draw_clipped(self, original, node, font_size, fill_stroke, context, inner, saved.get("opacity", 1))
         finally:
             if gray is not None:
                 self.stream = outer
-                gray.draw(outer)
+                gray.draw(outer, effects.blend)
     finally:
         self.stream.pop_state()
         node.attrib.update(saved)

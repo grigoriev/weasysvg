@@ -52,6 +52,12 @@ def test_read_drops_a_path_that_is_not_painted_and_a_lone_point() -> None:
     assert clippaths.read(content("0 0 m 4 0 l 4 4 l n 5 5 m f")) == [Fill([], False)]
 
 
+def test_read_keeps_one_curve_back_to_its_start() -> None:
+    fills = clippaths.read(content("0 0 m 100 0 0 100 0 0 c h f"))
+    assert len(fills[0].subpaths) == 1
+    assert clippaths.union(fills) == fills[0].subpaths
+
+
 def test_read_closes_a_subpath_back_at_its_start_once() -> None:
     fills = clippaths.read(content("0 0 m 4 0 l 4 4 l 0 0 l h f"))
     assert fills[0].subpaths[0].points() == [(0, 0), (4, 0), (4, 4), (0, 0)]
@@ -181,3 +187,35 @@ def test_add_writes_lines_and_curves() -> None:
     stream = SimpleNamespace(**{name: record(name) for name in ("move_to", "line_to", "curve_to", "close")})
     clippaths.add(stream, [Subpath((0, 0), [((1, 0),), ((1, 1), (0, 2), (-1, 1)), ((0, 0),)])])
     assert calls == ["move_to", "line_to", "curve_to", "line_to", "close"]
+
+
+@pytest.mark.parametrize("step", [1, 4096])
+def test_union_stops_when_the_budget_is_spent(step: int, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Within the loop of pairs, or at its end
+    monkeypatch.setattr(clippaths, "CHARGE_STEP", step)
+    with pytest.raises(Unsupported, match="budget"):
+        clippaths.union([Fill([square(0, 0, 10), square(2, 2, 2)], False)], lambda _: False)
+
+
+def test_union_charges_the_holders_too() -> None:
+    charges: list[int] = []
+
+    def charge(cost: int) -> bool:
+        charges.append(cost)
+        return len(charges) < 2
+
+    with pytest.raises(Unsupported, match="budget"):
+        clippaths.union([Fill([square(0, 0, 10), square(2, 2, 2)], False)], charge)
+
+
+def test_union_charges_each_step_of_pairs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(clippaths, "CHARGE_STEP", 1)
+    charges: list[int] = []
+
+    def charge(cost: int) -> bool:
+        charges.append(cost)
+        return True
+
+    # The inner square turns the same way, nonzero: it adds nothing
+    assert clippaths.union([Fill([square(0, 0, 10), square(2, 2, 2)], False)], charge) == [square(0, 0, 10)]
+    assert charges[0] == 1

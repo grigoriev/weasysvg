@@ -14,6 +14,7 @@ Anything else (text, an image, a clip of a child, a crossing) keeps the soft mas
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -27,6 +28,8 @@ Segment = tuple[Point, ...]
 MAX_SEGMENTS = 4000
 # The flatness of the crossing check, a share of the size of the fill
 FLATNESS = 1e-3
+# Pairs of edges compared between two charges of the work budget
+CHARGE_STEP = 4096
 # Operators that change nothing a clip takes: colors, lines, marked content
 _STYLE = frozenset((b"g", b"G", b"rg", b"RG", b"k", b"K", b"cs", b"CS", b"sc", b"SC", b"scn", b"SCN", b"w", b"J", b"j", b"M", b"d", b"i", b"ri", b"BDC", b"BMC", b"EMC", b"MP", b"DP"))
 
@@ -91,9 +94,10 @@ class _Path:
         if self.open is None:
             return
         subpath = self.open
-        if not subpath.segments or subpath.segments[-1][-1] != subpath.start:
-            subpath.segments.append((subpath.start,))
-        if len(subpath.segments) > 1:
+        # A lone point fills nothing; one curve back to its start may enclose an area
+        if subpath.segments:
+            if subpath.segments[-1][-1] != subpath.start:
+                subpath.segments.append((subpath.start,))
             self.subpaths.append(subpath)
         self.open = Subpath(subpath.start, [])
 
@@ -167,12 +171,16 @@ def _plain_state(values: Any) -> None:
             raise Unsupported(f"graphics state {key}")
 
 
-def union(fills: list[Fill]) -> list[Subpath]:
-    """The subpaths of one path whose nonzero fill is the union of fills."""
-    return [subpath for fill in fills for subpath in _oriented(fill)]
+def union(fills: list[Fill], charge: Callable[[int], bool] = lambda _: True) -> list[Subpath]:
+    """The subpaths of one path whose nonzero fill is the union of fills.
+
+    The checks are quadratic in Python: charge takes their cost from the budget of the SVG, and says False
+    once it is spent.
+    """
+    return [subpath for fill in fills for subpath in _oriented(fill, charge)]
 
 
-def _oriented(fill: Fill) -> list[Subpath]:
+def _oriented(fill: Fill, charge: Callable[[int], bool]) -> list[Subpath]:
     """The subpaths of fill, each turned so that the winding is 1 inside the fill and 0 outside it."""
     subpaths = fill.subpaths
     if not subpaths:
@@ -183,10 +191,12 @@ def _oriented(fill: Fill) -> list[Subpath]:
     drawn = [(subpath, ring) for subpath, ring in zip(subpaths, rings, strict=True) if len(ring) > 2]
     if sum(len(ring) for _, ring in drawn) > MAX_SEGMENTS:
         raise Unsupported("a clip path of too many segments")
-    if _crossing([ring for _, ring in drawn]):
+    if _crossing([ring for _, ring in drawn], charge):
         raise Unsupported("a clip path whose subpaths cross")
     # A subpath that crosses nothing and has no area is a line there and back: it fills nothing
     kept = [(subpath, ring, area) for subpath, ring in drawn if (area := shapeblur.signed_area(ring))]
+    if not charge(len(kept) * sum(len(ring) for _, ring, _ in kept)):
+        raise Unsupported("the work budget of the SVG")
     # The subpaths that hold each one: they do not cross, so one point tells
     holders = [[other for other in range(len(kept)) if other != index and _winding(kept[other][1], kept[index][1][0])] for index in range(len(kept))]
 
@@ -217,7 +227,7 @@ def _winding(ring: Ring, point: Point) -> int:
     return winding
 
 
-def _crossing(rings: list[Ring]) -> bool:
+def _crossing(rings: list[Ring], charge: Callable[[int], bool]) -> bool:
     """Whether two edges of rings meet anywhere but at the point two neighbors share."""
     edges = []
     for number, ring in enumerate(rings):
@@ -226,14 +236,23 @@ def _crossing(rings: list[Ring]) -> bool:
             start, end = ring[index], ring[(index + 1) % count]
             edges.append((min(start[0], end[0]), max(start[0], end[0]), start, end, number, index, count))
     edges.sort()
+    compared = 0
     for position, (_, right, start, end, number, index, count) in enumerate(edges):
-        for other_left, _, other_start, other_end, other_number, other_index, _ in edges[position + 1 :]:
+        for other in range(position + 1, len(edges)):
+            other_left, _, other_start, other_end, other_number, other_index, _ = edges[other]
             if other_left > right:
                 break
+            compared += 1
+            if compared == CHARGE_STEP:
+                if not charge(compared):
+                    raise Unsupported("the work budget of the SVG")
+                compared = 0
             if other_number == number and (other_index - index) % count in (1, count - 1):
                 continue  # neighbors share a point
             if _meet(start, end, other_start, other_end):
                 return True
+    if not charge(compared):
+        raise Unsupported("the work budget of the SVG")
     return False
 
 
