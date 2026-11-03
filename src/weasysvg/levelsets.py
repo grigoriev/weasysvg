@@ -62,7 +62,7 @@ def contours(values: Image.Image, levels: list[float]) -> dict[float, list[Ring]
     tops, rights, bottoms, lefts = (corner.tobytes() for corner in corners)
     highs, lows = high.tobytes(), low.tobytes()
     scaled = sorted(level * 255 for level in levels)
-    links: dict[float, dict[tuple[Edge, ...], None]] = {level: {} for level in scaled}
+    links: dict[float, list[tuple[Edge, Edge]]] = {level: [] for level in scaled}
     points: dict[float, dict[Edge, Point]] = {level: {} for level in scaled}
     for run in _CHANGING.finditer(ImageChops.subtract(high, low).tobytes()):
         for index in range(run.start(), run.end()):
@@ -78,7 +78,7 @@ def contours(values: Image.Image, levels: list[float]) -> dict[float, list[Ring]
     return out
 
 
-def _cell(i: int, j: int, corners: tuple[int, int, int, int], level: float, links: dict[tuple[Edge, ...], None], points: dict[Edge, Point]) -> None:
+def _cell(i: int, j: int, corners: tuple[int, int, int, int], level: float, links: list[tuple[Edge, Edge]], points: dict[Edge, Point]) -> None:
     """Add the segments of one cell at level: its corners top left, top right, bottom right, bottom left."""
     a, b, c, e = corners
     inside = (a >= level, b >= level, c >= level, e >= level)
@@ -97,20 +97,18 @@ def _cell(i: int, j: int, corners: tuple[int, int, int, int], level: float, link
                 share = (level - first) / (second - first)
                 points[edge] = (start[0] + share * (end[0] - start[0]), start[1] + share * (end[1] - start[1]))
     if len(crossed) == 2:
-        links[(crossed[0], crossed[1])] = None
+        links.append((crossed[0], crossed[1]))
         return
     # A saddle: two opposite corners inside. The mean of the corners says whether the inside joins them
     joined = (a + b + c + e) / 4 >= level
     if inside[0] == joined:
         # The corners top right and bottom left are cut off
-        links[(top, right)] = None
-        links[(bottom, left)] = None
+        links += [(top, right), (bottom, left)]
     else:
-        links[(top, left)] = None
-        links[(right, bottom)] = None
+        links += [(top, left), (right, bottom)]
 
 
-def _rings(links: dict[tuple[Edge, ...], None], points: dict[Edge, Point]) -> list[Ring]:
+def _rings(links: list[tuple[Edge, Edge]], points: dict[Edge, Point]) -> list[Ring]:
     """Chain the segments into closed rings: every crossed side belongs to two of them."""
     neighbors: dict[Edge, list[Edge]] = {}
     for first, second in links:

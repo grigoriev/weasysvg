@@ -208,23 +208,35 @@ def constant_masks_as_opacity(flat: bytes) -> bytes:
     for mask in root.iter(f"{{{SVG_NS}}}mask"):
         opacity = _constant_opacity(mask, box)
         if opacity is not None:
-            opacities[f"url(#{mask.get('id')})"] = (mask, opacity)
+            opacities[f"url(#{mask.get('id')})"] = opacity
     if not opacities:
         return flat
+    _drop_unused_masks(root, _as_opacity(root, opacities))
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+
+
+def _as_opacity(root: ET.Element, opacities: dict[str, float]) -> set[str]:
+    """Write each use of a constant mask as an opacity; return the masks it replaced somewhere.
+
+    A transformed element keeps its mask: the mask then lies in the space of the transform, where it may not
+    cover the drawing.
+    """
     used: set[str] = set()
     for element in root.iter():
         reference = element.get("mask")
         if reference in opacities and element.get("transform") is None:
             del element.attrib["mask"]
-            element.set("opacity", f"{float(element.get('opacity', '1')) * opacities[reference][1]:g}")
+            element.set("opacity", f"{float(element.get('opacity', '1')) * opacities[reference]:g}")
             used.add(reference)
-    for parent in root.iter():
-        for child in list(parent):
-            if child.tag == f"{{{SVG_NS}}}mask" and f"url(#{child.get('id')})" in used:
-                still = any(element.get("mask") == f"url(#{child.get('id')})" for element in root.iter())
-                if not still:
-                    parent.remove(child)
-    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+    return used
+
+
+def _drop_unused_masks(root: ET.Element, replaced: set[str]) -> None:
+    """Remove each replaced mask that nothing names any more."""
+    named = {element.get("mask") for element in root.iter()}
+    unused = [(parent, child) for parent in root.iter() for child in parent if child.tag == f"{{{SVG_NS}}}mask" and f"url(#{child.get('id')})" in replaced - named]
+    for parent, child in unused:
+        parent.remove(child)
 
 
 def _constant_opacity(mask: ET.Element, box: list[float]) -> float | None:
