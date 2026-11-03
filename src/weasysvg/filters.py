@@ -1406,7 +1406,8 @@ def _covered_rect(svg: Any, node: Any, font_size: float) -> Region | None:
             return None
         half = svg.length(node.get("stroke-width", "1"), font_size) / 2
         x, y, width, height = x - half, y - half, width + 2 * half, height + 2 * half
-    return x, y, width, height
+    # A negative stroke width shrinks it: past nothing, the coverage of drawn content reads what is left
+    return (x, y, width, height) if width > 0 and height > 0 else None
 
 
 def _portable_fields(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer) -> list[_Field] | None:

@@ -404,6 +404,16 @@ def test_portable_shadow_follows_the_alpha_of_the_paint(rect: str) -> None:
     assert cast("tuple[int, int]", difference.getextrema())[1] < 48
 
 
+def test_portable_shadow_of_a_rect_shrunk_by_a_negative_stroke() -> None:
+    # Shrunk past nothing by half its stroke width on each side: the rect still draws, and its shadow with it
+    rect = '<rect x="20" y="20" width="2" height="40" fill="red" stroke="blue" stroke-width="-6" filter="url(#f)"/>'
+    document = filtered('<feDropShadow dx="8" dy="0" stdDeviation="1"/>', GRAY_SHADOW, target=rect)
+    pdf = portable(document)
+    assert soft_masks(pdf) == 0
+    # The element draws: before the guard the whole image failed and the page stayed white
+    assert not near(pixel(pdf, 16, 30), WHITE, 30)
+
+
 @pytest.mark.parametrize(
     "content",
     [
