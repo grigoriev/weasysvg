@@ -101,6 +101,8 @@ FEATURES = {
         '<defs><radialGradient id="g"><stop stop-color="white"/><stop offset="1" stop-color="gold"/></radialGradient><filter id="f"><feGaussianBlur stdDeviation="3"/></filter>'
         '<path id="p" d="M10 10 C60 0 90 30 70 60 L20 50 Z"/></defs><rect width="200" height="100" fill="#335"/><use href="#p" x="15" y="20" fill="url(#g)" filter="url(#f)"/>'
     ),
+    # A mask a clip cannot draw: a gray shape
+    "mask-gray": svg('<defs><mask id="m"><rect x="20" y="10" width="160" height="80" rx="12" fill="#999"/></mask></defs><rect width="200" height="100" fill="navy" mask="url(#m)"/>'),
     "binary-mask": svg(
         '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="200" height="100" fill="white"/>'
         '<rect x="70" y="40" width="60" height="20" fill="black"/><circle cx="40" cy="50" r="10" fill="black"/></mask></defs>'

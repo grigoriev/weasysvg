@@ -447,16 +447,8 @@ def test_portable_mask_without_white_area_hides_the_element(white: str) -> None:
 @pytest.mark.parametrize(
     "shapes",
     [
-        '<rect width="200" height="100" fill="gray"/>',
-        '<rect width="200" height="100" fill="white" fill-opacity="0.5"/>',
-        '<rect width="200" height="100" fill="white" opacity="0.5"/>',
+        '<rect width="200" height="100" fill="white" stroke="black"/><rect width="5" height="5" fill="gray"/>',
         '<rect width="200" height="100" fill="white" stroke="black"/>',
-        '<rect width="200" height="100" fill="white" transform="scale(0.5)"/>',
-        '<rect width="200" height="100" fill="white" rx="5"/>',
-        '<rect width="200" height="100" fill="url(#g)"/>',
-        '<rect width="200" height="100" fill="rgba(255,255,255,0.5)"/>',
-        '<rect width="200" height="100" fill="white" display="none"/>',
-        '<path d="M0 0H200V100H0Z" fill="white"/>',
         '<g><rect width="200" height="100" fill="white"/></g>',
         # White over black needs more than one clip
         '<rect width="200" height="100" fill="black"/><rect width="100" height="100" fill="white"/>',
@@ -469,10 +461,13 @@ def test_portable_keeps_the_soft_mask_of_other_masks(shapes: str) -> None:
     assert "/SMask" in portable_render(body).decode("latin-1")
 
 
-def test_portable_bounding_box_units_keep_percentages_soft() -> None:
-    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="100%" height="1" fill="white"/></mask>'
-    pdf = portable_render(f'<defs>{mask}</defs><rect width="200" height="100" fill="red" mask="url(#m)"/>')
-    assert "/SMask" in pdf.decode("latin-1")
+def test_portable_bounding_box_units_draw_percentages_as_an_opacity() -> None:
+    # A percentage has no meaning in bounding box units: no clip, the opacity draws what the soft mask draws
+    body = '<defs><mask id="m" maskContentUnits="objectBoundingBox"><rect width="100%" height="1" fill="white"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" not in flat.decode("latin-1")
+    assert "W*" not in content(flat)
+    assert pixel(soft, 75, 37) == pixel(flat, 75, 37)
 
 
 # ---------------- clip paths as one path ----------------
@@ -554,6 +549,79 @@ def test_clip_children_that_turn_opposite_ways_unite() -> None:
     assert near(pixel(pdf, 67, 37), RED)
     assert near(pixel(pdf, 30, 37), RED)
     assert near(pixel(pdf, 120, 37), WHITE)
+
+
+# ---------------- gray masks as an opacity ----------------
+
+LINEAR = '<linearGradient id="g"><stop stop-color="white"/><stop offset="1" stop-color="black"/></linearGradient>'
+GRAY_MASKS = {
+    "gray": '<rect x="20" y="10" width="160" height="80" fill="gray"/>',
+    "faded white circle": '<circle cx="100" cy="50" r="40" fill="white" fill-opacity="0.6" opacity="0.8"/>',
+    "translucent white": '<rect x="20" y="10" width="160" height="80" fill="rgba(255,255,255,0.5)"/>',
+    "rounded white": '<rect x="20" y="10" width="160" height="80" rx="20" fill="white"/>',
+    "turned color": f'<defs>{LINEAR}</defs><rect x="20" y="20" width="160" height="60" fill="#3a8" transform="rotate(30 100 50)"/>',
+}
+
+
+@pytest.mark.parametrize("name", GRAY_MASKS)
+def test_portable_gray_mask_matches_the_soft_mask(name: str) -> None:
+    body = f'<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100">{GRAY_MASKS[name]}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" in soft.decode("latin-1")
+    assert "/SMask" not in flat.decode("latin-1")
+    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
+    assert max(ImageStat.Stat(difference).mean) < 1
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 24
+
+
+def test_portable_gray_mask_in_bounding_box_units() -> None:
+    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="1" height="0.5" fill="#777"/></mask>'
+    body = f'<defs>{mask}</defs><g mask="url(#m)"><rect x="20" y="20" width="160" height="60" fill="red"/></g>'
+    soft, flat = render(svg(body)), portable_render(body)
+    assert "/SMask" not in flat.decode("latin-1")
+    assert max(ImageStat.Stat(ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))).mean) < 1
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [
+        '<rect width="200" height="100" fill="none"/>',
+        '<rect width="0" height="100" fill="gray"/>',
+        '<rect width="200" height="100" fill="gray" opacity="0"/>',
+        '<rect width="200" height="100" fill="white" display="none"/>',
+    ],
+)
+def test_portable_gray_mask_of_nothing_hides_the_element(shape: str) -> None:
+    pdf = portable_render(f'<defs><mask id="m">{shape}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>')
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert near(pixel(pdf, 75, 37), WHITE)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        # Two shapes, text, a stroke, an effect of its own, a gradient, a pattern
+        '<rect width="100" height="100" fill="gray"/><rect x="100" width="100" height="100" fill="white"/>',
+        '<text x="10" y="80" font-size="80" fill="gray">II</text>',
+        '<rect width="200" height="100" fill="gray" stroke="white"/>',
+        '<rect width="200" height="100" fill="gray" filter="url(#f)"/>',
+        '<rect width="200" height="100" fill="url(#g)"/>',
+        '<rect width="200" height="100" fill="url(#p)"/>',
+        # An outline that crosses itself
+        '<path d="M100 5 L130 95 L50 35 H150 L70 95 Z" fill="gray"/>',
+    ],
+)
+def test_portable_keeps_the_soft_mask_of_other_gray_masks(shapes: str) -> None:
+    defs = f'{LINEAR}<filter id="f"><feGaussianBlur stdDeviation="1"/></filter><pattern id="p" width="10" height="10"><rect width="5" height="5" fill="white"/></pattern>'
+    body = f'<defs>{defs}<mask id="m">{shapes}</mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
+    assert "/SMask" in portable_render(body).decode("latin-1")
+
+
+def test_portable_gray_mask_needs_a_region() -> None:
+    mask = '<mask id="m"><rect width="200" height="100" fill="gray"/></mask>'
+    units = '<mask id="n" maskUnits="userSpaceOnUse" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="gray"/></mask>'
+    for target in ('<g mask="url(#m)"/>', '<g mask="url(#n)"/>'):
+        assert "/SMask" not in portable_render(f"<defs>{mask}{units}</defs>{target}").decode("latin-1")
 
 
 # ---------------- clip paths ----------------

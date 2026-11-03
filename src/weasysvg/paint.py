@@ -10,7 +10,8 @@ Touches:
   restored after each use.
 - ``svg.defs.paint_mask``: replaced. Region of an objectBoundingBox mask, maskContentUnits, a cycle
   through mask="..." is broken, mask="..." on the <mask> itself is ignored as in Chromium, and the tag
-  of the <mask> is restored, else the walk draws it as a <g>.
+  of the <mask> is restored, else the walk draws it as a <g>. In a portable PDF a mask of opaque white and
+  black shapes is a clip, and a mask of one gray or translucent shape an opacity of the element.
 - a complex clip path, through ``_core``: one in objectBoundingBox units, or whose children carry
   clip-path, clip-rule="evenodd", text or <use>, or with several children. It becomes one path of all its
   fills where that holds them (``clippaths.py``), else an alpha soft mask, each child filled by its
@@ -750,6 +751,109 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
             mask.attrib.pop("transform", None)
         else:
             mask.attrib["transform"] = saved_transform
+
+
+# ---------------- gray masks as an opacity, for a portable PDF ----------------
+
+# What a luminosity soft mask takes of each channel: DeviceRGB converted to DeviceGray
+LUMINANCE = (0.3, 0.59, 0.11)
+# Children of a mask that draw nothing
+UNDRAWN = frozenset(("defs", "desc", "linearGradient", "metadata", "radialGradient", "style", "title"))
+
+
+@dataclass
+class GrayMask:
+    """A mask of one shape in one color: the element in a group, clipped to the shape, at one opacity.
+
+    A gradient mask stays a soft mask. Drawn as nested levels it copied the element once per level, and a
+    renderer with 8 bit layers lost the faint levels over light colors: Chromium and librsvg faded too fast.
+    """
+
+    region: tuple[float, float, float, float]
+    outline: list[clippaths.Subpath]
+    opacity: float
+    content: Any = None
+
+    def start(self, stream: Any, box: tuple[float, float, float, float]) -> Any:
+        """The group to draw the element into."""
+        self.content = stream.add_group(*box)
+        return self.content
+
+    def draw(self, stream: Any) -> None:
+        """Draw the element through the mask onto stream."""
+        if not self.outline or self.opacity <= 0:
+            return
+        stream.push_state()
+        try:
+            stream.rectangle(*self.region)
+            stream.clip()
+            stream.end()
+            clippaths.add(stream, self.outline)
+            stream.clip()
+            stream.end()
+            stream.set_alpha(self.opacity, stroke=True, fill=True)
+            stream.draw_x_object(self.content.id)
+        finally:
+            stream.pop_state()
+
+
+def gray_mask(svg: Any, node: Any, mask: Any, font_size: float) -> GrayMask | None:
+    """The mask of one shape in one color, gray or translucent, in a portable PDF; None for any other mask.
+
+    A clip draws opaque white and black alone (_binary_shapes): those stay clips.
+    """
+    # Definitions inside the mask draw nothing
+    children = [child for child in mask if child.tag not in UNDRAWN]
+    if not _core.PORTABLE.get() or len(children) != 1:
+        return None
+    shape = children[0]
+    paint = str(shape.get("fill", "black")).strip()
+    # Its own transform moves its outline
+    if shape.tag not in SHAPES or paint.startswith("url(") or any(shape.get(key) not in (None, "", "none", "0") for key in BINARY_EXCLUDED if key != "transform"):
+        return None
+    if _binary_shapes(mask, mask.get("maskContentUnits") == "objectBoundingBox") is not None:
+        return None
+    region = _mask_region(svg, node, mask, font_size)
+    if region is None:
+        return None
+    content = Matrix()
+    if mask.get("maskContentUnits") == "objectBoundingBox":
+        box = svg.calculate_bounding_box(node, font_size, stroke=False)
+        if not wp_defs.is_valid_bounding_box(box):
+            return None
+        content = Matrix(a=box[2], d=box[3], e=box[0], f=box[1])
+    try:
+        outline = _shape_outline(svg, shape, font_size, content)
+    except coverage.Unsupported:
+        return None
+    # fill="none" is black for the binary check already: a clip of nothing
+    value = wp_utils.color(paint)
+    red, green, blue = (min(max(float(channel), 0.0), 1.0) for channel in value.to("srgb").coordinates)
+    fade = wp_utils.alpha_value(shape.get("opacity", 1)) * wp_utils.alpha_value(shape.get("fill-opacity", 1))
+    return GrayMask(region, outline, (LUMINANCE[0] * red + LUMINANCE[1] * green + LUMINANCE[2] * blue) * float(value.alpha) * fade)
+
+
+def _shape_outline(svg: Any, shape: Any, font_size: float, content: Any) -> list[clippaths.Subpath]:
+    """The outline of shape in user space, as one nonzero path."""
+    stream = svg.stream
+    scratch = stream.add_group(0, 0, 0, 0)
+    plain = {"fill": "black", "stroke": "none", "opacity": "1", "fill-opacity": "1"}
+    saved = {key: shape.attrib.get(key) for key in plain}
+    try:
+        scratch.transform(*content.values)
+        # The outline alone: an opacity would draw it in a group
+        shape.attrib.update(plain)
+        svg.stream = scratch
+        svg.draw_node(shape, font_size)
+    finally:
+        svg.stream = stream
+        for key, value in saved.items():
+            if value is None:
+                shape.attrib.pop(key, None)
+            else:
+                shape.attrib[key] = value
+        stream._resources["XObject"].pop(scratch.id, None)
+    return clippaths.union(clippaths.read(scratch))
 
 
 # ---------------- binary masks as clips, for a portable PDF ----------------
