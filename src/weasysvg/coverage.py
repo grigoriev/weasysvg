@@ -492,7 +492,7 @@ class Raster:
 
     def inside(self, rings: list[Ring] | tuple[Ring, ...], rule: str, box: Box) -> Image.Image:
         points = [shapeblur.to_samples(ring, self.field.to_grid, box[0], box[1]) for ring in rings]
-        signs = [1 if rule != "nonzero" or shapeblur._signed_area(ring) >= 0 else -1 for ring in points]
+        signs = [1 if rule != "nonzero" or shapeblur.signed_area(ring) >= 0 else -1 for ring in points]
         return shapeblur.samples(points, signs, rule == "evenodd", (box[2] - box[0], box[3] - box[1]))
 
     def clipped(self, layers: _Layers, clips: tuple[Clip, ...]) -> None:

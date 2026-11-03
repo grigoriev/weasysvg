@@ -95,9 +95,15 @@ with weasysvg.portable():
     pdf = weasyprint.HTML("diagram.html").write_pdf()
 ```
 
-A mask of opaque white areas, then opaque black ones (`rect`, `circle`, `ellipse`), becomes a clip path.
-D2 cuts its edges under the labels with such a mask. Other masks, blurs and blend modes still use soft
-masks. The setting holds per thread and task.
+- A mask of opaque white areas, then opaque black ones (`rect`, `circle`, `ellipse`), becomes a clip path.
+  D2 cuts its edges under the labels with such a mask.
+- A blur, and the shadow of `feDropShadow` or `drop-shadow()`, becomes the regions where the blurred
+  coverage reaches each level, one inside the next, each filled with a constant opacity. Painted in order,
+  they add up to the blur within 1/64 of opacity. The contours are traced through the blurred coverage, so
+  any shape keeps the profile of a real Gaussian; a rect takes its exact blur.
+
+Text, images and other masks, gradients with transparency and blend modes still use soft masks. The
+setting holds per thread and task.
 
 ## Command line: weasysvg-convert
 
@@ -125,7 +131,8 @@ fetched: an SVG cannot read a local file or the network.
 
 `-f svg` writes a flat SVG for Word and LibreOffice, which draw no `<foreignObject>`, no filters and only
 some masks. It draws a portable PDF and reads it back with `pdftocairo -svg` of Poppler, which must be on
-the `PATH`. Text becomes glyph outlines. A soft mask the portable PDF keeps becomes an image.
+the `PATH`. Text becomes glyph outlines. A soft mask the portable PDF keeps becomes an image. The opacity of
+a group, which cairo writes as a mask over the whole drawing, becomes an `opacity` again.
 
 ## Features
 

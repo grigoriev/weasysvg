@@ -77,9 +77,15 @@ once.
 - `fetch.py`: one fetch per URL and SVG.
 - `convert.py`: the `weasysvg-convert` command line, compatible with the `rsvg-convert` options pandoc passes.
   `-f svg` draws inside `_core.portable()` and reads the PDF back with `pdftocairo -svg`; it sets the root
-  size in pt, since Poppler 25.03 writes it without a unit. Its tests need `poppler-utils` (Dockerfile.test, CI).
-- `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. Today `paint.paint_mask`
-  draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips.
+  size in pt, since Poppler 25.03 writes it without a unit, reads a PDF `FLAT_SCALE` (8) times as large, as cairo
+  hints each glyph outline at the size it is drawn, and writes the constant masks cairo makes of a group
+  opacity back as `opacity`. Its tests need `poppler-utils` (Dockerfile.test, CI).
+- `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. `paint.paint_mask`
+  draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips. `filters._portable_blur`
+  draws a blurred layer as stacked level sets: the field of `shapeblur.Field` (a rect: the product of its two
+  profiles), its contours at each level, each filled in a constant opacity. The color goes before the path.
+- `levelsets.py`: the opacities that stack into a profile in steps of 1/64, the contours of a sampled field by
+  marching squares (only the cells whose corners differ), and their simplification.
 - `xobject.py`: each SVG image drawn into one Form XObject without a group dictionary, its BBox the viewport;
   an inline `<svg>` with visible overflow gets a box wide enough. The form carries no tags: the Figure around
   the `Do` marks it. One form per image, size, scale and resources dictionary.
@@ -93,6 +99,10 @@ changes on a node: WeasyPrint walks `<use>` targets, gradients and patterns more
   fails when a `gs` operator appears inside path construction.
 - Assert on PDF operators (`streams()`, `content()`), extracted text (`text_of()`) and PDFium pixels
   (`pixel()`, 72 dpi, so CSS px times 0.75).
+- `test_convert_visual.py` flattens each diagram of `corpus/svg/drawio` and `corpus/svg/diagrams` and a case of each
+  portable feature, draws the flat SVG in resvg and compares it with the default PDF in PDFium, both blurred by 2 px
+  (PDFium snaps thin strokes, resvg does not). It also fails on a filter or a mask without an image in the flat SVG.
+  A failure writes the reference, the drawing and the difference into the tmp_path of the test.
 - Coverage is 100% of lines. One branch cannot be reached: `conditional.py` (a failing element whose
   parent no longer holds it).
 

@@ -35,10 +35,10 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from statistics import NormalDist
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pydyf
-from PIL import Image, ImageChops, ImageFilter
+from PIL import Image, ImageChops, ImageFilter, ImageMath
 from weasyprint import svg as wp_svg
 from weasyprint.images import RasterImage
 from weasyprint.svg import defs as wp_defs
@@ -46,8 +46,11 @@ from weasyprint.svg import utils as wp_utils
 from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, color, parse_url, size
 
-from . import _core, coverage, shapeblur, turbulence
+from . import _core, coverage, levelsets, shapeblur, turbulence
 from .paint import BOXED
+
+if TYPE_CHECKING:
+    from xml.etree import ElementTree as ET
 
 LOGGER = logging.getLogger("weasysvg")
 Region = tuple[float, float, float, float]
@@ -1018,6 +1021,9 @@ def _plain_rect(svg: Any, node: Any, font_size: float) -> Region | None:
         return None
     x, y = svg.point(node.get("x"), node.get("y"), font_size)
     width, height = svg.point(node.get("width"), node.get("height"), font_size)
+    # A rect without a size draws nothing, its stroke neither, as in Chromium
+    if width <= 0 or height <= 0:
+        return None
     stroke = node.get("stroke")
     if stroke not in (None, "", "none"):
         same_paint = stroke == node.get("fill") and node.get("stroke-opacity", "1") == node.get("fill-opacity", "1")
@@ -1313,8 +1319,298 @@ def _boxing(shape: Callable[[Any, Any, float], Any]) -> Callable[[Any, Any, floa
     return boxing
 
 
+# ---------------- blur without a soft mask, for a portable PDF ----------------
+
+
+@dataclass(frozen=True)
+class _Field:
+    """A blurred coverage on the grid of field: values 0 to 255, painted in rgb, or in the paint of the layer when None."""
+
+    rgb: coverage.RGB | None
+    values: Image.Image
+    grid: shapeblur.Field
+    # Where an axis has no blur, its edges are this clip: a step sampled on the grid would spread over a cell
+    clip: Region | None = None
+
+
+# The largest grid of the exact blur of a rect: its two profiles cost a row and a column, not the cells
+RECT_MAX_CELLS = 4_000_000
+
+
+def _grid(rings: list[shapeblur.Ring], even_odd: bool, blur: tuple[float, float], limit: int | None = None) -> shapeblur.Field | None:
+    """The grid of rings, coarser than a third of a deviation where that holds more than limit cells; None past one cell per deviation.
+
+    limit is shapeblur.MAX_CELLS when None.
+    """
+    limit = shapeblur.MAX_CELLS if limit is None else limit
+    grid = shapeblur.Field(rings, even_odd, blur)
+    per_sigma = float(shapeblur.CELLS_PER_SIGMA)
+    while grid.cells > limit and per_sigma > 1:
+        # The border of the grid does not shrink with its cells: a tenth less each time until it fits
+        per_sigma = max(1.0, min(0.9 * per_sigma, per_sigma * math.sqrt(limit / grid.cells)))
+        grid = shapeblur.Field(rings, even_odd, blur, per_sigma)
+    if grid.cells > limit or max(grid.width, grid.height) > shapeblur.MAX_SIDE:
+        return None
+    return grid
+
+
+def _axis_profile(start: float, end: float, sigma: float, first: float, cell: float, count: int) -> list[int]:
+    """The blurred coverage of [start, end] at count samples from first, 0 to 255; all of it where sigma is 0, which a clip cuts."""
+    if not sigma:
+        return [255] * count
+    return [round(255 * (_GAUSS.cdf((first + index * cell - start) / sigma) - _GAUSS.cdf((first + index * cell - end) / sigma))) for index in range(count)]
+
+
+def _rect_field(svg: Any, rect: Region, blur: tuple[float, float]) -> _Field | None:
+    """The exact blur of a rect, the product of its two profiles: a grid of any size at the cost of a row and a column.
+
+    Its cells count against MAX_PIXEL_WORK before any is built: the contours walk them in Python.
+    """
+    x, y, width, height = rect
+    # An axis without blur takes the cell of the other: its edge is a step there
+    sx, sy = blur[0] or blur[1], blur[1] or blur[0]
+    grid = _grid([[(x, y), (x + width, y), (x + width, y + height), (x, y + height)]], False, (sx, sy), RECT_MAX_CELLS)
+    if grid is None or not _charge(svg, grid.cells):
+        return None
+    (fx, fy), (dx, dy) = grid.first, grid.cell
+    row = Image.frombytes("L", (grid.width, 1), bytes(_axis_profile(x, x + width, blur[0], fx, dx, grid.width)))
+    column = Image.frombytes("L", (1, grid.height), bytes(_axis_profile(y, y + height, blur[1], fy, dy, grid.height)))
+    size = (grid.width, grid.height)
+    values = ImageChops.multiply(row.resize(size, Image.Resampling.NEAREST), column.resize(size, Image.Resampling.NEAREST))
+    clip = None
+    if not blur[0] or not blur[1]:
+        left, top = grid.origin
+        right, bottom = left + grid.width * dx, top + grid.height * dy
+        clip = (x, top, width, bottom - top) if not blur[0] else (left, y, right - left, height)
+    return _Field(None, values, grid, clip)
+
+
+def _opaque(node: Any, paint: str, default: str) -> bool:
+    """Whether node paints paint in one opaque color: then its alpha is its geometry."""
+    value = str(node.get(paint, default)).strip()
+    if value == "none" or value.startswith(("url(", "context-")):
+        return False
+    return bool(color(value).alpha == 1 and alpha_value(node.get(f"{paint}-opacity", 1)) == 1)
+
+
+def _covered_rect(svg: Any, node: Any, font_size: float) -> Region | None:
+    """What a rect without rounded corners covers, in opaque paint with any stroke color: the alpha a silhouette takes."""
+    if node.tag != "rect" or any(node.get(name) not in (None, "", "0", "auto") for name in ("rx", "ry")):
+        return None
+    stroked = node.get("stroke") not in (None, "", "none")
+    # A translucent or missing paint has less alpha than its geometry: the coverage of drawn content reads it
+    if not _opaque(node, "fill", "black") or (stroked and not _opaque(node, "stroke", "none")):
+        return None
+    # _portable_fields has passed a rect without a size already
+    x, y = svg.point(node.get("x"), node.get("y"), font_size)
+    width, height = svg.point(node.get("width"), node.get("height"), font_size)
+    if stroked:
+        if node.get("stroke-linejoin", "miter") != "miter" or node.get("stroke-dasharray") not in (None, "none"):
+            return None
+        half = svg.length(node.get("stroke-width", "1"), font_size) / 2
+        x, y, width, height = x - half, y - half, width + 2 * half, height + 2 * half
+    # A negative stroke width shrinks it: past nothing, the coverage of drawn content reads what is left
+    return (x, y, width, height) if width > 0 and height > 0 else None
+
+
+def _portable_fields(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer) -> list[_Field] | None:
+    """The blurred coverage of what node draws, one field per paint; None when it cannot be read.
+
+    A rect is its exact blur, any other filled shape one field in the paint of the layer. Other content is
+    its blurred alpha in the color of a silhouette, or one field per color of its own (coverage.Raster),
+    stacked in the order the colors paint. A silhouette takes the geometry of a shape only where it paints
+    opaque: else the coverage reads its alpha.
+    """
+    blur = layer.blur
+    if node.tag == "rect" and min(svg.point(node.get("width"), node.get("height"), font_size)) <= 0:
+        return []  # a rect without a size draws nothing, its stroke neither, as in Chromium
+    rect = _covered_rect(svg, node, font_size) if layer.kind == "alpha" else _plain_rect(svg, node, font_size)
+    if rect is not None:
+        field = _rect_field(svg, rect, blur)
+        return None if field is None else [field]
+    if min(blur) <= 0:
+        return None
+    if shapeblur.eligible(node) and node.visible and (layer.kind != "alpha" or _opaque(node, "fill", "black")):
+        return _shape_fields(svg, node, font_size, blur)
+    return _content_fields(svg, original, node, font_size, context, layer)
+
+
+def _shape_fields(svg: Any, node: Any, font_size: float, blur: tuple[float, float]) -> list[_Field] | None:
+    """The blurred coverage of one filled shape, from its outline; none where the shape covers nothing.
+
+    A shape counts by what it covers, not by its signed area: the lobes of a bowtie cancel, and both fill.
+    """
+    rings = shapeblur.outline(svg, node, font_size, wp_svg.TAGS[node.tag], min(blur) / shapeblur.CELLS_PER_SIGMA / 4)
+    if not rings:
+        return []
+    grid = _grid(rings, node.get("fill-rule") == "evenodd", blur)
+    if grid is None or not _charge(svg, grid.cells):
+        return None
+    values = grid.blurred()
+    # A path that encloses nothing paints nothing, as a rect without a size in Chromium
+    return [_Field(None, values, grid)] if cast("tuple[int, int]", values.getextrema())[1] else []
+
+
+def _content_fields(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer) -> list[_Field] | None:
+    """The blurred coverage of whatever node draws, read back as coverage.py reads it."""
+    blur = layer.blur
+    content = _recorded(svg, original, node, font_size, context, layer, min(blur) / shapeblur.CELLS_PER_SIGMA / 4)
+    if content is None or len(content.colors()) > coverage.MAX_COLORS:
+        return None
+    rings = [ring for shape in content.shapes() for ring in shape.rings]
+    if not rings:
+        return []  # nothing drawn, nothing blurred
+    grid = _grid(rings, False, blur)
+    if grid is None:
+        return None
+    raster = coverage.Raster(content, grid)
+    colors = content.colors()
+    if not _charge(svg, grid.cells * len(colors) + raster.work):
+        return None
+    total, shares = raster.coverage()
+    if layer.kind == "alpha":
+        return [_Field(None, total.filter(ImageFilter.GaussianBlur(grid.per_sigma)), grid)]
+    # The fade of the layer applies to the sum of the colors: each share takes it before they stack
+    blurred = [shares[rgb].filter(ImageFilter.GaussianBlur(grid.per_sigma)).point(lambda value: round(value * layer.opacity)) for rgb in colors]
+    return [_Field(rgb, opacity, grid) for rgb, opacity in zip(colors, stacked_opacities(blurred), strict=True)]
+
+
+def stacked_opacities(shares: list[Image.Image]) -> list[Image.Image]:
+    """The opacity of each color so that painted in order, each over the ones before, they add up to its share.
+
+    Color k paints B_k / (1 - B_k+1 - ... - B_n): the colors over it take their shares from what it left.
+    Painted at its share alone, each color let the backdrop through under the next: where two colors met
+    at half each, they covered three quarters.
+    """
+    out: list[Image.Image] = []
+    above = Image.new("L", shares[0].size) if shares else None
+    floor = Image.new("L", shares[0].size, 1) if shares else None
+    for share in reversed(shares):
+        # What the colors above leave, at least 1: where they cover all, this share is 0 too
+        left = ImageChops.lighter(ImageChops.invert(cast(Image.Image, above)), cast(Image.Image, floor))
+        opacity = ImageMath.lambda_eval(lambda args: args["share"] * 255 / args["left"], share=share.convert("F"), left=left.convert("F"))
+        out.append(cast(Image.Image, opacity).convert("L"))
+        above = ImageChops.add(cast(Image.Image, above), share)
+    return out[::-1]
+
+
+def _add_level(stream: Any, grid: shapeblur.Field, rings: list[levelsets.Ring]) -> None:
+    """Add the outline of rings, given in grid samples, to the path of stream."""
+    (x0, y0), (dx, dy) = grid.first, grid.cell
+    for ring in rings:
+        points = levelsets.simplified(ring, levelsets.SIMPLIFY_CELLS)
+        stream.move_to(x0 + points[0][0] * dx, y0 + points[0][1] * dy)
+        for x, y in points[1:]:
+            stream.line_to(x0 + x * dx, y0 + y * dy)
+        stream.close()
+
+
+def _solid_paint(node: Any, layer: Layer) -> Any:
+    """The one color a source layer paints with, recolored and with its fill opacity; None for a gradient or pattern."""
+    fill = str(node.get("fill", "black")).strip()
+    if fill.startswith(("url(", "context-")) or fill == "none":
+        return None
+    # The fill opacity is part of the color the filter sees, as recolor_restyle folds it in
+    parsed = color(fill)
+    faded = parsed.__class__(parsed.space, parsed.coordinates, parsed.alpha * alpha_value(node.get("fill-opacity", 1)))
+    return recolored(faded, layer.recolor)
+
+
+def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region) -> bool:
+    """Draw the blurred layer as stacked level sets, each in a constant opacity; False when it cannot.
+
+    Each level is the region where the blurred coverage reaches a threshold, inside its contours
+    (levelsets.py). Painted in order, the levels add up to the profile of the blur within 1/64 of opacity.
+    A level in one color is a filled path: cairo writes it as one SVG path, where a clip and a group
+    cost a clip path and a mask each.
+    """
+    fields = _portable_fields(svg, original, node, font_size, context, layer)
+    if fields is None:
+        return False
+    paint, solid = None, _solid_paint(node, layer) if layer.kind == "source" else None
+    if layer.kind == "source" and solid is None and any(level.rgb is None for level in fields):
+        # The paint of the element over all of box, drawn once and shown through each level
+        paint = stream.add_group(*big)
+        _paint_box(svg, original, node, font_size, context, paint, big, layer.recolor)
+    for level in fields:
+        rgba, opacity = _level_paint(layer, level, solid)
+        steps = levelsets.thresholds(opacity)
+        traced = levelsets.contours(level.values, [threshold for threshold, _ in steps])
+        for threshold, alpha in steps:
+            if traced[threshold]:
+                _draw_level(stream, level, traced[threshold], rgba, alpha, paint)
+    return True
+
+
+def _level_paint(layer: Layer, level: _Field, solid: Any) -> tuple[Any, float]:
+    """The color the levels of a field paint and the opacity they reach; no color for the paint of the element."""
+    if layer.kind == "alpha":
+        return layer.rgba, layer.rgba.alpha * layer.opacity
+    if level.rgb is not None:
+        # Its field holds the fade of the layer already (_content_fields)
+        return color("rgb({:.4f}%,{:.4f}%,{:.4f}%)".format(*(100 * channel for channel in level.rgb))), 1.0
+    if solid is not None:
+        return solid, solid.alpha * layer.opacity
+    return None, layer.opacity
+
+
+def _draw_level(stream: Any, level: _Field, rings: list[levelsets.Ring], rgba: Any, alpha: float, paint: Any) -> None:
+    """One level: its contours filled in rgba at alpha, or the paint of the element shown through them."""
+    stream.push_state()
+    try:
+        if level.clip is not None:
+            stream.rectangle(*level.clip)
+            stream.clip()
+            stream.end()
+        # The color comes first: a graphics state inside path construction is ignored by viewers
+        if rgba is not None:
+            stream.set_color(rgba.__class__(rgba.space, rgba.coordinates, alpha))
+        _add_level(stream, level.grid, rings)
+        if rgba is None:
+            stream.clip(even_odd=True)
+            stream.end()
+            stream.set_alpha(alpha, stroke=True, fill=True)
+            stream.draw_x_object(paint.id)
+        else:
+            stream.fill(even_odd=True)
+    finally:
+        stream.pop_state()
+
+
+def _may_draw_an_image(element: ET.Element) -> bool:
+    """Whether element is an image, draws one by reference (a <use>, a paint server that may hold one), or draws HTML."""
+    # The HTML of a foreignObject draws past the recolor of SVG paint, and may hold an image
+    if element.tag.rpartition("}")[2] in ("image", "use", "foreignObject"):
+        return True
+    return any("url(" in str(element.get(paint, "")) for paint in ("fill", "stroke", "style"))
+
+
+def _portable_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region) -> bool:
+    """Draw the element in the one color of the layer without a soft mask; False when it may draw an image.
+
+    Every color it paints with turns into the color of the layer and keeps its alpha: the group has the alpha
+    of the element, as the mask had. An image keeps its pixels under a recolor, so it keeps the mask.
+    """
+    if any(_may_draw_an_image(element) for element in node._etree_node.iter() if isinstance(element.tag, str)):
+        return False
+    red, green, blue = (_clamp(channel) for channel in layer.rgba.to("srgb").coordinates)
+
+    def one_color(rgba: RGBA) -> RGBA:
+        return red, green, blue, rgba[3]
+
+    group = stream.add_group(*big)
+    _draw_into(svg, original, node, font_size, context, group, Restyle("shape", 0.0), (one_color,))
+    stream.set_alpha(layer.rgba.alpha * layer.opacity, stroke=True, fill=True)
+    stream.draw_x_object(group.id)
+    return True
+
+
 def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
     """The element in one color, blurred when sigma is set."""
+    if _core.PORTABLE.get():
+        drawn = _portable_blur(svg, original, node, font_size, context, layer, stream, big) if sigma else _portable_silhouette(svg, original, node, font_size, context, layer, stream, big)
+        if drawn:
+            return
     if sigma:
         # The silhouette of the grown element, in one color, under the blurred edge
         grow = _blurred_mask(svg, original, node, font_size, context, layer, sigma, big)
@@ -1339,6 +1635,8 @@ def _draw_silhouette(svg: Any, original: Callable[..., None], node: Any, font_si
 
 def _draw_source(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region, sigma: float) -> None:
     """The element in its own paint, faded, recolored or blurred."""
+    if sigma and _core.PORTABLE.get() and _portable_blur(svg, original, node, font_size, context, layer, stream, big):
+        return
     # A blurred source keeps its colors and spreads them to the widest level of the mask
     grow: Restyle | _Flat | None = None
     if sigma:

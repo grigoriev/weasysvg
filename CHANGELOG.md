@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- In `weasysvg.portable()`, a blur and a drop shadow need no soft mask: the levels of the blurred coverage
+  are filled one over the other, each with a constant opacity, within 1/64 of the blur. The contours come from
+  the blurred coverage of the shape (`levelsets.py`), and a rect takes its exact blur, at any size. cairo
+  keeps them vector in a flat SVG, and Word draws the shadows of draw.io, Mermaid and blockdiag.
+- The flat SVG of `weasysvg-convert` writes the opacity of a group as an `opacity`. cairo writes it as a mask of
+  one rect over the whole drawing, and Word draws only some masks.
+
+### Fixed
+
+- The flat SVG of `weasysvg-convert` keeps the shape of each glyph. cairo writes a glyph as its outline hinted at
+  the size it is drawn: a bold label of 24 px came out wider and heavier in every viewer. The flat SVG is now
+  read from a PDF eight times as large, its size still the SVG's own.
+- A rect without a width or a height casts no shadow and no blur, as in Chromium: in a portable PDF its stroke
+  made a dot.
+
 ## [0.4.0] - 2026-11-03
 
 ### Added

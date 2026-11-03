@@ -100,7 +100,7 @@ def outline(svg: Any, node: Any, font_size: float, draw: Callable[[Any, Any, flo
     return [ring for ring in recorder.rings if len(ring) > 2]
 
 
-def _signed_area(ring: Ring) -> float:
+def signed_area(ring: Ring) -> float:
     return sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(ring, ring[1:] + ring[:1], strict=True)) / 2
 
 
@@ -147,7 +147,7 @@ def _coverage(rings: list[Ring], even_odd: bool, size: tuple[int, int], to_grid:
     the deviation, moved the blurred edge by 4 levels.
     """
     big = (size[0] * SUPERSAMPLE, size[1] * SUPERSAMPLE)
-    signs = [1 if even_odd or _signed_area(ring) >= 0 else -1 for ring in rings]
+    signs = [1 if even_odd or signed_area(ring) >= 0 else -1 for ring in rings]
     return samples([to_samples(ring, to_grid) for ring in rings], signs, even_odd, big).reduce(SUPERSAMPLE)
 
 
@@ -165,9 +165,10 @@ def samples(rings: list[list[Point]], signs: list[int], even_odd: bool, size: tu
 class Field:
     """The blurred coverage of a shape on a grid in user units."""
 
-    def __init__(self, rings: list[Ring], even_odd: bool, blur: tuple[float, float]) -> None:
+    def __init__(self, rings: list[Ring], even_odd: bool, blur: tuple[float, float], per_sigma: float = CELLS_PER_SIGMA) -> None:
         sx, sy = blur
-        self.cell = (sx / CELLS_PER_SIGMA, sy / CELLS_PER_SIGMA)
+        self.per_sigma = per_sigma
+        self.cell = (sx / per_sigma, sy / per_sigma)
         xs, ys = [x for ring in rings for x, _ in ring], [y for ring in rings for _, y in ring]
         # One cell of border beyond the margin: the mesh fades to nothing on every side
         self.origin = (min(xs) - MARGIN * sx - self.cell[0], min(ys) - MARGIN * sy - self.cell[1])
@@ -191,4 +192,4 @@ class Field:
     def blurred(self) -> Image.Image:
         """The blurred coverage at the center of each cell, 0 to 255."""
         coverage = _coverage(self.rings, self.even_odd, (self.width, self.height), self.to_grid)
-        return coverage.filter(ImageFilter.GaussianBlur(CELLS_PER_SIGMA))
+        return coverage.filter(ImageFilter.GaussianBlur(self.per_sigma))

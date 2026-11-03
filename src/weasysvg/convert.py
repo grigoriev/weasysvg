@@ -39,6 +39,10 @@ VIEWBOX_PARTS = 4
 # The largest PNG drawn from an untrusted SVG: one side, and its pixels. The limits of pandoc-service for Chromium
 MAX_PNG_SIDE = 10_000
 MAX_PNG_PIXELS = 50_000_000
+# The flat SVG is read from a PDF this many times larger, its viewBox as large and its size the SVG's own. cairo
+# writes each glyph as its outline at the size it is drawn, hinted: at 24 px a bold label came out wider and
+# heavier in every viewer, at 8 times that the hinting is below a pixel of the result.
+FLAT_SCALE = 8
 # How long pdftocairo may read back one PDF, in seconds
 PDFTOCAIRO_TIMEOUT = 60
 
@@ -112,13 +116,14 @@ def page_html(svg: bytes, width_pt: float, height_pt: float) -> str:
     )
 
 
-def to_pdf(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *, portable: bool = False) -> bytes:
+def to_pdf(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *, portable: bool = False, scale: float = 1.0) -> bytes:
     """The SVG as a one-page vector PDF. Only data: URLs are fetched, as rsvg-convert fetches no remote file.
 
-    portable draws without soft masks and blend modes where weasysvg can, see weasysvg.portable().
+    portable draws without soft masks and blend modes where weasysvg can, see weasysvg.portable(). scale
+    enlarges the page and the drawing on it.
     """
     width, height = size_px(svg, dpi_x, dpi_y)
-    html = page_html(svg, width * 72 / dpi_x, height * 72 / dpi_y)
+    html = page_html(svg, width * 72 / dpi_x * scale, height * 72 / dpi_y * scale)
     document = weasyprint.HTML(string=html, url_fetcher=URLFetcher(allowed_protocols={"data"}))
     with weasysvg.portable() if portable else contextlib.nullcontext():
         pdf: bytes = document.write_pdf()
@@ -170,7 +175,7 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -
         pdf_path = os.path.join(tmp, "in.pdf")
         svg_path = os.path.join(tmp, "out.svg")
         with open(pdf_path, "wb") as handle:
-            handle.write(to_pdf(svg, dpi_x, dpi_y, portable=True))
+            handle.write(to_pdf(svg, dpi_x, dpi_y, portable=True, scale=FLAT_SCALE))
         try:
             result = subprocess.run(["pdftocairo", "-svg", pdf_path, svg_path], capture_output=True, check=False, timeout=PDFTOCAIRO_TIMEOUT)  # noqa: S603, S607
         except FileNotFoundError as error:
@@ -182,7 +187,79 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -
         with open(svg_path, "rb") as handle:
             flat = handle.read()
     width, height = size_px(svg, dpi_x, dpi_y)
-    return sized(flat, width * 72 / dpi_x, height * 72 / dpi_y)
+    return sized(constant_masks_as_opacity(flat), width * 72 / dpi_x, height * 72 / dpi_y)
+
+
+SVG_NS = "http://www.w3.org/2000/svg"
+XLINK_NS = "http://www.w3.org/1999/xlink"
+# What cairo writes for the alpha of a group: a mask of one rect of black at that opacity, through this filter
+_REMOVE_COLOR = "url(#filter-remove-color)"
+
+
+def constant_masks_as_opacity(flat: bytes) -> bytes:
+    """The flat SVG with each mask of one constant opacity over the whole drawing written as an opacity.
+
+    cairo writes the opacity of a group (CSS opacity, a faded filter layer) as a mask: a rect over the
+    whole drawing in black at that opacity, through a filter that keeps its alpha. Word draws only some
+    masks, and every SVG renderer draws an opacity.
+    """
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    root = ET.fromstring(flat)
+    box = [float(part) for part in root.get("viewBox", "").split()]
+    if len(box) != VIEWBOX_PARTS:
+        return flat
+    opacities = {}
+    for mask in root.iter(f"{{{SVG_NS}}}mask"):
+        opacity = _constant_opacity(mask, box)
+        if opacity is not None:
+            opacities[f"url(#{mask.get('id')})"] = opacity
+    if not opacities:
+        return flat
+    _drop_unused_masks(root, _as_opacity(root, opacities))
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+
+
+def _as_opacity(root: ET.Element, opacities: dict[str, float]) -> set[str]:
+    """Write each use of a constant mask as an opacity; return the masks it replaced somewhere.
+
+    A transformed element keeps its mask: the mask then lies in the space of the transform, where it may not
+    cover the drawing.
+    """
+    used: set[str] = set()
+    for element in root.iter():
+        reference = element.get("mask")
+        if reference in opacities and element.get("transform") is None:
+            del element.attrib["mask"]
+            element.set("opacity", f"{float(element.get('opacity', '1')) * opacities[reference]:g}")
+            used.add(reference)
+    return used
+
+
+def _drop_unused_masks(root: ET.Element, replaced: set[str]) -> None:
+    """Remove each replaced mask that nothing names any more."""
+    named = {element.get("mask") for element in root.iter()}
+    unused = [(parent, child) for parent in root.iter() for child in parent if child.tag == f"{{{SVG_NS}}}mask" and f"url(#{child.get('id')})" in replaced - named]
+    for parent, child in unused:
+        parent.remove(child)
+
+
+def _constant_opacity(mask: ET.Element, box: list[float]) -> float | None:
+    """The opacity of a mask that is one black rect over all of box through the filter that keeps its alpha, else None."""
+    children = list(mask)
+    if len(children) != 1 or children[0].get("filter") != _REMOVE_COLOR or len(list(children[0])) != 1:
+        return None
+    rect = children[0][0]
+    if rect.tag != f"{{{SVG_NS}}}rect" or rect.get("transform") is not None:
+        return None
+    try:
+        x, y, width, height = (float(rect.get(name, "0")) for name in ("x", "y", "width", "height"))
+        opacity = float(rect.get("fill-opacity", "1"))
+    except ValueError:
+        return None
+    left, top, right, bottom = box[0], box[1], box[0] + box[2], box[1] + box[3]
+    covers = x <= left and y <= top and x + width >= right and y + height >= bottom
+    return opacity if covers and 0 <= opacity <= 1 else None
 
 
 def sized(flat: bytes, width_pt: float, height_pt: float) -> bytes:
