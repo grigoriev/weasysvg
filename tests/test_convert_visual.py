@@ -6,12 +6,14 @@ default PDF in PDFium, soft masks and all. Both are blurred by 2 px first: PDFiu
 whole pixels and resvg does not, which moves a line by a pixel. A shape, a label or a shadow the
 flattening loses stays a blot after the blur.
 
-A failing case writes the reference, the flat drawing and their difference next to the test run.
+A failing case writes the reference, the flat drawing and their difference next to the test run. With
+WEASYSVG_VISUAL_OUT set to a directory, every case writes them there, to look at by eye.
 """
 
 from __future__ import annotations
 
 import io
+import os
 import re
 from pathlib import Path
 from typing import cast
@@ -20,6 +22,8 @@ import pypdfium2 as pdfium
 import pytest
 from helpers import close, svg
 from PIL import Image, ImageChops, ImageFilter, ImageStat
+from test_filters import PORTABLE_BLURS
+from test_paint import KNOCKOUT
 
 from weasysvg.convert import size_px, to_pdf, to_svg
 
@@ -49,6 +53,20 @@ FEATURES = {
     "css-drop-shadow": svg('<rect x="20" y="20" width="80" height="50" fill="#ECECFF" stroke="#9370DB" style="filter:drop-shadow(2px 2px 2px rgba(0,0,0,0.4))"/>', height=100),
     "blur": svg(f'<defs><filter id="f"{SHADOW}><feGaussianBlur stdDeviation="4"/></filter></defs><path d="M30 20 L120 40 L60 90 Z" fill="crimson" filter="url(#f)"/>', height=110),
     "group-opacity": svg('<g opacity="0.5"><rect x="20" y="20" width="60" height="60" fill="red"/><rect x="50" y="40" width="60" height="60" fill="blue"/></g>', height=110),
+    # The masks the portable PDF draws as clips: holes, a union of white areas, content in bounding box units
+    "mask-knockout": svg(KNOCKOUT),
+    "mask-hole-circle": svg(
+        '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="200" height="100" fill="white"/><circle cx="100" cy="50" r="30" fill="black"/>'
+        '<ellipse cx="160" cy="50" rx="20" ry="12" fill="black"/></mask></defs><rect width="200" height="100" fill="teal" mask="url(#m)"/>'
+    ),
+    "mask-union": svg(
+        '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="60" height="100" fill="white"/><circle cx="150" cy="50" r="40" fill="#fff"/></mask></defs>'
+        '<rect width="200" height="100" fill="orange" mask="url(#m)"/>'
+    ),
+    "mask-bounding-box": svg(
+        '<defs><mask id="m" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="white"/><rect x="0.4" width="0.2" height="1" fill="black"/></mask></defs>'
+        '<g mask="url(#m)"><rect x="20" y="10" width="160" height="80" fill="purple"/></g>'
+    ),
     "binary-mask": svg(
         '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="200" height="100" fill="white"/>'
         '<rect x="70" y="40" width="60" height="20" fill="black"/><circle cx="40" cy="50" r="10" fill="black"/></mask></defs>'
@@ -94,12 +112,17 @@ def check(name: str, document: bytes, tmp_path: Path, known_raster: bool = False
     actual = drawn(flat, expected.size)
     difference = ImageChops.difference(expected.filter(ImageFilter.GaussianBlur(BLUR)), actual.filter(ImageFilter.GaussianBlur(BLUR))).convert("L")
     mean, peak = ImageStat.Stat(difference).mean[0], cast("tuple[int, int]", difference.getextrema())[1]
-    if mean > MAX_MEAN or peak > MAX_PEAK:
-        stem = tmp_path / name.replace("/", "-")
+    failed = mean > MAX_MEAN or peak > MAX_PEAK
+    out = os.environ.get("WEASYSVG_VISUAL_OUT")
+    if failed or out:
+        folder = tmp_path if failed or not out else Path(out)
+        folder.mkdir(parents=True, exist_ok=True)
+        stem = folder / name.replace("/", "-")
         expected.save(f"{stem}-reference.png")
         actual.save(f"{stem}-flat.png")
         difference.point(lambda value: min(255, value * 4)).save(f"{stem}-difference.png")
-        (tmp_path / f"{stem.name}.svg").write_bytes(flat)
+        Path(f"{stem}.svg").write_bytes(flat)
+    if failed:
         pytest.fail(f"{name}: the flat SVG differs from the PDF by {mean:.2f} on average and {peak} at most; see {stem}-*.png")
 
 
@@ -111,6 +134,12 @@ def test_flat_svg_of_a_diagram_looks_like_the_pdf(name: str, tmp_path: Path) -> 
 @pytest.mark.parametrize("name", FEATURES)
 def test_flat_svg_of_a_feature_looks_like_the_pdf(name: str, tmp_path: Path) -> None:
     check(name, FEATURES[name].encode(), tmp_path)
+
+
+@pytest.mark.parametrize("name", PORTABLE_BLURS)
+def test_flat_svg_of_a_blur_looks_like_the_pdf(name: str, tmp_path: Path) -> None:
+    # Every blur the unit tests draw in a portable PDF, through the flat SVG to another renderer
+    check(f"blur-{name}", PORTABLE_BLURS[name].encode(), tmp_path)
 
 
 def test_a_lost_label_fails_the_comparison(tmp_path: Path) -> None:
