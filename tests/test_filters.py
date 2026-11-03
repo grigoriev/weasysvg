@@ -17,6 +17,7 @@ from helpers import RecordingStream, content, page_html, pixel, rasterize, rende
 from PIL import ImageChops, ImageStat
 from weasyprint import svg as wp_svg
 
+import weasysvg
 from weasysvg import filters, shapeblur, turbulence
 from weasysvg.filters import HIDDEN, Layer, Restyle, Unsupported
 
@@ -280,6 +281,141 @@ def test_blur_of_a_group_with_text() -> None:
     pdf = render(filtered('<feGaussianBlur stdDeviation="2"/>', target=target))
     assert images(pdf) == 0
     assert near(pixel(pdf, 112, 37), RED, 60)
+
+
+# ---------------- blur in a portable PDF ----------------
+
+
+def soft_masks(pdf: bytes) -> int:
+    """The soft masks of graphics states: those of images do not count."""
+    return len(re.findall(r"/SMask\s*<<", pdf.decode("latin-1")))
+
+
+def portable(document: str) -> bytes:
+    with weasysvg.portable():
+        return render(document)
+
+
+GRAY_SHADOW = ' color-interpolation-filters="sRGB" x="-50%" y="-50%" width="200%" height="200%"'
+PORTABLE_BLURS = {
+    "rect": filtered('<feGaussianBlur stdDeviation="4"/>'),
+    "drop shadow": filtered('<feDropShadow dx="4" dy="4" stdDeviation="3" flood-color="navy" flood-opacity="0.5"/>', GRAY_SHADOW),
+    "stroked rect shadow": filtered('<feDropShadow dx="3" dy="3" stdDeviation="2"/>', GRAY_SHADOW, target='<rect x="20" y="20" width="60" height="40" fill="red" stroke="blue" stroke-width="4" filter="url(#f)"/>'),
+    "circle": filtered('<feGaussianBlur stdDeviation="3"/>', target='<circle cx="60" cy="50" r="25" fill="red" filter="url(#f)"/>'),
+    "path": filtered('<feGaussianBlur stdDeviation="3"/>', GRAY_SHADOW, target='<path d="M20 20 L90 30 L50 80 Z" fill="red" filter="url(#f)"/>'),
+    "group of colors": filtered('<feGaussianBlur stdDeviation="3"/>', GRAY_SHADOW, target='<g filter="url(#f)"><rect x="20" y="20" width="40" height="40" fill="red"/><rect x="50" y="40" width="40" height="40" fill="blue"/></g>'),
+    "gradient": svg(
+        '<defs><linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><filter id="f"><feGaussianBlur stdDeviation="3"/></filter></defs>'
+        '<rect x="20" y="20" width="80" height="40" fill="url(#g)" filter="url(#f)"/>',
+        height=120,
+    ),
+    "faded": filtered('<feGaussianBlur stdDeviation="3"/>', target='<rect x="20" y="20" width="60" height="40" fill="red" fill-opacity="0.5" opacity="0.6" filter="url(#f)"/>'),
+    "round stroke shadow": filtered(
+        '<feDropShadow dx="3" dy="3" stdDeviation="2"/>',
+        GRAY_SHADOW,
+        target='<rect x="20" y="20" width="60" height="40" fill="red" stroke="blue" stroke-width="4" stroke-linejoin="round" filter="url(#f)"/>',
+    ),
+    "group shadow": filtered('<feDropShadow dx="3" dy="3" stdDeviation="2"/>', GRAY_SHADOW, target='<g filter="url(#f)"><circle cx="40" cy="40" r="15" fill="red"/><rect x="60" y="30" width="30" height="30" fill="blue"/></g>'),
+    # Its peak stays below most levels: those have no contour
+    "faint dot": filtered('<feGaussianBlur stdDeviation="4"/>', GRAY_SHADOW, target='<circle cx="60" cy="50" r="1" fill="red" filter="url(#f)"/>'),
+    "silhouette": filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', target='<circle cx="60" cy="50" r="25" fill="red" filter="url(#f)"/>'),
+}
+
+
+@pytest.mark.parametrize("name", PORTABLE_BLURS)
+def test_portable_blur_has_no_soft_mask_and_matches(name: str) -> None:
+    document = PORTABLE_BLURS[name]
+    soft, flat = render(document), portable(document)
+    assert soft_masks(flat) == 0
+    assert images(flat) == 0
+    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2)).convert("L")
+    # Within a few steps of 1/64 where the levels cut the profile, and the half pixel the shadings of the
+    # soft mask sample off center
+    assert ImageStat.Stat(difference).mean[0] < 1.5
+    assert cast("tuple[int, int]", difference.getextrema())[1] < 48
+
+
+def test_portable_blur_follows_the_gaussian() -> None:
+    # The level sets of the exact blur of a rect: Phi at the center of each pixel, within a step of 1/64
+    pdf = portable(svg('<filter id="f"><feGaussianBlur stdDeviation="5"/></filter><rect x="40" y="40" width="120" height="120" fill="black" filter="url(#f)"/>', 200, 200))
+    image = rasterize(pdf, 4 / 3).convert("L")
+    for y in range(30, 50, 2):
+        assert 1 - cast(int, image.getpixel((100, y))) / 255 == pytest.approx(NormalDist().cdf((y + 0.5 - 40) / 5), abs=0.02)
+
+
+def test_portable_blur_along_one_axis_keeps_the_other_edge_sharp() -> None:
+    pdf = portable(filtered('<feGaussianBlur stdDeviation="0 4"/>'))
+    assert soft_masks(pdf) == 0
+    # x = 20 is the left edge: sharp. y = 20 is the top edge: blurred
+    assert near(pixel(pdf, 14, 30), WHITE, 3)
+    assert near(pixel(pdf, 16, 30), RED, 30)
+    assert faint(pixel(pdf, 30, 13))
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        '<rect x="20" y="20" stroke="blue" fill="red" filter="url(#f)"/>',
+        '<g filter="url(#f)"><rect x="20" y="20" stroke="blue" fill="red"/></g>',
+        '<path d="M20 20 L80 20 L50 20 Z" fill="red" filter="url(#f)"/>',
+        # A CSS filter has no region of its own to end the drawing first, as the labels of Mermaid
+        '<rect x="20" y="20" stroke="blue" fill="red" style="filter:drop-shadow(3px 3px 2px gray)"/>',
+        '<rect x="20" y="20" stroke="blue" fill="red" style="filter:blur(2px)"/>',
+        '<path d="M20 20 L80 20 L50 20 Z" fill="red" style="filter:blur(2px)"/>',
+    ],
+)
+def test_portable_blur_of_nothing_draws_nothing(target: str) -> None:
+    # A rect without a size draws nothing, its stroke neither, as in Chromium; nor does a path without an inside
+    document = filtered('<feDropShadow dx="3" dy="3" stdDeviation="2"/>', GRAY_SHADOW, target=target)
+    pdf = portable(document)
+    assert soft_masks(pdf) == 0
+    # A path without an inside still draws itself where PDFium draws a hairline: its shadow adds nothing
+    assert ImageChops.difference(rasterize(pdf, 1), rasterize(render(document), 1)).getbbox() is None
+    if target.startswith("<rect"):
+        assert ImageChops.difference(rasterize(pdf, 1), rasterize(render(svg("", height=120)), 1)).getbbox() is None
+
+
+def test_portable_blur_of_a_shape_along_one_axis_keeps_the_mask() -> None:
+    # Only a rect has edges along the axes, which a clip can keep sharp
+    document = filtered('<feGaussianBlur stdDeviation="0 4"/>', GRAY_SHADOW, target='<circle cx="60" cy="50" r="25" fill="red" filter="url(#f)"/>')
+    assert soft_masks(portable(document)) > 0
+
+
+def test_portable_blur_of_text_keeps_the_mask() -> None:
+    # Text is beyond the coverage of drawn content (coverage.py): the levels of the nearest edge keep the mask
+    document = filtered('<feGaussianBlur stdDeviation="2"/>', GRAY_SHADOW, target='<text x="20" y="60" font-size="40" fill="red" filter="url(#f)">Hi</text>')
+    assert soft_masks(portable(document)) > 0
+
+
+def test_portable_silhouette_of_an_image_keeps_the_mask() -> None:
+    # An image keeps its pixels under a recolor: its silhouette keeps the mask
+    pixel_png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="
+    target = f'<g filter="url(#f)"><rect x="40" y="20" width="20" height="20" fill="red"/><image x="20" y="20" width="10" height="10" href="data:image/png;base64,{pixel_png}"/></g>'
+    document = filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', GRAY_SHADOW, target=target)
+    assert soft_masks(render(document)) > 0
+    assert soft_masks(portable(document)) > 0
+
+
+def test_portable_blur_of_a_large_shape_takes_a_coarser_grid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(shapeblur, "MAX_CELLS", 2000)
+    document = filtered('<feGaussianBlur stdDeviation="2"/>', GRAY_SHADOW, target='<path d="M20 20 L90 30 L50 80 Z" fill="red" filter="url(#f)"/>')
+    assert soft_masks(portable(document)) == 0
+    # Past one cell per deviation the grid would lose the profile: the soft mask stays
+    monkeypatch.setattr(shapeblur, "MAX_CELLS", 50)
+    assert soft_masks(portable(document)) > 0
+    assert soft_masks(portable(PORTABLE_BLURS["group shadow"])) > 0
+
+
+def test_portable_blur_within_the_pixel_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The coverage of drawn content counts against MAX_PIXEL_WORK, as the soft mask of the same blur does
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 10)
+    assert soft_masks(portable(PORTABLE_BLURS["group shadow"])) > 0
+    assert soft_masks(portable(PORTABLE_BLURS["path"])) > 0
+
+
+def test_portable_blur_of_a_huge_rect_keeps_the_mask(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(filters, "RECT_MAX_CELLS", 50)
+    assert soft_masks(portable(filtered('<feGaussianBlur stdDeviation="4"/>'))) > 0
 
 
 def test_levels_and_bands() -> None:

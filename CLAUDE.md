@@ -78,8 +78,12 @@ once.
 - `convert.py`: the `weasysvg-convert` command line, compatible with the `rsvg-convert` options pandoc passes.
   `-f svg` draws inside `_core.portable()` and reads the PDF back with `pdftocairo -svg`; it sets the root
   size in pt, since Poppler 25.03 writes it without a unit. Its tests need `poppler-utils` (Dockerfile.test, CI).
-- `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. Today `paint.paint_mask`
-  draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips.
+- `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. `paint.paint_mask`
+  draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips. `filters._portable_blur`
+  draws a blurred layer as stacked level sets: the field of `shapeblur.Field` (a rect: the product of its two
+  profiles), its contours at each level, each filled in a constant opacity. The color goes before the path.
+- `levelsets.py`: the opacities that stack into a profile in steps of 1/64, the contours of a sampled field by
+  marching squares (only the cells whose corners differ), and their simplification.
 - `xobject.py`: each SVG image drawn into one Form XObject without a group dictionary, its BBox the viewport;
   an inline `<svg>` with visible overflow gets a box wide enough. The form carries no tags: the Figure around
   the `Do` marks it. One form per image, size, scale and resources dictionary.
