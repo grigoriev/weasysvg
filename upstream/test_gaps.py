@@ -192,6 +192,12 @@ def test_clip_child_with_a_clip_drops_its_sibling() -> None:
     still_broken(not near(pixel(pdf, 15, 15), RED), "clip-path on clip children", "paint.complex_clip")
 
 
+def test_clip_children_that_turn_opposite_ways_cut_a_hole() -> None:
+    clip = '<clipPath id="c"><rect x="20" y="20" width="100" height="60"/><path d="M60 10 V90 H150 V10 Z"/></clipPath>'
+    pdf, _ = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    still_broken(near(pixel(pdf, 67, 37), WHITE), "clip children that turn opposite ways", "paint.complex_clip")
+
+
 def test_text_in_a_clip_path_paints_black() -> None:
     clip = '<clipPath id="c"><text x="10" y="80" font-size="80" font-weight="bold">II</text></clipPath>'
     pdf, _ = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
