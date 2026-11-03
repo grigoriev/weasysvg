@@ -83,7 +83,10 @@ def size_px(svg: bytes, dpi_x: float, dpi_y: float) -> tuple[float, float]:
     attributes = root_attributes(svg)
     width = length_px(attributes.get("width"), dpi_x)
     height = length_px(attributes.get("height"), dpi_y)
-    box = [float(part) for part in re.split(r"[\s,]+", attributes.get("viewBox", "").strip()) if part]
+    try:
+        box = [float(part) for part in re.split(r"[\s,]+", attributes.get("viewBox", "").strip()) if part]
+    except ValueError:
+        box = []  # an invalid viewBox is ignored, as in Chromium
     if len(box) == VIEWBOX_PARTS and box[2] > 0 and box[3] > 0:
         if width is None and height is None:
             width, height = box[2], box[3]

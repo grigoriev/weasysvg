@@ -78,13 +78,15 @@ def test_length_px(value: str | None, dpi: float, expected: float | None) -> Non
         ('viewBox="0 0 40 30" width="100%" height="100%"', (40.0, 30.0)),
         # The viewBox does not change a size the root gives
         ('viewBox="0 0 40 30" width="10" height="10"', (10.0, 10.0)),
+        # An invalid viewBox is ignored, as in Chromium
+        ('viewBox="0 0 10px 10px" width="10" height="20"', (10.0, 20.0)),
     ],
 )
 def test_size_px(attributes: str, expected: tuple[float, float]) -> None:
     assert size_px(f'<svg xmlns="{SVG_NS}" {attributes}/>'.encode(), 96, 96) == pytest.approx(expected)
 
 
-@pytest.mark.parametrize("attributes", ["", 'width="100"', 'width="100%" height="100%"', 'viewBox="0 0 0 30"', 'viewBox="0 0 40"', 'width="0" height="10"'])
+@pytest.mark.parametrize("attributes", ["", 'width="100"', 'viewBox="0 0 none 30"', 'width="100%" height="100%"', 'viewBox="0 0 0 30"', 'viewBox="0 0 40"', 'width="0" height="10"'])
 def test_size_px_without_a_size(attributes: str) -> None:
     with pytest.raises(ConvertError, match="no size"):
         size_px(f'<svg xmlns="{SVG_NS}" {attributes}/>'.encode(), 96, 96)
