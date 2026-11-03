@@ -85,6 +85,20 @@ weasysvg.install(filters=False, fonts=False)
 weasysvg targets WeasyPrint 70.x and warns on any other major version: it patches internals that
 change between releases.
 
+### Portable PDF
+
+A PDF to SVG converter such as cairo turns each soft mask into an image, and Word draws only some SVG
+masks. Inside `portable()`, weasysvg draws without a soft mask where the same picture allows it:
+
+```python
+with weasysvg.portable():
+    pdf = weasyprint.HTML("diagram.html").write_pdf()
+```
+
+A mask of opaque white areas, then opaque black ones (`rect`, `circle`, `ellipse`), becomes a clip path.
+D2 cuts its edges under the labels with such a mask. Other masks, blurs and blend modes still use soft
+masks. The setting holds per thread and task.
+
 ## Features
 
 | Area | What weasysvg adds |

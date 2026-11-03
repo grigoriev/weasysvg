@@ -22,9 +22,10 @@ from . import paint as _paint
 from . import paint_order as _paint_order
 from . import text as _text
 from . import xobject as _xobject
+from ._core import portable
 from .fonts import resolve_families
 
-__all__ = ["SUPPORTED_MAJOR", "install", "installed", "resolve_families"]
+__all__ = ["SUPPORTED_MAJOR", "install", "installed", "portable", "resolve_families"]
 
 SUPPORTED_MAJOR = 70
 _INSTALLED: set[str] = set()

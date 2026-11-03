@@ -444,6 +444,9 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
         box = svg.calculate_bounding_box(node, font_size, stroke=False)
         if not box:
             return
+    if _core.PORTABLE.get() and (shapes := _binary_shapes(mask, box is not None)) is not None:
+        _clip_binary(svg, shapes, font_size, region, box)
+        return
     saved_transform = mask.attrib.get("transform")
     # Chromium ignores mask on a <mask> element
     saved_mask = mask.attrib.pop("mask", None)
@@ -469,6 +472,133 @@ def paint_mask(svg: Any, node: Any, mask: Any, font_size: float) -> None:
             mask.attrib.pop("transform", None)
         else:
             mask.attrib["transform"] = saved_transform
+
+
+# ---------------- binary masks as clips, for a portable PDF ----------------
+
+# The shapes a binary mask may hold: each has an outline in the same turning direction, so that nonzero
+# fills the union of several
+BINARY_SHAPES = frozenset(("rect", "circle", "ellipse"))
+# Attributes that make a shape more than an opaque area of one color
+BINARY_EXCLUDED = ("transform", "mask", "filter", "clip-path", "stroke")
+Point = tuple[float, float]
+
+
+def _luminance_of(value: str | None) -> bool | None:
+    """True for opaque white, False for opaque black, None for any other paint."""
+    if value is not None and value.strip().startswith("url("):
+        return None
+    # The cascade of WeasyPrint gives currentColor as the color it stands for
+    rgba = wp_utils.color(value)
+    if rgba.alpha != 1:
+        return None
+    channels = tuple(rgba.to("srgb").coordinates)
+    if channels == (1, 1, 1):
+        return True
+    if channels == (0, 0, 0):
+        return False
+    return None
+
+
+def _binary_shapes(mask: Any, bounding_box_units: bool) -> list[tuple[Any, bool]] | None:
+    """The shapes of a mask that is opaque white areas, then opaque black ones, else None.
+
+    Such a mask shows the union of the white areas less the union of the black ones: a clip path draws
+    the same picture without a soft mask. A D2 diagram cuts the edges under its labels this way.
+    """
+    shapes: list[tuple[Any, bool]] = []
+    for child in mask:
+        if child.tag not in BINARY_SHAPES or len(list(child)) > 0:
+            return None
+        if any(child.get(key) not in (None, "", "none", "0") for key in BINARY_EXCLUDED):
+            return None
+        # A rounded rect has no outline here
+        if child.tag == "rect" and any(child.get(key) not in (None, "", "0") for key in ("rx", "ry")):
+            return None
+        if child.get("display") == "none" or child.get("visibility") in ("hidden", "collapse"):
+            return None
+        if any(wp_utils.alpha_value(child.get(key, "1")) != 1 for key in ("opacity", "fill-opacity")):
+            return None
+        # Percentages of the viewport have no meaning in bounding box units
+        if bounding_box_units and any("%" in str(child.get(key, "")) for key in ("x", "y", "width", "height", "cx", "cy", "r", "rx", "ry")):
+            return None
+        white = _luminance_of(child.get("fill", "black"))
+        if white is None or (white and shapes and not shapes[-1][1]):
+            return None  # a white area over a black one needs more than one clip
+        shapes.append((child, white))
+    if not shapes or not shapes[0][1]:
+        return None
+    return shapes
+
+
+def _outline(svg: Any, node: Any, font_size: float, place: Callable[[float, float], Point]) -> list[list[Point]]:
+    """The outline of a rect, circle or ellipse as closed polygons of Bezier control points."""
+    if node.tag == "rect":
+        x, y = svg.point(node.get("x"), node.get("y"), font_size)
+        width, height = svg.point(node.get("width"), node.get("height"), font_size)
+        if width <= 0 or height <= 0:
+            return []
+        return [[place(x, y), place(x + width, y), place(x + width, y + height), place(x, y + height)]]
+    if node.tag == "circle":
+        rx = ry = svg.length(node.get("r"), font_size)
+    else:
+        rx, ry = svg.point(node.get("rx"), node.get("ry"), font_size)
+    if rx <= 0 or ry <= 0:
+        return []
+    cx, cy = svg.point(node.get("cx"), node.get("cy"), font_size)
+    kx, ky = ARC_CONSTANT * rx, ARC_CONSTANT * ry
+    # The quarters of ellipse(), from (cx + rx, cy) toward positive y: the turning direction of the rect
+    return [
+        [
+            place(cx + rx, cy),
+            place(cx + rx, cy + ky), place(cx + kx, cy + ry), place(cx, cy + ry),
+            place(cx - kx, cy + ry), place(cx - rx, cy + ky), place(cx - rx, cy),
+            place(cx - rx, cy - ky), place(cx - kx, cy - ry), place(cx, cy - ry),
+            place(cx + kx, cy - ry), place(cx + rx, cy - ky), place(cx + rx, cy),
+        ]
+    ]  # fmt: skip
+
+
+def _add_outline(stream: Any, outline: list[Point]) -> None:
+    stream.move_to(*outline[0])
+    if len(outline) == 4:
+        for point in outline[1:]:
+            stream.line_to(*point)
+    else:
+        for index in range(1, len(outline), 3):
+            stream.curve_to(*outline[index], *outline[index + 1], *outline[index + 2])
+    stream.close()
+
+
+def _clip_binary(svg: Any, shapes: list[tuple[Any, bool]], font_size: float, region: tuple[float, float, float, float], box: Any) -> None:
+    """Clip the current state to the mask region, the union of the white shapes, then out of each black one."""
+    stream = svg.stream
+
+    def place(x: float, y: float) -> Point:
+        return (box[0] + x * box[2], box[1] + y * box[3]) if box is not None else (x, y)
+
+    stream.rectangle(*region)
+    stream.clip()
+    stream.end()
+    whites = [outline for node, white in shapes if white for outline in _outline(svg, node, font_size, place)]
+    if not whites:
+        stream.rectangle(region[0], region[1], 0, 0)  # an empty mask hides the element
+        stream.clip()
+        stream.end()
+        return
+    for outline in whites:
+        _add_outline(stream, outline)
+    stream.clip()
+    stream.end()
+    # The region with the shape inside, even-odd: the region less the shape. Each clip narrows the last
+    for node, white in shapes:
+        if white:
+            continue
+        for outline in _outline(svg, node, font_size, place):
+            stream.rectangle(*region)
+            _add_outline(stream, outline)
+            stream.clip(even_odd=True)
+            stream.end()
 
 
 def _plain_content() -> tuple[Any, Any]:

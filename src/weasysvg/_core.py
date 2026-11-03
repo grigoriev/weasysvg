@@ -10,13 +10,17 @@
   shifted text. Before a node draws, each restyler may change its attributes for the duration. A
   clip-path that leads back into a clip path being drawn is ignored, as in Chromium: WeasyPrint
   recursed until the stack ran out, and the whole SVG was lost.
+
+``PORTABLE`` asks the features for a PDF without soft masks and blend modes, where they can draw the same
+picture without them. A PDF to SVG converter such as cairo then keeps it vector, and Word draws it.
 """
 
 from __future__ import annotations
 
 import importlib
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
@@ -53,6 +57,8 @@ _DRAWING: ContextVar[tuple[Any, float] | None] = ContextVar("weasysvg_drawing", 
 # The clip paths being drawn, per thread and task
 _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
+# Drawing for a portable PDF, per thread and task: see portable()
+PORTABLE: ContextVar[bool] = ContextVar("weasysvg_portable", default=False)
 # The smallest box a group gets, in user units
 MIN_GROUP_EXTENT = 1e4
 
@@ -72,6 +78,16 @@ def original_draw_node() -> Callable[..., None]:
     """The draw_node of WeasyPrint itself, before any patch of this package."""
     function: Callable[..., None] = _ORIGINAL_DRAW_NODE
     return function
+
+
+@contextmanager
+def portable() -> Iterator[None]:
+    """Draw without soft masks and blend modes where the same picture allows it, for the duration."""
+    token = PORTABLE.set(True)
+    try:
+        yield
+    finally:
+        PORTABLE.reset(token)
 
 
 def add_tree_pass(rank: int, name: str, function: TreePass) -> None:

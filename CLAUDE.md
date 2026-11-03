@@ -75,6 +75,8 @@ once.
 - `vertical.py`: vertical `writing-mode`, characters placed down the y axis.
 - `glyphs.py`: characters drawn one at a time at their own origin and angle, for the two above.
 - `fetch.py`: one fetch per URL and SVG.
+- `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. Today `paint.paint_mask`
+  draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips.
 - `xobject.py`: each SVG image drawn into one Form XObject without a group dictionary, its BBox the viewport;
   an inline `<svg>` with visible overflow gets a box wide enough. The form carries no tags: the Figure around
   the `Do` marks it. One form per image, size, scale and resources dictionary.

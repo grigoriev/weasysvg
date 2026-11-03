@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `weasysvg.portable()`: inside it, a mask of opaque white areas, then opaque black ones, is a clip path
+  instead of a soft mask. cairo turns a soft mask into an image when it writes SVG, and lost the D2 cuts
+  under the edge labels. With the clip they stay vector, and Word draws them.
+
 ## [0.3.1] - 2026-10-22
 
 ### Fixed
