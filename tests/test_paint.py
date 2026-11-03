@@ -257,7 +257,8 @@ def test_levels_of_a_valley_split_in_two() -> None:
     found = paint.levels(linear((0, 1.0), (0.5, 0.0), (1, 1.0)), (0, 1), True)
     # Above the valley floor a level holds both sides, open at either end
     low, high = found[-1][1]
-    assert low[0] == -math.inf and high[1] == math.inf
+    assert low[0] == -math.inf
+    assert high[1] == math.inf
 
 
 def test_levels_skip_a_clear_piece() -> None:
@@ -279,6 +280,35 @@ def test_levels_of_no_opacity() -> None:
     assert paint.levels({"FunctionType": 2, "C0": [0.0], "C1": [0.0]}, (0, 1), False) == []
 
 
+SQUARE = [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
+
+
+def test_reach_of_an_axis_of_no_length() -> None:
+    assert paint._reach(2, [0.5, 0.5, 0.5, 0.5], SQUARE) is None
+
+
+def test_reach_of_an_axis_covers_the_corners() -> None:
+    low, high, half_width = cast("tuple[float, float, float]", paint._reach(2, [0.25, 0.0, 0.75, 0.0], SQUARE))
+    # The corners project on -0.5 and 1.5 of the axis, and lie 1 from it at most; a margin on each
+    assert (low, high) == (-1.5, 2.5)
+    assert half_width >= 1
+
+
+def test_reach_of_circles_that_never_hold_a_corner() -> None:
+    # The focal point lies on the end circle: the circles grow as fast as they move, away from a point behind them
+    assert paint._reach(3, [0.0, 0.0, 0.0, 1.0, 0.0, 1.0], [(-1.0, 0.0)]) is None
+    assert paint._reach(3, [0.0, 0.0, 0.0, 1.0, 0.0, 1.0], [(2.0, 0.0)]) == (-math.inf, 2.0, 0.0)
+    assert paint._reach(3, [0.0, 0.0, 0.0, 1.0, 0.0, 1.0], [(0.5, 0.0)]) == (-math.inf, 2.0, 0.0)
+    # The end circle does not hold the focal one
+    assert paint._reach(3, [0.0, 0.0, 0.5, 2.0, 0.0, 0.6], SQUARE) is None
+
+
+def test_reach_of_circles_that_move_away_from_a_corner() -> None:
+    # The focal point near the left edge: the near corners wait for circles far larger than the end one
+    _, high, _ = cast("tuple[float, float, float]", paint._reach(3, [0.001, 0.5, 0.0, 0.5, 0.5, 0.5], SQUARE))
+    assert high > 11
+
+
 @pytest.mark.parametrize(
     "gradient",
     [
@@ -290,6 +320,8 @@ def test_levels_of_no_opacity() -> None:
         '<radialGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.1"/></radialGradient>',
         '<radialGradient id="g" fx="0.4" fy="0.45" r="0.6"><stop stop-color="yellow" stop-opacity="0.2"/><stop offset="0.7" stop-color="red"/><stop offset="1" stop-color="blue" stop-opacity="0.5"/></radialGradient>',
         '<radialGradient id="g" fr="0.2"><stop stop-color="red" stop-opacity="0.5"/><stop offset="1" stop-color="blue" stop-opacity="0"/></radialGradient>',
+        # The focal point near an edge: the circles move away from the near corners, which they reach late
+        '<radialGradient id="g" fx="0.001" fy="0.5"><stop stop-color="red" stop-opacity="0.5"/><stop offset="1" stop-color="blue" stop-opacity="0.5"/></radialGradient>',
         # Opaque stops faded by the fill opacity: one coat
         '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>',
     ],

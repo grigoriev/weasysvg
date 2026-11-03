@@ -412,15 +412,12 @@ def _pattern_origin(svg: Any, node: Any, pattern: Any, font_size: float, stroke:
 
 # ---------------- gradient opacity in bands, for a portable PDF ----------------
 
-# How far an open band reaches past the gradient, in its own units: the pattern cell clips it
-FAR = 1e5
-
 
 @dataclass
 class _AlphaCapture:
     """The soft mask WeasyPrint sets for the stop opacities of one gradient, kept instead of set."""
 
-    shading: tuple[int, Any, Any, bool, Any] | None = None
+    shading: tuple[int, Any, Any, bool, Any, Reach] | None = None
     painted: bool = False
 
 
@@ -443,8 +440,9 @@ class _AlphaSink:
     stream: Any = field(default=None)
 
     def add_shading(self, shading_type: int, domain: Any, coords: Any, extend: bool, function: Any, color_space: str | None = None) -> Any:
-        if _bands_possible(shading_type, coords):
-            self.capture.shading = (shading_type, domain, coords, extend, function)
+        reach = _reach(shading_type, [float(value) for value in coords], _corners(self.group))
+        if reach is not None:
+            self.capture.shading = (shading_type, domain, coords, extend, function, reach)
             # WeasyPrint names it in the stream of the alpha group, which nothing draws
             return SimpleNamespace(id="weasysvg-bands")
         self.real = _ORIGINAL_SET_ALPHA_STATE(self.group, *self.box)
@@ -473,14 +471,67 @@ def _paint_shading(self: Any, name: str) -> None:
     _paint_in_bands(self, name, capture.shading)
 
 
-def _bands_possible(shading_type: int, coords: Any) -> bool:
-    """Whether bands of a constant opacity can follow the shading: an axis, or circles one inside the next."""
+# The shares of the axis a level needs to span to cover the group, low and high, and for an axis the half width
+Reach = tuple[float, float, float]
+
+
+def _corners(stream: Any) -> list[tuple[float, float]]:
+    """The corners of the box of a group in the space of its shading: the cell of a gradient is about 1000 units."""
+    left, top, right, bottom = (float(value) for value in stream.extra["BBox"])
+    inverse = stream.ctm.invert
+    return [inverse.transform_point(x, y) for x in (left, right) for y in (top, bottom)]
+
+
+def _reach(shading_type: int, coords: list[float], corners: list[tuple[float, float]]) -> Reach | None:
+    """How far the levels of a shading must reach to cover corners; None where bands cannot follow it.
+
+    Reaching that far and no farther keeps the coordinates of the levels small enough for the precision of a viewer.
+    """
     if shading_type == 2:
-        x1, y1, x2, y2 = (float(value) for value in coords)
-        return (x1, y1) != (x2, y2)
-    fx, fy, fr, cx, cy, r = (float(value) for value in coords)
-    # The circle of each offset holds the one before: the end circle holds the focal one
-    return math.hypot(cx - fx, cy - fy) <= r - fr and r > fr
+        return _axis_reach(coords, corners)
+    return _ring_reach(coords, corners)
+
+
+def _axis_reach(coords: list[float], corners: list[tuple[float, float]]) -> Reach | None:
+    """The shares of a linear axis the corners project on, and their farthest distance from it, with a margin."""
+    x1, y1, x2, y2 = coords
+    dx, dy = x2 - x1, y2 - y1
+    length = math.hypot(dx, dy)
+    if not length:
+        return None
+    shares = [((x - x1) * dx + (y - y1) * dy) / length**2 for x, y in corners]
+    widths = [abs((x - x1) * dy - (y - y1) * dx) / length for x, y in corners]
+    return min(shares) - 1, max(shares) + 1, max(widths) + length
+
+
+def _ring_reach(coords: list[float], corners: list[tuple[float, float]]) -> Reach | None:
+    """The share at which the circles of a radial shading hold every corner, with a margin; None where they never do.
+
+    The circle of share s has its center f + s (c - f) and its radius fr + s (r - fr). It holds a point q from f
+    once |q - s d| <= fr + s dr, a quadratic in s; with the end circle around the focal one (|d| <= dr) the
+    circles grow faster than they move, and each later circle holds the point too.
+    """
+    fx, fy, fr, cx, cy, r = coords
+    d, dr = (cx - fx, cy - fy), r - fr
+    if dr <= 0 or math.hypot(*d) > dr:
+        return None
+    needed = 1.0
+    for x, y in corners:
+        q = (x - fx, y - fy)
+        a = d[0] ** 2 + d[1] ** 2 - dr**2
+        b = -2 * (q[0] * d[0] + q[1] * d[1] + fr * dr)
+        c = q[0] ** 2 + q[1] ** 2 - fr**2
+        if a == 0:
+            # The circles touch the focal point on one side: they reach a point at -c / b, or never
+            if b >= 0 and c > 0:
+                return None
+            share = -c / b if b < 0 else -math.inf
+        else:
+            # Real roots always: at s = -fr / dr the circle has no size, and no point lies inside it. Rounding aside
+            root = math.sqrt(max(b * b - 4 * a * c, 0.0))
+            share = max((-b + root) / (2 * a), (-b - root) / (2 * a))
+        needed = max(needed, share)
+    return -math.inf, needed + 1, 0.0
 
 
 def _alpha_pieces(function: Any, domain: Any) -> list[tuple[float, float, float, float]]:
@@ -512,6 +563,25 @@ def _above(start: float, end: float, a0: float, a1: float, level: float) -> Inte
     return (start, cross) if a0 >= level else (cross, end)
 
 
+def _level(pieces: list[tuple[float, float, float, float]], level: float, extend: bool) -> list[Interval]:
+    """The offsets where the opacity of the pieces reaches level, neighbors joined, open at an end with extend."""
+    intervals: list[Interval] = []
+    for index, piece in enumerate(pieces):
+        found = _above(*piece, level)
+        if found is None:
+            continue
+        low, high = found
+        if extend and index == 0 and low == piece[0]:
+            low = -math.inf
+        if extend and index == len(pieces) - 1 and high == piece[1]:
+            high = math.inf
+        if intervals and math.isclose(intervals[-1][1], low):
+            intervals[-1] = (intervals[-1][0], high)
+        else:
+            intervals.append((low, high))
+    return intervals
+
+
 def levels(function: Any, domain: Any, extend: bool) -> list[tuple[float, list[Interval]]]:
     """The level sets of the stop opacity along the gradient: the opacity each adds, and where.
 
@@ -525,20 +595,7 @@ def levels(function: Any, domain: Any, extend: bool) -> list[tuple[float, list[I
     peak = max((max(piece[2], piece[3]) for piece in pieces), default=0.0)
     out: list[tuple[float, list[Interval]]] = []
     for threshold, opacity in levelsets.thresholds(peak) if peak > 0 else []:
-        intervals: list[Interval] = []
-        for index, piece in enumerate(pieces):
-            found = _above(*piece, threshold * peak)
-            if found is None:
-                continue
-            low, high = found
-            if extend and index == 0 and low == piece[0]:
-                low = -math.inf
-            if extend and index == len(pieces) - 1 and high == piece[1]:
-                high = math.inf
-            if intervals and math.isclose(intervals[-1][1], low):
-                intervals[-1] = (intervals[-1][0], high)
-            else:
-                intervals.append((low, high))
+        intervals = _level(pieces, threshold * peak, extend)
         # Each level lies below the peak, which reaches it: a level is never empty
         if out and out[-1][1] == intervals:
             # Two coats over the same offsets are one coat of their combined opacity
@@ -548,19 +605,11 @@ def levels(function: Any, domain: Any, extend: bool) -> list[tuple[float, list[I
     return out
 
 
-def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any]) -> None:
+def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any, Reach]) -> None:
     """Paint the color shading once per level of its opacity, clipped to the level and at the opacity it adds."""
-    shading_type, domain, coords, extend, function = shading
+    shading_type, domain, coords, extend, function, (lowest, highest, half_width) = shading
     first, last = float(domain[0]), float(domain[1])
-    # A level reaches past the group as far as its diagonal: far enough, and short enough for the precision of a
-    # viewer. The group draws its shading under a matrix of its own (a cell of about 1000 units): the diagonal
-    # is measured in the space of the shading
-    left, top, right, bottom = (float(value) for value in stream.extra["BBox"])
-    inverse = stream.ctm.invert
-    corners = [inverse.transform_point(x, y) for x in (left, right) for y in (top, bottom)]
     points = [float(value) for value in coords]
-    # From the start of the axis, or the focal point, no corner lies farther than this
-    far = 2 * max(math.dist(corner, (points[0], points[1])) for corner in corners)
     # Where the opacity jumps at one offset, as between two cycles of spreadMethod="repeat", the edge of a level
     # meets the jump of the color: a viewer that takes the color of a shading at the center of each pixel paints
     # the pixel across the edge in the color of the far side, a line of one pixel
@@ -568,12 +617,13 @@ def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, 
         stream.push_state()
         try:
             for low, high in intervals:
-                # The offsets as shares of the axis: 0 at its start, 1 at its end
-                share = [(value - first) / (last - first) if math.isfinite(value) else math.copysign(FAR, value) for value in (low, high)]
+                # The offsets as shares of the axis, 0 at its start and 1 at its end, no farther than the group needs
+                share = [(value - first) / (last - first) if math.isfinite(value) else math.copysign(math.inf, value) for value in (low, high)]
+                share = [max(share[0], lowest), min(share[1], highest)]
                 if shading_type == 2:
-                    _add_strip(stream, points, share[0], share[1], far)
+                    _add_strip(stream, points, share[0], share[1], half_width)
                 else:
-                    _add_ring(stream, points, share[0], share[1], far)
+                    _add_ring(stream, points, share[0], share[1])
             # The intervals do not overlap: even-odd is their union, and a ring is the outer circle less the inner one
             stream.clip(even_odd=True)
             stream.end()
@@ -583,14 +633,12 @@ def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, 
             stream.pop_state()
 
 
-def _add_strip(stream: Any, coords: list[float], low: float, high: float, far: float) -> None:
-    """Add the points whose projection on the axis falls between shares low and high of it, out to far on either side."""
+def _add_strip(stream: Any, coords: list[float], low: float, high: float, half_width: float) -> None:
+    """Add the points whose projection on the axis falls between shares low and high of it, half_width to either side."""
     x1, y1, x2, y2 = coords
     dx, dy = x2 - x1, y2 - y1
     length = math.hypot(dx, dy)
-    # An open end reaches far along the axis
-    low, high = max(low, -far / length), min(high, 1 + far / length)
-    nx, ny = -dy / length * far, dx / length * far
+    nx, ny = -dy / length * half_width, dx / length * half_width
     a = (x1 + dx * low, y1 + dy * low)
     b = (x1 + dx * high, y1 + dy * high)
     stream.move_to(a[0] + nx, a[1] + ny)
@@ -610,13 +658,9 @@ def _circle_path(stream: Any, cx: float, cy: float, r: float) -> None:
     stream.close()
 
 
-def _add_ring(stream: Any, coords: list[float], low: float, high: float, far: float) -> None:
-    """Add the circle of share high and the circle of share low: even-odd, the points between them.
-
-    An open end grows as far as far past the end circle, the diagonal of the group: past it nothing shows.
-    """
+def _add_ring(stream: Any, coords: list[float], low: float, high: float) -> None:
+    """Add the circle of share high and the circle of share low: even-odd, the points between them."""
     fx, fy, fr, cx, cy, r = coords
-    high = min(high, 1 + far / (r - fr))
 
     def circle(share: float) -> tuple[float, float, float]:
         # Before the focal circle a band holds all of its inside: a circle of no size
