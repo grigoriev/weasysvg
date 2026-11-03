@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `weasysvg-convert`, a command line converter from SVG to PDF, PNG or a flat SVG. It accepts the options
+  of `rsvg-convert` that pandoc passes, so a service can install it under that name: pandoc then draws
+  `<foreignObject>`, filters and masks in a PDF and in the PNG fallback of a DOCX. Only `data:` URLs are
+  fetched. The PNG needs the `convert` extra (PDFium), the flat SVG needs `pdftocairo` of Poppler.
 - `weasysvg.portable()`: inside it, a mask of opaque white areas, then opaque black ones, is a clip path
   instead of a soft mask. cairo turns a soft mask into an image when it writes SVG, and lost the D2 cuts
-  under the edge labels. With the clip they stay vector, and Word draws them.
+  under the edge labels. The flat SVG of `weasysvg-convert` keeps them vector, and Word draws them.
 
 ## [0.3.1] - 2026-10-22
 

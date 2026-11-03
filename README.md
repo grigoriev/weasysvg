@@ -99,6 +99,34 @@ A mask of opaque white areas, then opaque black ones (`rect`, `circle`, `ellipse
 D2 cuts its edges under the labels with such a mask. Other masks, blurs and blend modes still use soft
 masks. The setting holds per thread and task.
 
+## Command line: weasysvg-convert
+
+`weasysvg-convert` draws one SVG with WeasyPrint and weasysvg. It accepts the options of `rsvg-convert`
+that pandoc passes, so it can replace librsvg under that name: pandoc then draws `<foreignObject>`,
+filters and masks.
+
+```sh
+pip install "weasysvg[convert]"
+weasysvg-convert -f pdf -o diagram.pdf diagram.svg      # vector PDF
+weasysvg-convert -f png < diagram.svg > diagram.png     # PNG through PDFium, transparent background
+weasysvg-convert -f svg -o flat.svg diagram.svg         # flat SVG for Word
+```
+
+| Option | Default | Effect |
+|---|---|---|
+| `-f`, `--format` | `png` | `pdf`, `png` or `svg` |
+| `-o`, `--output` | stdout | the output file |
+| `-d`, `--dpi-x`, `-p`, `--dpi-y` | `96` | pixels per inch of the absolute lengths of the root |
+| `-a`, `--keep-aspect-ratio` | | accepted for pandoc; the size is always the SVG's own |
+
+The size is the one `rsvg-convert` gives: the `width` and `height` of the root, else its `viewBox`. A PDF
+page is that size at 72 points per `dpi` pixels, a PNG has that many pixels. Only `data:` URLs are
+fetched: an SVG cannot read a local file or the network.
+
+`-f svg` writes a flat SVG for Word and LibreOffice, which draw no `<foreignObject>`, no filters and only
+some masks. It draws a portable PDF and reads it back with `pdftocairo -svg` of Poppler, which must be on
+the `PATH`. Text becomes glyph outlines. A soft mask the portable PDF keeps becomes an image.
+
 ## Features
 
 | Area | What weasysvg adds |

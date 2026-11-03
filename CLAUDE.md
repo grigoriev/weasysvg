@@ -75,6 +75,9 @@ once.
 - `vertical.py`: vertical `writing-mode`, characters placed down the y axis.
 - `glyphs.py`: characters drawn one at a time at their own origin and angle, for the two above.
 - `fetch.py`: one fetch per URL and SVG.
+- `convert.py`: the `weasysvg-convert` command line, compatible with the `rsvg-convert` options pandoc passes.
+  `-f svg` draws inside `_core.portable()` and reads the PDF back with `pdftocairo -svg`; it sets the root
+  size in pt, since Poppler 25.03 writes it without a unit. Its tests need `poppler-utils` (Dockerfile.test, CI).
 - `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. Today `paint.paint_mask`
   draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips.
 - `xobject.py`: each SVG image drawn into one Form XObject without a group dictionary, its BBox the viewport;
