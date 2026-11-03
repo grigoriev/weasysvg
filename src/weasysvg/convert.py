@@ -39,6 +39,10 @@ VIEWBOX_PARTS = 4
 # The largest PNG drawn from an untrusted SVG: one side, and its pixels. The limits of pandoc-service for Chromium
 MAX_PNG_SIDE = 10_000
 MAX_PNG_PIXELS = 50_000_000
+# The flat SVG is read from a PDF this many times larger, its viewBox as large and its size the SVG's own. cairo
+# writes each glyph as its outline at the size it is drawn, hinted: at 24 px a bold label came out wider and
+# heavier in every viewer, at 8 times that the hinting is below a pixel of the result.
+FLAT_SCALE = 8
 # How long pdftocairo may read back one PDF, in seconds
 PDFTOCAIRO_TIMEOUT = 60
 
@@ -112,13 +116,14 @@ def page_html(svg: bytes, width_pt: float, height_pt: float) -> str:
     )
 
 
-def to_pdf(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *, portable: bool = False) -> bytes:
+def to_pdf(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *, portable: bool = False, scale: float = 1.0) -> bytes:
     """The SVG as a one-page vector PDF. Only data: URLs are fetched, as rsvg-convert fetches no remote file.
 
-    portable draws without soft masks and blend modes where weasysvg can, see weasysvg.portable().
+    portable draws without soft masks and blend modes where weasysvg can, see weasysvg.portable(). scale
+    enlarges the page and the drawing on it.
     """
     width, height = size_px(svg, dpi_x, dpi_y)
-    html = page_html(svg, width * 72 / dpi_x, height * 72 / dpi_y)
+    html = page_html(svg, width * 72 / dpi_x * scale, height * 72 / dpi_y * scale)
     document = weasyprint.HTML(string=html, url_fetcher=URLFetcher(allowed_protocols={"data"}))
     with weasysvg.portable() if portable else contextlib.nullcontext():
         pdf: bytes = document.write_pdf()
@@ -170,7 +175,7 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -
         pdf_path = os.path.join(tmp, "in.pdf")
         svg_path = os.path.join(tmp, "out.svg")
         with open(pdf_path, "wb") as handle:
-            handle.write(to_pdf(svg, dpi_x, dpi_y, portable=True))
+            handle.write(to_pdf(svg, dpi_x, dpi_y, portable=True, scale=FLAT_SCALE))
         try:
             result = subprocess.run(["pdftocairo", "-svg", pdf_path, svg_path], capture_output=True, check=False, timeout=PDFTOCAIRO_TIMEOUT)  # noqa: S603, S607
         except FileNotFoundError as error:

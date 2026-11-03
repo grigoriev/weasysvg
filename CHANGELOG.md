@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The flat SVG of `weasysvg-convert` keeps the shape of each glyph. cairo writes a glyph as its outline hinted at
+  the size it is drawn: a bold label of 24 px came out wider and heavier in every viewer. The flat SVG is now
+  read from a PDF eight times as large, its size still the SVG's own.
 - A rect without a width or a height casts no shadow and no blur, as in Chromium: in a portable PDF its stroke
   made a dot.
 

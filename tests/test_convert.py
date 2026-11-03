@@ -118,6 +118,17 @@ def inflated(pdf: bytes) -> bytes:
     return b"\n".join(parts)
 
 
+def test_pdf_page_at_a_scale() -> None:
+    assert page_size(to_pdf(RED_RECT.encode(), scale=8)) == pytest.approx((1200, 600))
+
+
+def test_flat_svg_is_drawn_large_and_sized_as_the_svg() -> None:
+    # The glyphs come from a PDF eight times as large, where their hinting is below a pixel of the result
+    flat = to_svg(RED_RECT.encode()).decode()
+    assert 'width="150pt" height="75pt"' in flat
+    assert 'viewBox="0 0 1200 600"' in flat
+
+
 def test_portable_pdf_has_no_soft_mask() -> None:
     assert b"/SMask" in inflated(to_pdf(KNOCKOUT.encode()))
     assert b"/SMask" not in inflated(to_pdf(KNOCKOUT.encode(), portable=True))
