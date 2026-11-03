@@ -62,6 +62,10 @@ once.
   group: paths, strokes outlined with their joins and caps, clips, constant opacities, transparency groups.
   Text, images, shadings, patterns, soft masks, blend modes and dashes raise `Unsupported`: the levels draw them.
 - `paint.py`: gradients, patterns, masks, `mix-blend-mode`.
+- `clippaths.py`: a clip path as one PDF clip, in any PDF. `paint.paint_clip` draws its children into a scratch
+  group; the exact fills are read back and each subpath turned so that one nonzero path is their union (winding
+  0 or 1 per fill, from the faces it bounds). Subpaths of a fill that cross, text, images and clips of a child
+  raise `coverage.Unsupported`: the alpha soft mask draws them.
 - `pathdata.py`: path data as segments with tangents and points along them.
 - `dashes.py`: the dash through the start point of a closed subpath, as one dash: `paint_order.fill_stroke` strokes a
   short patch across that point with the path, after the fill.
@@ -81,9 +85,12 @@ once.
   hints each glyph outline at the size it is drawn, and writes the constant masks cairo makes of a group
   opacity back as `opacity`. Its tests need `poppler-utils` (Dockerfile.test, CI).
 - `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. `paint.paint_mask`
-  draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips. `filters._portable_blur`
+  draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips; `paint.gray_mask` draws a
+  mask of one gray shape as a clip and an opacity of the element. A gradient mask stays soft: nested levels copied
+  the element per level, and 8 bit renderers lost the faint ones. `filters._portable_blur`
   draws a blurred layer as stacked level sets: the field of `shapeblur.Field` (a rect: the product of its two
-  profiles), its contours at each level, each filled in a constant opacity. The color goes before the path.
+  profiles), its contours at each level, each filled in a constant opacity. The color goes before the path. A
+  `<use>` of one shape blurs as that shape (`filters._used_shape`).
   `paint.draw_gradient` keeps the alpha shading WeasyPrint sets for stop opacities (`_AlphaSink` in place of
   `set_alpha_state`) and paints the color shading through the level sets of that opacity (`paint.levels`). Their
   reach is measured in the space of the shading: the cell of a gradient is about 1000 units.

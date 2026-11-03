@@ -17,11 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are filled one over the other, each with a constant opacity, within 1/64 of the blur. The contours come from
   the blurred coverage of the shape (`levelsets.py`), and a rect takes its exact blur, at any size. cairo
   keeps them vector in a flat SVG, and Word draws the shadows of draw.io, Mermaid and blockdiag.
+- A clip path that one PDF clip could not express (a `<use>`, several children, an even-odd child, bounding box
+  units) becomes one path of all its fills, each subpath turned so that nonzero fills their union. It was an alpha
+  soft mask, which Word does not draw and a printer may rasterize. Text, images, a child with a clip of its own
+  and a path that crosses itself keep the soft mask. Tux and the Inkscape logo now clip without one.
+- In `weasysvg.portable()`, the blur of a `<use>` of one shape takes the exact blur of that shape, in any paint:
+  the glare of Tux, a shape filled with a gradient, needed a soft mask.
+- In `weasysvg.portable()`, a mask of one gray or translucent shape is a clip to the shape and an opacity of the
+  element. A mask without a white area, or empty, hides the element without a soft mask.
 - The flat SVG of `weasysvg-convert` writes the opacity of a group as an `opacity`. cairo writes it as a mask of
   one rect over the whole drawing, and Word draws only some masks.
 
 ### Fixed
 
+- Clip path children that turn opposite ways unite, as in Chromium. WeasyPrint added them to one nonzero path,
+  which cut a hole where they overlap.
 - The flat SVG of `weasysvg-convert` keeps the shape of each glyph. cairo writes a glyph as its outline hinted at
   the size it is drawn: a bold label of 24 px came out wider and heavier in every viewer. The flat SVG is now
   read from a PDF eight times as large, its size still the SVG's own.
