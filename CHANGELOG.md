@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
 ### Added
 
 - In `weasysvg.portable()`, a gradient with transparent stops or a fill opacity needs no soft mask. Its color stays
