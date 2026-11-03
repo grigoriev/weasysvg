@@ -316,6 +316,16 @@ PORTABLE_BLURS = {
         target='<rect x="20" y="20" width="60" height="40" fill="red" stroke="blue" stroke-width="4" stroke-linejoin="round" filter="url(#f)"/>',
     ),
     "group shadow": filtered('<feDropShadow dx="3" dy="3" stdDeviation="2"/>', GRAY_SHADOW, target='<g filter="url(#f)"><circle cx="40" cy="40" r="15" fill="red"/><rect x="60" y="30" width="30" height="30" fill="blue"/></g>'),
+    # Two lobes of opposite turn: their signed areas cancel, the even-odd fill covers both
+    "bowtie": filtered('<feGaussianBlur stdDeviation="3"/>', GRAY_SHADOW, target='<path d="M20 20 L80 80 L20 80 L80 20 Z" fill="red" fill-rule="evenodd" filter="url(#f)"/>'),
+    # Where the colors meet, each covers half: together they cover all
+    "two colors side by side": filtered('<feGaussianBlur stdDeviation="4"/>', GRAY_SHADOW, target='<g filter="url(#f)"><rect x="20" y="20" width="40" height="60" fill="red"/><rect x="60" y="20" width="40" height="60" fill="blue"/></g>'),
+    # The alpha function sees the fill opacity first: slope 2 makes the faded fill opaque again
+    "alpha transfer": filtered(
+        '<feComponentTransfer><feFuncA type="linear" slope="2"/></feComponentTransfer><feGaussianBlur stdDeviation="3"/>',
+        GRAY_SHADOW,
+        target='<rect x="20" y="20" width="60" height="40" fill="red" fill-opacity="0.5" filter="url(#f)"/>',
+    ),
     # Its peak stays below most levels: those have no contour
     "faint dot": filtered('<feGaussianBlur stdDeviation="4"/>', GRAY_SHADOW, target='<circle cx="60" cy="50" r="1" fill="red" filter="url(#f)"/>'),
     "silhouette": filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', target='<circle cx="60" cy="50" r="25" fill="red" filter="url(#f)"/>'),
@@ -328,11 +338,11 @@ def test_portable_blur_has_no_soft_mask_and_matches(name: str) -> None:
     soft, flat = render(document), portable(document)
     assert soft_masks(flat) == 0
     assert images(flat) == 0
-    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2)).convert("L")
+    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
     # Within a few steps of 1/64 where the levels cut the profile, and the half pixel the shadings of the
-    # soft mask sample off center
-    assert ImageStat.Stat(difference).mean[0] < 1.5
-    assert cast("tuple[int, int]", difference.getextrema())[1] < 48
+    # soft mask sample off center. Each channel on its own: a light seam shows in one channel most
+    assert max(ImageStat.Stat(difference).mean) < 1.5
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 48
 
 
 def test_portable_blur_follows_the_gaussian() -> None:
@@ -373,6 +383,13 @@ def test_portable_blur_of_nothing_draws_nothing(target: str) -> None:
     assert ImageChops.difference(rasterize(pdf, 1), rasterize(render(document), 1)).getbbox() is None
     if target.startswith("<rect"):
         assert ImageChops.difference(rasterize(pdf, 1), rasterize(render(svg("", height=120)), 1)).getbbox() is None
+
+
+def test_portable_blur_of_a_path_of_two_points_draws_nothing() -> None:
+    # It makes no subpath to fill, as in Chromium; the soft mask path draws the hairline PDFium makes of it
+    pdf = portable(svg('<path d="M20 20 L80 20" fill="red" style="filter:blur(2px)"/>', height=120))
+    assert soft_masks(pdf) == 0
+    assert ImageChops.difference(rasterize(pdf, 1), rasterize(render(svg("", height=120)), 1)).getbbox() is None
 
 
 def test_portable_blur_of_a_shape_along_one_axis_keeps_the_mask() -> None:
@@ -429,6 +446,24 @@ def test_portable_silhouette_of_an_image_by_reference_keeps_the_mask(content: st
     target = f'{defs}<g filter="url(#f)"><rect x="40" y="20" width="20" height="20" fill="red"/>{content}</g>'
     document = filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', GRAY_SHADOW, target=target)
     assert soft_masks(portable(document)) > 0
+
+
+def test_portable_silhouette_of_html_keeps_the_mask() -> None:
+    # The HTML of a foreignObject draws past the recolor of SVG paint: its silhouette keeps the mask
+    html = '<foreignObject x="20" y="20" width="80" height="40"><div xmlns="http://www.w3.org/1999/xhtml" style="color:red;font-size:30px">Hi</div></foreignObject>'
+    document = filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', GRAY_SHADOW, target=f'<g filter="url(#f)"><rect x="100" y="20" width="20" height="20"/>{html}</g>')
+    assert soft_masks(portable(document)) > 0
+
+
+def test_portable_rect_past_the_budget_builds_no_field(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The budget is checked before the field is built: a spent budget costs no profile
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 10)
+
+    def unwanted(*_args: object) -> list[int]:
+        raise AssertionError("the profile of a rect past the budget")
+
+    monkeypatch.setattr(filters, "_axis_profile", unwanted)
+    assert soft_masks(portable(PORTABLE_BLURS["rect"])) > 0
 
 
 def test_portable_blur_of_rects_counts_against_the_pixel_budget(monkeypatch: pytest.MonkeyPatch) -> None:
