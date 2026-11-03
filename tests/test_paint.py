@@ -468,6 +468,87 @@ def test_portable_bounding_box_units_keep_percentages_soft() -> None:
     assert "/SMask" in pdf.decode("latin-1")
 
 
+# ---------------- clip paths as one path ----------------
+
+PATH_CLIPS = {
+    # Tux and the Inkscape logo clip to the outline of a shape they draw elsewhere
+    "use": '<path id="p" d="M20 10 C120 -20 220 40 120 90 L30 80 Z"/><clipPath id="c"><use href="#p"/></clipPath>',
+    "use-moved": '<path id="p" d="M20 10 H90 V60 Z"/><clipPath id="c"><use href="#p" x="80" y="20"/></clipPath>',
+    "use-of-a-group": '<g id="p"><rect x="10" y="10" width="60" height="60"/><circle cx="140" cy="50" r="30"/></g><clipPath id="c"><use href="#p"/></clipPath>',
+    # Two shapes overlap and turn opposite ways: nonzero of both as written is a hole where they meet
+    "opposite-turns": '<clipPath id="c"><use href="#a"/><path d="M60 10 V90 H150 V10 Z"/></clipPath><rect id="a" x="20" y="20" width="100" height="60"/>',
+    "evenodd": '<clipPath id="c"><path d="M10 10H190V90H10Z M60 30H140V70H60Z" clip-rule="evenodd"/><rect x="90" y="40" width="80" height="50"/></clipPath>',
+    # The same turns, nonzero: the inner square adds to the outer one, no hole
+    "nonzero-same-turns": '<clipPath id="c"><path d="M10 10H190V90H10Z M60 30H140V70H60Z"/><rect x="2" y="40" width="6" height="20"/></clipPath>',
+    # A hole as nonzero writes it, with a shape over part of it
+    "nonzero-hole": '<clipPath id="c"><path d="M10 10H190V90H10Z M60 30V70H140V30Z"/><circle cx="60" cy="50" r="15"/></clipPath>',
+    "nested-islands": '<clipPath id="c"><path d="M10 10H190V90H10Z M30 20V80H170V20Z M60 35H140V65H60Z" clip-rule="evenodd"/></clipPath>',
+    "transformed": '<clipPath id="c" transform="rotate(10 100 50)"><rect x="30" y="20" width="60" height="50" transform="skewX(20)"/><polygon points="120,10 190,50 120,90"/></clipPath>',
+    "bounding-box": '<clipPath id="c" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.4"/><rect width="0.2" height="0.2"/></clipPath>',
+    "curves": '<clipPath id="c"><ellipse cx="70" cy="50" rx="60" ry="35"/><path d="M100 50 Q150 -20 190 50 T100 50" clip-rule="evenodd"/></clipPath>',
+}
+
+
+@pytest.mark.parametrize("name", PATH_CLIPS)
+def test_clip_is_one_path_and_matches_its_mask(name: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    body = f'<defs>{PATH_CLIPS[name]}</defs><g clip-path="url(#c)"><rect width="200" height="100" fill="red"/><rect x="40" width="40" height="100" fill="blue" opacity="0.5"/></g>'
+    flat = render(svg(body))
+    assert "/SMask" not in flat.decode("latin-1")
+    monkeypatch.setattr(paint, "_clip_as_path", lambda *_: False)
+    soft = render(svg(body))
+    assert "/SMask" in soft.decode("latin-1")
+    difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
+    assert max(ImageStat.Stat(difference).mean) < 0.5
+    assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 64
+
+
+@pytest.mark.parametrize(
+    "clip",
+    [
+        '<clipPath id="c"><rect width="0" height="100"/></clipPath>',
+        '<clipPath id="c"><use href="#nowhere"/><rect width="10" height="100" display="none"/></clipPath>',
+        '<clipPath id="c" clipPathUnits="objectBoundingBox"><use href="#nowhere"/></clipPath>',
+    ],
+)
+def test_clip_of_nothing_hides_the_element(clip: str) -> None:
+    pdf = render(svg(f'<defs>{clip}</defs><rect x="10" y="10" width="180" height="80" fill="red" clip-path="url(#c)"/>'))
+    assert "/SMask" not in pdf.decode("latin-1")
+    assert near(pixel(pdf, 75, 37), WHITE)
+
+
+def test_clip_in_box_units_without_a_box_hides_the_element() -> None:
+    clip = '<clipPath id="c" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.5"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><g clip-path="url(#c)"/><g clip-path="url(#c)"><rect width="0" height="10"/></g>'))
+    assert "/SMask" not in pdf.decode("latin-1")
+
+
+@pytest.mark.parametrize(
+    "clip",
+    [
+        '<clipPath id="c"><text x="10" y="80" font-size="80">II</text></clipPath>',
+        # A child clipped by a clip of its own: the union of two intersections
+        '<clipPath id="c"><rect width="100" height="100" clip-path="url(#d)"/><use href="#r"/></clipPath><clipPath id="d"><circle cx="50" cy="50" r="40"/></clipPath>',
+        # A star crosses itself
+        '<clipPath id="c"><path d="M100 5 L130 95 L50 35 H150 L70 95 Z"/><use href="#r"/></clipPath>',
+        # A symbol clips to its viewport
+        '<symbol id="s" viewBox="0 0 10 10"><rect width="10" height="10"/></symbol><clipPath id="c"><use href="#s" width="50" height="50"/><use href="#r"/></clipPath>',
+        '<clipPath id="c"><image width="50" height="50" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E"/><use href="#r"/></clipPath>',
+    ],
+)
+def test_other_clips_keep_the_soft_mask(clip: str) -> None:
+    body = f'<defs><rect id="r" x="150" width="50" height="50"/>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'
+    assert "/SMask" in render(svg(body)).decode("latin-1")
+
+
+def test_clip_children_that_turn_opposite_ways_unite() -> None:
+    # Chromium fills the union of the children; WeasyPrint added both to one nonzero path, a hole where they meet
+    clip = '<clipPath id="c"><rect x="20" y="20" width="100" height="60"/><path d="M60 10 V90 H150 V10 Z"/></clipPath>'
+    pdf = render(svg(f'<defs>{clip}</defs><rect width="200" height="100" fill="red" clip-path="url(#c)"/>'))
+    assert near(pixel(pdf, 67, 37), RED)
+    assert near(pixel(pdf, 30, 37), RED)
+    assert near(pixel(pdf, 120, 37), WHITE)
+
+
 # ---------------- clip paths ----------------
 
 

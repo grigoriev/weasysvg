@@ -12,8 +12,10 @@ Touches:
   through mask="..." is broken, mask="..." on the <mask> itself is ignored as in Chromium, and the tag
   of the <mask> is restored, else the walk draws it as a <g>.
 - a complex clip path, through ``_core``: one in objectBoundingBox units, or whose children carry
-  clip-path, clip-rule="evenodd", text or <use>. One W clip cannot express it: it becomes an alpha soft mask, each child filled by its
-  clip-rule. WeasyPrint dropped such children, ignored clip-rule and painted clip text in black.
+  clip-path, clip-rule="evenodd", text or <use>, or with several children. It becomes one path of all its
+  fills where that holds them (``clippaths.py``), else an alpha soft mask, each child filled by its
+  clip-rule. WeasyPrint dropped such children, ignored clip-rule, painted clip text in black and cut a
+  hole where two children turn opposite ways.
 - ``svg.Node.override_iter``: a list instead of a one-shot iterator, so a node can be walked twice.
 - ``svg.SVG.draw_node``, through ``_core``: mix-blend-mode as an isolated group, and a mask on a container
   is set before its children are drawn. ``svg.NOT_INHERITED_ATTRIBUTES`` gains mix-blend-mode.
@@ -29,6 +31,7 @@ Touches:
 
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -44,7 +47,9 @@ from weasyprint.pdf import stream as wp_stream
 from weasyprint.svg import defs as wp_defs
 from weasyprint.svg import utils as wp_utils
 
-from . import _core, levelsets, pathdata
+from . import _core, clippaths, coverage, levelsets, pathdata
+
+LOGGER = logging.getLogger("weasysvg")
 
 GRADIENT_CELL = 1000  # pattern units for the longest side of a gradient cell
 DASH_FRACTION = 2.5e-5  # of the dash period: the length a dash of length 0 gets, 0.001 units of a period of 40
@@ -911,7 +916,11 @@ def complex_clip(svg: Any, node: Any) -> Any:
     # WeasyPrint sizes an objectBoundingBox clip by x, y, width and height: right for a <rect> only
     if clip.get("clipPathUnits") == "objectBoundingBox":
         return clip
-    for child in clip:
+    children = list(clip)
+    # WeasyPrint adds the outlines of several children to one nonzero path: two that turn opposite ways cut a hole
+    if len(children) > 1:
+        return clip
+    for child in children:
         if child.get("clip-path") or child.get("clip-rule") == "evenodd" or child.tag in ("text", "use"):
             return clip
     return None
@@ -933,19 +942,31 @@ def clip_restyle(_svg: Any, node: Any, _font_size: float) -> dict[str, str | Non
 
 
 def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
-    """Set clip as the alpha soft mask of the current state, with every child filled."""
+    """Clip the current state to clip, each child filled by its clip-rule.
+
+    The fills become one path where it can hold them (clippaths.py), else the alpha soft mask of clip: Word
+    draws no soft mask, and a printer may rasterize it.
+    """
     stream = svg.stream
-    mask = stream.set_alpha_state(*_core.group_box(svg, node, font_size), mode="alpha")
+    box = _core.group_box(svg, node, font_size)
+    if _clip_as_path(svg, node, clip, font_size, box):
+        return
+    _draw_clip_content(svg, node, clip, font_size, stream.set_alpha_state(*box, mode="alpha"))
+
+
+def _draw_clip_content(svg: Any, node: Any, clip: Any, font_size: float, target: Any) -> bool:
+    """Draw the children of clip on target, filled; False when its box units leave nothing to draw."""
     if clip.get("clipPathUnits") == "objectBoundingBox":
         box = svg.calculate_bounding_box(node, font_size, stroke=False)
         if not wp_defs.is_valid_bounding_box(box):
-            return  # an empty mask: the node is clipped away, as in Chromium
-        mask.transform(a=box[2], d=box[3], e=box[0], f=box[1])
+            return False  # an empty mask: the node is clipped away, as in Chromium
+        target.transform(a=box[2], d=box[3], e=box[0], f=box[1])
+    stream = svg.stream
     tag = clip._etree_node.tag
     token = _CLIPPING.set(True)
     styles = _plain_content()
     try:
-        svg.stream = mask
+        svg.stream = target
         clip._etree_node.tag = "g"
         svg.draw_node(clip, font_size)
     finally:
@@ -953,6 +974,27 @@ def paint_clip(svg: Any, node: Any, clip: Any, font_size: float) -> None:
         svg.stream = stream
         _CLIPPING.reset(token)
         _restore_content(styles)
+    return True
+
+
+def _clip_as_path(svg: Any, node: Any, clip: Any, font_size: float, box: tuple[float, float, float, float]) -> bool:
+    """Clip the current state to the fills of clip as one path; False when they need the soft mask."""
+    stream = svg.stream
+    scratch = stream.add_group(*box)
+    try:
+        subpaths = clippaths.union(clippaths.read(scratch)) if _draw_clip_content(svg, node, clip, font_size, scratch) else []
+    except coverage.Unsupported as error:
+        LOGGER.debug("SVG clip path keeps its soft mask: %s", error)
+        return False
+    finally:
+        stream._resources["XObject"].pop(scratch.id, None)
+    if subpaths:
+        clippaths.add(stream, subpaths)
+    else:
+        stream.rectangle(box[0], box[1], 0, 0)  # nothing drawn: the node is clipped away
+    stream.clip()
+    stream.end()
+    return True
 
 
 # ---------------- draw_node helpers, used by _core ----------------

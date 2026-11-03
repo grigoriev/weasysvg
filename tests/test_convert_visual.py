@@ -85,6 +85,17 @@ FEATURES = {
         '<defs><linearGradient id="g" gradientTransform="rotate(20)"><stop stop-color="green" stop-opacity="0.2"/><stop offset="1" stop-color="green"/></linearGradient></defs>'
         '<path d="M20 80 C60 0 140 100 180 20" fill="none" stroke="url(#g)" stroke-width="10"/>'
     ),
+    # Clip paths a soft mask drew before: a <use> as in Tux, children that turn opposite ways, a hole
+    "clip-use": svg(
+        '<defs><path id="p" d="M20 10 C120 -20 220 40 120 90 L30 80 Z"/><clipPath id="c"><use href="#p"/></clipPath></defs>'
+        '<g clip-path="url(#c)"><rect width="200" height="100" fill="#f8cecc"/><circle cx="100" cy="50" r="30" fill="#b85450"/></g>'
+    ),
+    "clip-union": svg(
+        '<defs><clipPath id="c"><rect x="20" y="20" width="100" height="60"/><path d="M60 10 V90 H150 V10 Z"/><circle cx="170" cy="50" r="20"/></clipPath></defs><rect width="200" height="100" fill="teal" clip-path="url(#c)"/>'
+    ),
+    "clip-hole": svg(
+        '<defs><clipPath id="c" clipPathUnits="objectBoundingBox"><path d="M0 0H1V1H0Z M0.3 0.3H0.7V0.7H0.3Z" clip-rule="evenodd"/></clipPath></defs><rect x="20" y="10" width="160" height="80" fill="purple" clip-path="url(#c)"/>'
+    ),
     "binary-mask": svg(
         '<defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="200" height="100" fill="white"/>'
         '<rect x="70" y="40" width="60" height="20" fill="black"/><circle cx="40" cy="50" r="10" fill="black"/></mask></defs>'
