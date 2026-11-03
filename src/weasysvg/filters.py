@@ -35,7 +35,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from statistics import NormalDist
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pydyf
 from PIL import Image, ImageChops, ImageFilter
@@ -48,6 +48,9 @@ from weasyprint.svg.utils import alpha_value, color, parse_url, size
 
 from . import _core, coverage, levelsets, shapeblur, turbulence
 from .paint import BOXED
+
+if TYPE_CHECKING:
+    from xml.etree import ElementTree as ET
 
 LOGGER = logging.getLogger("weasysvg")
 Region = tuple[float, float, float, float]
@@ -1379,14 +1382,26 @@ def _rect_field(rect: Region, blur: tuple[float, float]) -> _Field | None:
     return _Field(None, values, grid, clip)
 
 
+def _opaque(node: Any, paint: str, default: str) -> bool:
+    """Whether node paints paint in one opaque color: then its alpha is its geometry."""
+    value = str(node.get(paint, default)).strip()
+    if value == "none" or value.startswith(("url(", "context-")):
+        return False
+    return bool(color(value).alpha == 1 and alpha_value(node.get(f"{paint}-opacity", 1)) == 1)
+
+
 def _covered_rect(svg: Any, node: Any, font_size: float) -> Region | None:
-    """What a rect without rounded corners covers, its stroke in any paint: the alpha a silhouette takes."""
+    """What a rect without rounded corners covers, in opaque paint with any stroke color: the alpha a silhouette takes."""
     if node.tag != "rect" or any(node.get(name) not in (None, "", "0", "auto") for name in ("rx", "ry")):
+        return None
+    stroked = node.get("stroke") not in (None, "", "none")
+    # A translucent or missing paint has less alpha than its geometry: the coverage of drawn content reads it
+    if not _opaque(node, "fill", "black") or (stroked and not _opaque(node, "stroke", "none")):
         return None
     # _portable_fields has passed a rect without a size already
     x, y = svg.point(node.get("x"), node.get("y"), font_size)
     width, height = svg.point(node.get("width"), node.get("height"), font_size)
-    if node.get("stroke") not in (None, "", "none"):
+    if stroked:
         if node.get("stroke-linejoin", "miter") != "miter" or node.get("stroke-dasharray") not in (None, "none"):
             return None
         half = svg.length(node.get("stroke-width", "1"), font_size) / 2
@@ -1399,7 +1414,8 @@ def _portable_fields(svg: Any, original: Callable[..., None], node: Any, font_si
 
     A rect is its exact blur, any other filled shape one field in the paint of the layer. Other content is
     its blurred alpha in the color of a silhouette, or one field per color of its own (coverage.Raster),
-    stacked in the order the colors paint.
+    stacked in the order the colors paint. A silhouette takes the geometry of a shape only where it paints
+    opaque: else the coverage reads its alpha.
     """
     blur = layer.blur
     if node.tag == "rect" and min(svg.point(node.get("width"), node.get("height"), font_size)) <= 0:
@@ -1407,18 +1423,29 @@ def _portable_fields(svg: Any, original: Callable[..., None], node: Any, font_si
     rect = _covered_rect(svg, node, font_size) if layer.kind == "alpha" else _plain_rect(svg, node, font_size)
     if rect is not None:
         field = _rect_field(rect, blur)
-        return None if field is None else [field]
+        return None if field is None or not _charge(svg, field.grid.cells) else [field]
     if min(blur) <= 0:
         return None
-    if shapeblur.eligible(node) and node.visible:
-        # A subpath that encloses nothing paints nothing, as a rect without a size in Chromium
-        rings = [ring for ring in shapeblur.outline(svg, node, font_size, wp_svg.TAGS[node.tag], min(blur) / shapeblur.CELLS_PER_SIGMA / 4) if abs(shapeblur.signed_area(ring)) > 0]
-        if not rings:
-            return []
-        grid = _grid(rings, node.get("fill-rule") == "evenodd", blur)
-        if grid is None or not _charge(svg, grid.cells):
-            return None
-        return [_Field(None, grid.blurred(), grid)]
+    if shapeblur.eligible(node) and node.visible and (layer.kind != "alpha" or _opaque(node, "fill", "black")):
+        return _shape_fields(svg, node, font_size, blur)
+    return _content_fields(svg, original, node, font_size, context, layer)
+
+
+def _shape_fields(svg: Any, node: Any, font_size: float, blur: tuple[float, float]) -> list[_Field] | None:
+    """The blurred coverage of one filled shape, from its outline."""
+    # A subpath that encloses nothing paints nothing, as a rect without a size in Chromium
+    rings = [ring for ring in shapeblur.outline(svg, node, font_size, wp_svg.TAGS[node.tag], min(blur) / shapeblur.CELLS_PER_SIGMA / 4) if abs(shapeblur.signed_area(ring)) > 0]
+    if not rings:
+        return []
+    grid = _grid(rings, node.get("fill-rule") == "evenodd", blur)
+    if grid is None or not _charge(svg, grid.cells):
+        return None
+    return [_Field(None, grid.blurred(), grid)]
+
+
+def _content_fields(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer) -> list[_Field] | None:
+    """The blurred coverage of whatever node draws, read back as coverage.py reads it."""
+    blur = layer.blur
     content = _recorded(svg, original, node, font_size, context, layer, min(blur) / shapeblur.CELLS_PER_SIGMA / 4)
     if content is None or len(content.colors()) > coverage.MAX_COLORS:
         return None
@@ -1475,48 +1502,63 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
         paint = stream.add_group(*big)
         _paint_box(svg, original, node, font_size, context, paint, big, layer.recolor)
     for level in fields:
-        if layer.kind == "alpha":
-            rgba, opacity = layer.rgba, layer.rgba.alpha * layer.opacity
-        elif level.rgb is not None:
-            rgba, opacity = color("rgb({:.4f}%,{:.4f}%,{:.4f}%)".format(*(100 * channel for channel in level.rgb))), layer.opacity
-        elif solid is not None:
-            rgba, opacity = solid, solid.alpha * layer.opacity
-        else:
-            rgba, opacity = None, layer.opacity
+        rgba, opacity = _level_paint(layer, level, solid)
         steps = levelsets.thresholds(opacity)
         traced = levelsets.contours(level.values, [threshold for threshold, _ in steps])
         for threshold, alpha in steps:
-            if not traced[threshold]:
-                continue
-            stream.push_state()
-            try:
-                if level.clip is not None:
-                    stream.rectangle(*level.clip)
-                    stream.clip()
-                    stream.end()
-                # The color comes first: a graphics state inside path construction is ignored by viewers
-                if rgba is not None:
-                    stream.set_color(rgba.__class__(rgba.space, rgba.coordinates, alpha))
-                _add_level(stream, level.grid, traced[threshold])
-                if rgba is None:
-                    stream.clip(even_odd=True)
-                    stream.end()
-                    stream.set_alpha(alpha, stroke=True, fill=True)
-                    stream.draw_x_object(cast(Any, paint).id)
-                else:
-                    stream.fill(even_odd=True)
-            finally:
-                stream.pop_state()
+            if traced[threshold]:
+                _draw_level(stream, level, traced[threshold], rgba, alpha, paint)
     return True
 
 
+def _level_paint(layer: Layer, level: _Field, solid: Any) -> tuple[Any, float]:
+    """The color the levels of a field paint and the opacity they reach; no color for the paint of the element."""
+    if layer.kind == "alpha":
+        return layer.rgba, layer.rgba.alpha * layer.opacity
+    if level.rgb is not None:
+        return color("rgb({:.4f}%,{:.4f}%,{:.4f}%)".format(*(100 * channel for channel in level.rgb))), layer.opacity
+    if solid is not None:
+        return solid, solid.alpha * layer.opacity
+    return None, layer.opacity
+
+
+def _draw_level(stream: Any, level: _Field, rings: list[levelsets.Ring], rgba: Any, alpha: float, paint: Any) -> None:
+    """One level: its contours filled in rgba at alpha, or the paint of the element shown through them."""
+    stream.push_state()
+    try:
+        if level.clip is not None:
+            stream.rectangle(*level.clip)
+            stream.clip()
+            stream.end()
+        # The color comes first: a graphics state inside path construction is ignored by viewers
+        if rgba is not None:
+            stream.set_color(rgba.__class__(rgba.space, rgba.coordinates, alpha))
+        _add_level(stream, level.grid, rings)
+        if rgba is None:
+            stream.clip(even_odd=True)
+            stream.end()
+            stream.set_alpha(alpha, stroke=True, fill=True)
+            stream.draw_x_object(paint.id)
+        else:
+            stream.fill(even_odd=True)
+    finally:
+        stream.pop_state()
+
+
+def _may_draw_an_image(element: ET.Element) -> bool:
+    """Whether element is an image, or draws one by reference: a <use>, or a paint server that may hold one."""
+    if element.tag.rpartition("}")[2] in ("image", "use"):
+        return True
+    return any("url(" in str(element.get(paint, "")) for paint in ("fill", "stroke", "style"))
+
+
 def _portable_silhouette(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region) -> bool:
-    """Draw the element in the one color of the layer without a soft mask; False when it holds an image.
+    """Draw the element in the one color of the layer without a soft mask; False when it may draw an image.
 
     Every color it paints with turns into the color of the layer and keeps its alpha: the group has the alpha
     of the element, as the mask had. An image keeps its pixels under a recolor, so it keeps the mask.
     """
-    if any(element.tag.rpartition("}")[2] == "image" for element in node._etree_node.iter() if isinstance(element.tag, str)):
+    if any(_may_draw_an_image(element) for element in node._etree_node.iter() if isinstance(element.tag, str)):
         return False
     red, green, blue = (_clamp(channel) for channel in layer.rgba.to("srgb").coordinates)
 

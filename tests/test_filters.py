@@ -381,6 +381,51 @@ def test_portable_blur_of_a_shape_along_one_axis_keeps_the_mask() -> None:
     assert soft_masks(portable(document)) > 0
 
 
+@pytest.mark.parametrize(
+    "rect",
+    [
+        # No fill: a stroke casts a ring, nothing casts nothing
+        '<rect x="20" y="20" width="60" height="40" fill="none" stroke="black" stroke-width="4" filter="url(#f)"/>',
+        '<rect x="20" y="20" width="60" height="40" fill="none" filter="url(#f)"/>',
+        # A translucent fill or stroke casts a lighter shadow
+        '<rect x="20" y="20" width="60" height="40" fill="red" fill-opacity="0.5" filter="url(#f)"/>',
+        '<rect x="20" y="20" width="60" height="40" fill="red" stroke="blue" stroke-width="6" stroke-opacity="0.3" filter="url(#f)"/>',
+        '<rect x="20" y="20" width="60" height="40" fill="transparent" stroke="blue" stroke-width="4" filter="url(#f)"/>',
+        '<rect x="20" y="20" width="60" height="40" fill="url(#g)" filter="url(#f)"/>',
+        '<circle cx="50" cy="40" r="20" fill="red" fill-opacity="0.4" filter="url(#f)"/>',
+    ],
+)
+def test_portable_shadow_follows_the_alpha_of_the_paint(rect: str) -> None:
+    # The shadow alone: SourceAlpha offset and blurred, in black
+    gradient = '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="red" stop-opacity="0"/></linearGradient>'
+    document = svg(f'<defs>{gradient}<filter id="f" x="-50%" y="-50%" width="200%" height="200%"><feOffset in="SourceAlpha" dx="0" dy="0"/><feGaussianBlur stdDeviation="2"/></filter></defs>{rect}', height=120)
+    difference = ImageChops.difference(rasterize(render(document), 2), rasterize(portable(document), 2)).convert("L")
+    assert ImageStat.Stat(difference).mean[0] < 1.5
+    assert cast("tuple[int, int]", difference.getextrema())[1] < 48
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        '<use href="#picture"/>',
+        '<rect x="20" y="20" width="40" height="40" fill="url(#p)"/>',
+    ],
+)
+def test_portable_silhouette_of_an_image_by_reference_keeps_the_mask(content: str) -> None:
+    # An image reached through <use> or a pattern keeps its pixels under a recolor as well
+    pixel_png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="
+    image = f'<image id="picture" x="20" y="20" width="10" height="10" href="data:image/png;base64,{pixel_png}"/>'
+    defs = f'<defs>{image}<pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse">{image.replace("picture", "inner")}</pattern></defs>'
+    target = f'{defs}<g filter="url(#f)"><rect x="40" y="20" width="20" height="20" fill="red"/>{content}</g>'
+    document = filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', GRAY_SHADOW, target=target)
+    assert soft_masks(portable(document)) > 0
+
+
+def test_portable_blur_of_rects_counts_against_the_pixel_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 10)
+    assert soft_masks(portable(PORTABLE_BLURS["rect"])) > 0
+
+
 def test_portable_blur_of_text_keeps_the_mask() -> None:
     # Text is beyond the coverage of drawn content (coverage.py): the levels of the nearest edge keep the mask
     document = filtered('<feGaussianBlur stdDeviation="2"/>', GRAY_SHADOW, target='<text x="20" y="60" font-size="40" fill="red" filter="url(#f)">Hi</text>')
