@@ -1542,14 +1542,30 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
         # The paint of the element over all of box, drawn once and shown through each level
         paint = stream.add_group(*big)
         _paint_box(svg, original, node, font_size, context, paint, big, layer.recolor)
+    most = _most_blur_levels(stream, layer.blur)
     for level in fields:
         rgba, opacity = _level_paint(layer, level, solid)
-        steps = levelsets.thresholds(opacity)
+        steps = levelsets.thresholds(opacity, most)
         traced = levelsets.contours(level.values, [threshold for threshold, _ in steps])
         for threshold, alpha in steps:
             if traced[threshold]:
                 _draw_level(stream, level, traced[threshold], rgba, alpha, paint)
     return True
+
+
+def _most_blur_levels(stream: Any, blur: tuple[float, float]) -> int | None:
+    """How many levels keep the contours of a blurred edge at least _core.BAND_PX apart; None for no limit.
+
+    An edge blurred by sigma px rises fastest at its middle, by 1 / (sigma sqrt(2 pi)) a px: n levels there
+    lie sigma sqrt(2 pi) / n px apart, and farther everywhere else.
+    """
+    band_px = _core.BAND_PX.get()
+    # A blur along one axis leaves the edges across the other sharp: those have no levels
+    sigmas = [sigma for sigma in blur if sigma > 0]
+    if band_px <= 0 or not sigmas:
+        return None
+    sigma_px = min(sigmas) * math.sqrt(abs(_core.absolute_matrix(stream).determinant)) * _core.PX_PER_PT / _core.ZOOM.get()
+    return max(1, math.ceil(sigma_px * math.sqrt(2 * math.pi) / band_px))
 
 
 # What makes the shape a <use> draws more than its outline in its paint

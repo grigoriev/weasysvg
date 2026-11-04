@@ -384,10 +384,18 @@ def test_portable_blur_of_a_use_takes_a_plain_shape_alone(used: str) -> None:
 
 def test_portable_blur_follows_the_gaussian() -> None:
     # The level sets of the exact blur of a rect: Phi at the center of each pixel, within a step of 1/64
-    pdf = portable(svg('<filter id="f"><feGaussianBlur stdDeviation="5"/></filter><rect x="40" y="40" width="120" height="120" fill="black" filter="url(#f)"/>', 200, 200))
+    with weasysvg.portable(band_px=0):
+        pdf = render(svg('<filter id="f"><feGaussianBlur stdDeviation="5"/></filter><rect x="40" y="40" width="120" height="120" fill="black" filter="url(#f)"/>', 200, 200))
     image = rasterize(pdf, 4 / 3).convert("L")
     for y in range(30, 50, 2):
         assert 1 - cast(int, image.getpixel((100, y))) / 255 == pytest.approx(NormalDist().cdf((y + 0.5 - 40) / 5), abs=0.02)
+
+
+@pytest.mark.parametrize(("deviation", "levels"), [("1", 3), ("4", 11), ("0 4", 11)])
+def test_portable_blur_has_no_levels_closer_than_a_pixel(deviation: str, levels: int) -> None:
+    # An edge blurred by 4 px rises by at most 1/10 a px: 11 levels are a pixel apart there, 64 were a sixth
+    content = portable(filtered(f'<feGaussianBlur stdDeviation="{deviation}"/>')).decode("latin-1")
+    assert len(re.findall(r"\bf\*\s", content)) == levels
 
 
 def test_portable_blur_along_one_axis_keeps_the_other_edge_sharp() -> None:

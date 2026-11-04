@@ -23,7 +23,7 @@ from weasysvg.convert import ConvertError, size_px, to_pdf, to_svg
 
 CORPUS = Path(__file__).resolve().parent.parent / "corpus" / "svg"
 FOLDERS = ("diagrams", "drawio", "pdf-exporter", "real", "fo", "text")
-BANDS = (0.0, 1.0, 2.0, 4.0)
+BANDS = (0.0, 0.5, 1.0, 2.0, 4.0)
 SCALE = 2
 BLUR = 2
 
