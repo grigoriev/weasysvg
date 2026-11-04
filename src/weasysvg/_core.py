@@ -59,6 +59,12 @@ _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips",
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
 # Drawing for a portable PDF, per thread and task: see portable()
 PORTABLE: ContextVar[bool] = ContextVar("weasysvg_portable", default=False)
+# The least width of an opacity level of a gradient or a blur in a portable PDF, in CSS px as the drawing is shown.
+# A level narrower than a pixel shows no more than one a pixel wide, and each one more is drawn in full by a flat SVG.
+DEFAULT_BAND_PX = 1.0
+BAND_PX: ContextVar[float] = ContextVar("weasysvg_band_px", default=DEFAULT_BAND_PX)
+# How much larger the drawing is drawn than it is shown: the flat SVG is read from a PDF drawn larger
+ZOOM: ContextVar[float] = ContextVar("weasysvg_zoom", default=1.0)
 # The smallest box a group gets, in user units
 MIN_GROUP_EXTENT = 1e4
 
@@ -81,13 +87,19 @@ def original_draw_node() -> Callable[..., None]:
 
 
 @contextmanager
-def portable() -> Iterator[None]:
-    """Draw without soft masks and blend modes where the same picture allows it, for the duration."""
-    token = PORTABLE.set(True)
+def portable(*, band_px: float = DEFAULT_BAND_PX, zoom: float = 1.0) -> Iterator[None]:
+    """Draw without soft masks and blend modes where the same picture allows it, for the duration.
+
+    A gradient with transparent stops and a blur are painted once per level of their opacity, no level narrower
+    than band_px CSS px of the drawing shown zoom times smaller than drawn. 0 takes a level per 1/64 of opacity.
+    """
+    tokens = (PORTABLE.set(True), BAND_PX.set(band_px), ZOOM.set(zoom))
     try:
         yield
     finally:
-        PORTABLE.reset(token)
+        ZOOM.reset(tokens[2])
+        BAND_PX.reset(tokens[1])
+        PORTABLE.reset(tokens[0])
 
 
 def add_tree_pass(rank: int, name: str, function: TreePass) -> None:
@@ -444,6 +456,23 @@ def track_groups() -> None:
         wp_stream.Stream.add_group = _add_group
     if wp_stream.Stream.add_pattern is not _add_pattern:
         wp_stream.Stream.add_pattern = _add_pattern
+
+
+def px_across(stream: Any, ux: float, uy: float) -> float:
+    """CSS px as shown between two lines of stream one user unit apart, across the unit direction (ux, uy).
+
+    A transform may stretch one direction and squeeze another: the area it scales by says neither.
+    """
+    a, b, c, d, _, _ = absolute_matrix(stream).values
+    across = math.hypot(d * ux - b * uy, a * uy - c * ux)
+    return abs(a * d - b * c) / across * PX_PER_PT / ZOOM.get() if across else 0.0
+
+
+def px_most(stream: Any) -> float:
+    """CSS px as shown of one user unit of stream along the direction the transform stretches most."""
+    a, b, c, d, _, _ = absolute_matrix(stream).values
+    total = a * a + b * b + c * c + d * d
+    return math.sqrt((total + math.sqrt(max(0.0, total * total - 4 * (a * d - b * c) ** 2))) / 2) * PX_PER_PT / ZOOM.get()
 
 
 def px_per_unit(svg: Any) -> float:

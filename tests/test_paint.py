@@ -13,9 +13,10 @@ from xml.etree import ElementTree as ET
 import pytest
 from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, streams, svg
 from PIL import ImageChops, ImageStat
+from weasyprint.matrix import Matrix
 
 import weasysvg
-from weasysvg import paint
+from weasysvg import _core, paint
 from weasysvg.paint import GRADIENT_CELL, drop_empty_presentation
 
 RED = (255, 0, 0)
@@ -267,6 +268,33 @@ def test_levels_skip_a_clear_piece() -> None:
     assert all(low >= 0.5 and high == math.inf for _, [(low, high)] in found)
 
 
+@pytest.mark.parametrize(("axis_px", "count"), [(20.0, 20), (200.0, 64), (0.0, 64)])
+def test_no_level_is_narrower_than_a_pixel(axis_px: float, count: int) -> None:
+    # Over 20 px a level per pixel shows all a screen can: 64 levels were a third of a pixel each
+    assert len(paint.levels(linear((0, 0.0), (1, 1.0)), (0, 1), False, axis_px)) == count
+
+
+def test_the_slowest_change_sets_the_width_of_a_level() -> None:
+    # A fast rise over 2 px, then a slow fall over 18 px: the fall needs 18 levels to keep its levels a pixel wide
+    assert len(paint.levels(linear((0, 0.0), (0.1, 1.0), (1, 0.0)), (0, 1), False, 20.0)) == 18
+
+
+def test_wider_levels_with_band_px() -> None:
+    token = _core.BAND_PX.set(4.0)
+    try:
+        assert len(paint.levels(linear((0, 0.0), (1, 1.0)), (0, 1), False, 40.0)) == 10
+    finally:
+        _core.BAND_PX.reset(token)
+
+
+def test_band_px_0_keeps_a_level_per_64th() -> None:
+    token = _core.BAND_PX.set(0.0)
+    try:
+        assert len(paint.levels(linear((0, 0.0), (1, 1.0)), (0, 1), False, 10.0)) == 64
+    finally:
+        _core.BAND_PX.reset(token)
+
+
 def test_levels_of_one_opacity_are_one_coat() -> None:
     found = paint.levels(linear((0, 0.4), (1, 0.4)), (0, 1), True)
     assert len(found) == 1
@@ -328,7 +356,8 @@ def test_reach_of_circles_that_move_away_from_a_corner() -> None:
 )
 def test_portable_gradient_opacity_has_no_soft_mask_and_matches(gradient: str) -> None:
     body = f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)" fill-opacity="0.7"/><rect x="20" y="40" width="160" height="20" fill="none" stroke="url(#g)" stroke-width="8"/>'
-    soft, flat = render(svg(body)), portable_render(body)
+    # A level per 1/64: the levels of a pixel each cut the opacity in steps of a tenth across the 20 px of the stroke
+    soft, flat = render(svg(body)), portable_render(body, band_px=0)
     assert "/SMask" in soft.decode("latin-1")
     assert "/SMask" not in flat.decode("latin-1")
     difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
@@ -369,8 +398,8 @@ KNOCKOUT = (
 )
 
 
-def portable_render(body: str) -> bytes:
-    with weasysvg.portable():
+def portable_render(body: str, band_px: float = _core.DEFAULT_BAND_PX) -> bytes:
+    with weasysvg.portable(band_px=band_px):
         return render(svg(body))
 
 
@@ -1173,3 +1202,13 @@ def test_a_half_circle_arc_is_round(arc: str) -> None:
         angle = math.radians(degrees)
         inside = [r for r in range(80 * scale, 120 * scale) if cast("int", image.getpixel((round((150 - r / scale * math.cos(angle)) * scale), round((150 - r / scale * math.sin(angle)) * scale)))) < 128]
         assert abs(max(inside) / scale - 100) <= 0.5, degrees
+
+
+def test_the_axis_of_a_gradient_is_measured_along_it() -> None:
+    # A gradient 1 unit long, stretched 100 times along it and squeezed along the other: 100 px, not 1
+    stream = SimpleNamespace(ctm=Matrix(100 * 3 / 4, 0, 0, 3 / 4 / 100))
+    assert paint._axis_px(stream, 2, [0.0, 0.0, 1.0, 0.0]) == pytest.approx(100)
+    assert paint._axis_px(stream, 2, [0.0, 0.0, 0.0, 1.0]) == pytest.approx(0.01)
+    assert paint._axis_px(stream, 2, [1.0, 1.0, 1.0, 1.0]) == 0
+    # A ring grows widest along the stretched direction
+    assert paint._axis_px(stream, 3, [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) == pytest.approx(100)

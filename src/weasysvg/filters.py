@@ -1542,14 +1542,38 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
         # The paint of the element over all of box, drawn once and shown through each level
         paint = stream.add_group(*big)
         _paint_box(svg, original, node, font_size, context, paint, big, layer.recolor)
+    most = _most_blur_levels(stream, layer.blur)
     for level in fields:
         rgba, opacity = _level_paint(layer, level, solid)
-        steps = levelsets.thresholds(opacity)
-        traced = levelsets.contours(level.values, [threshold for threshold, _ in steps])
+        # The levels span the field up to its peak: a faint field, which holds the fade of its layer, would
+        # otherwise lie below the first of a few levels and paint nothing
+        peak = cast("tuple[int, int]", level.values.getextrema())[1] / 255
+        if not peak:
+            continue
+        steps = levelsets.thresholds(opacity * peak, most)
+        traced = levelsets.contours(level.values, [threshold * peak for threshold, _ in steps])
+        # Each level lies below the peak, which reaches it: no level is empty
         for threshold, alpha in steps:
-            if traced[threshold]:
-                _draw_level(stream, level, traced[threshold], rgba, alpha, paint)
+            _draw_level(stream, level, traced[threshold * peak], rgba, alpha, paint)
     return True
+
+
+def _most_blur_levels(stream: Any, blur: tuple[float, float]) -> int | None:
+    """How many levels keep the contours of the softest blurred edge at least _core.BAND_PX apart; None for no limit.
+
+    An edge blurred by sigma px rises fastest at its middle, by 1 / (sigma sqrt(2 pi)) a px: n levels there
+    lie sigma sqrt(2 pi) / n px apart, and farther everywhere else. The softest edge is the widest one as shown:
+    a sharper edge has its contours closer. Through a transform, the blur is a Gaussian of covariance
+    L diag(sx^2, sy^2) L^T, whose widest deviation is the root of its larger eigenvalue, shear and all.
+    """
+    band_px = _core.BAND_PX.get()
+    sx, sy = blur
+    if band_px <= 0 or (sx <= 0 and sy <= 0):
+        return None
+    a, b, c, d, _, _ = _core.absolute_matrix(stream).values
+    xx, yy, xy = (a * sx) ** 2 + (c * sy) ** 2, (b * sx) ** 2 + (d * sy) ** 2, a * b * sx * sx + c * d * sy * sy
+    widest = math.sqrt((xx + yy + math.hypot(xx - yy, 2 * xy)) / 2) * _core.PX_PER_PT / _core.ZOOM.get()
+    return max(1, math.floor(widest * math.sqrt(2 * math.pi) / band_px))
 
 
 # What makes the shape a <use> draws more than its outline in its paint

@@ -31,13 +31,14 @@ SIMPLIFY_CELLS = 1 / 8
 _CHANGING = re.compile(rb"[^\x00]+")
 
 
-def thresholds(opacity: float) -> list[tuple[float, float]]:
+def thresholds(opacity: float, most: int | None = None) -> list[tuple[float, float]]:
     """The levels of a field from 0 to 1 painted at most opacity: (threshold, opacity to paint it at).
 
     Level k of n holds the points whose value reaches (k - 0.5) / n, and stacked over the levels before it
-    brings them to opacity * k / n. Painted over an opacity T, an opacity a gives T + a (1 - T).
+    brings them to opacity * k / n. Painted over an opacity T, an opacity a gives T + a (1 - T). There is a
+    level per 1/64 of opacity, and no more than most.
     """
-    steps = max(1, math.ceil(OPACITY_STEPS * opacity))
+    steps = max(1, min(math.ceil(OPACITY_STEPS * opacity), most or OPACITY_STEPS))
     out = []
     below = 0.0
     for k in range(1, steps + 1):

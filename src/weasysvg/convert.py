@@ -29,6 +29,7 @@ import weasyprint
 from weasyprint.urls import URLFetcher
 
 import weasysvg
+from weasysvg._core import DEFAULT_BAND_PX
 
 DEFAULT_DPI = 96.0
 # The CSS units an absolute length of the root can carry, in inches
@@ -116,16 +117,16 @@ def page_html(svg: bytes, width_pt: float, height_pt: float) -> str:
     )
 
 
-def to_pdf(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *, portable: bool = False, scale: float = 1.0) -> bytes:
+def to_pdf(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *, portable: bool = False, scale: float = 1.0, band_px: float = DEFAULT_BAND_PX) -> bytes:
     """The SVG as a one-page vector PDF. Only data: URLs are fetched, as rsvg-convert fetches no remote file.
 
-    portable draws without soft masks and blend modes where weasysvg can, see weasysvg.portable(). scale
-    enlarges the page and the drawing on it.
+    portable draws without soft masks and blend modes where weasysvg can, with levels of opacity at least
+    band_px wide, see weasysvg.portable(). scale enlarges the page and the drawing on it.
     """
     width, height = size_px(svg, dpi_x, dpi_y)
     html = page_html(svg, width * 72 / dpi_x * scale, height * 72 / dpi_y * scale)
     document = weasyprint.HTML(string=html, url_fetcher=URLFetcher(allowed_protocols={"data"}))
-    with weasysvg.portable() if portable else contextlib.nullcontext():
+    with weasysvg.portable(band_px=band_px, zoom=scale) if portable else contextlib.nullcontext():
         pdf: bytes = document.write_pdf()
     return pdf
 
@@ -161,7 +162,7 @@ def to_png(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -
     return out.getvalue()
 
 
-def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -> bytes:
+def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *, band_px: float = DEFAULT_BAND_PX) -> bytes:
     """The SVG flattened to paths, clips, gradients and images, which Word draws: the portable PDF read back by pdftocairo of Poppler.
 
     Word draws no <foreignObject> and no filters, and only some masks. The flat SVG keeps the drawing as
@@ -175,7 +176,7 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -
         pdf_path = os.path.join(tmp, "in.pdf")
         svg_path = os.path.join(tmp, "out.svg")
         with open(pdf_path, "wb") as handle:
-            handle.write(to_pdf(svg, dpi_x, dpi_y, portable=True, scale=FLAT_SCALE))
+            handle.write(to_pdf(svg, dpi_x, dpi_y, portable=True, scale=FLAT_SCALE, band_px=band_px))
         try:
             result = subprocess.run(["pdftocairo", "-svg", pdf_path, svg_path], capture_output=True, check=False, timeout=PDFTOCAIRO_TIMEOUT)  # noqa: S603, S607
         except FileNotFoundError as error:
@@ -187,7 +188,7 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -
         with open(svg_path, "rb") as handle:
             flat = handle.read()
     width, height = size_px(svg, dpi_x, dpi_y)
-    return sized(constant_masks_as_opacity(flat), width * 72 / dpi_x, height * 72 / dpi_y)
+    return sized(shared_clip_paths(constant_masks_as_opacity(flat)), width * 72 / dpi_x, height * 72 / dpi_y)
 
 
 SVG_NS = "http://www.w3.org/2000/svg"
@@ -218,6 +219,46 @@ def constant_masks_as_opacity(flat: bytes) -> bytes:
         return flat
     _drop_unused_masks(root, _as_opacity(root, opacities))
     return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+
+
+def shared_clip_paths(flat: bytes) -> bytes:
+    """The flat SVG with each clip path written once, its copies named by the first.
+
+    cairo writes the clip of a shape anew for every paint inside it. A gradient with a transparent stop is
+    painted once per opacity level in the portable PDF, so a long outline came out once per level.
+    """
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    root = ET.fromstring(flat)
+    first: dict[bytes, str] = {}
+    shared: dict[str, str] = {}
+    copies: list[ET.Element] = []
+    # Document order: cairo defines a clip before the clip that names it
+    for clip in root.iter(f"{{{SVG_NS}}}clipPath"):
+        _name_shared(clip, shared)
+        for child in clip.iter():
+            _name_shared(child, shared)
+        attributes = sorted((name, value) for name, value in clip.attrib.items() if name != "id")
+        key = repr(attributes).encode() + b"".join(ET.tostring(child) for child in clip)
+        if key in first:
+            shared[f"url(#{clip.get('id')})"] = first[key]
+            copies.append(clip)
+        else:
+            first[key] = f"url(#{clip.get('id')})"
+    if not copies:
+        return flat
+    for element in root.iter():
+        _name_shared(element, shared)
+    parents = {child: parent for parent in root.iter() for child in parent}
+    for clip in copies:
+        parents[clip].remove(clip)
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+
+
+def _name_shared(element: ET.Element, shared: dict[str, str]) -> None:
+    reference = element.get("clip-path")
+    if reference in shared:
+        element.set("clip-path", shared[reference])
 
 
 def _as_opacity(root: ET.Element, opacities: dict[str, float]) -> set[str]:
@@ -281,12 +322,29 @@ def positive(text: str) -> float:
     return value
 
 
+def not_negative(text: str) -> float:
+    """A width of a level: a finite number, 0 or more."""
+    try:
+        value = float(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(f"not a number: {text}") from error
+    if not 0 <= value < math.inf:
+        raise argparse.ArgumentTypeError(f"not a number of 0 or more: {text}")
+    return value
+
+
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="weasysvg-convert", description="Convert SVG to PDF, PNG or a flat SVG with WeasyPrint and weasysvg. Accepts the rsvg-convert options pandoc uses.")
     parser.add_argument("-f", "--format", default="png", choices=("png", "pdf", "svg"), help="output format (default: png)")
     parser.add_argument("-o", "--output", help="output file (default: stdout)")
     parser.add_argument("-d", "--dpi-x", type=positive, default=DEFAULT_DPI, help="pixels per inch, horizontal (default: 96)")
     parser.add_argument("-p", "--dpi-y", type=positive, default=DEFAULT_DPI, help="pixels per inch, vertical (default: 96)")
+    parser.add_argument(
+        "--band-px",
+        type=not_negative,
+        default=DEFAULT_BAND_PX,
+        help=f"flat SVG: the least width of an opacity level of a gradient or a blur, in px as shown; 0 for a level per 1/64 (default: {DEFAULT_BAND_PX:g})",
+    )
     parser.add_argument("-a", "--keep-aspect-ratio", action="store_true", help="accepted for compatibility: the size is always the SVG's own")
     parser.add_argument("input", nargs="?", default="-", help="input SVG file (default: stdin)")
     return parser.parse_args(argv)
@@ -305,8 +363,7 @@ def main(argv: list[str] | None = None) -> int:
     weasysvg.install()
     try:
         svg = read_input(args.input, sys.stdin.buffer)
-        converter = {"pdf": to_pdf, "png": to_png, "svg": to_svg}[args.format]
-        result = converter(svg, args.dpi_x, args.dpi_y)
+        result = to_svg(svg, args.dpi_x, args.dpi_y, band_px=args.band_px) if args.format == "svg" else {"pdf": to_pdf, "png": to_png}[args.format](svg, args.dpi_x, args.dpi_y)
         if args.output:
             # A command line tool writes the file its caller names, as rsvg-convert does
             with open(args.output, "wb") as handle:  # NOSONAR
