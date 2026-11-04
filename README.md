@@ -95,21 +95,23 @@ with weasysvg.portable():
     pdf = weasyprint.HTML("diagram.html").write_pdf()
 ```
 
+`portable(band_px=1)` sets the least width of a level of the gradients and blurs below, in CSS px as the
+drawing is shown. `band_px=0` takes a level per 1/64 of opacity always.
+
 - A mask of opaque white areas, then opaque black ones (`rect`, `circle`, `ellipse`), becomes a clip path.
   D2 cuts its edges under the labels with such a mask. A mask without a white area hides the element.
 - A mask of one gray or translucent shape becomes a clip to the shape and an opacity of the element.
 - A blur, and the shadow of `feDropShadow` or `drop-shadow()`, becomes the regions where the blurred
   coverage reaches each level, one inside the next, each filled with a constant opacity. Painted in order,
-  they add up to the blur within 1/64 of opacity. The contours are traced through the blurred coverage, so
-  any shape keeps the profile of a real Gaussian; a rect takes its exact blur. Where an edge rises fastest,
-  its contours lie at least `band_px` CSS px apart: a blur of 4 px takes 10 levels.
+  they add up to the blur within one level. The contours are traced through the blurred coverage, so any
+  shape keeps the profile of a real Gaussian; a rect takes its exact blur. Where the softest edge rises
+  fastest, its contours lie at least `band_px` CSS px apart: a blur of 4 px takes 10 levels.
 
 - The opacity of the stops of a gradient, and a fill opacity on it, become the level sets of that opacity along
   the gradient: strips across a linear gradient, rings of a radial one, each painted with the color shading at
-  a constant opacity, within 1/64. A radial gradient whose circles do not hold each other keeps its soft mask.
-  Where the opacity jumps at one offset, a viewer may show a line of one pixel. No level is narrower than
-  `portable(band_px=1)` CSS px where the opacity changes most slowly: a small gradient gets fewer levels.
-  `band_px=0` takes a level per 1/64 always.
+  a constant opacity, within one level. A radial gradient whose circles do not hold each other keeps its soft
+  mask. Where the opacity jumps at one offset, a viewer may show a line of one pixel. No level is narrower
+  than `band_px` CSS px where the opacity changes most slowly: a small gradient gets fewer levels.
 - The blur of a `<use>` of one shape is the blur of that shape, in any paint.
 
 A clip path that one PDF clip cannot express becomes one path of all its fills, in any PDF: a `<use>`, several

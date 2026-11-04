@@ -1558,14 +1558,17 @@ def _most_blur_levels(stream: Any, blur: tuple[float, float]) -> int | None:
 
     An edge blurred by sigma px rises fastest at its middle, by 1 / (sigma sqrt(2 pi)) a px: n levels there
     lie sigma sqrt(2 pi) / n px apart, and farther everywhere else. The softest edge is the widest one as shown:
-    a sharper edge has its contours closer.
+    a sharper edge has its contours closer. Through a transform, the blur is a Gaussian of covariance
+    L diag(sx^2, sy^2) L^T, whose widest deviation is the root of its larger eigenvalue, shear and all.
     """
     band_px = _core.BAND_PX.get()
-    # A blur along one axis leaves the edges across the other sharp: those have no levels
-    sigmas = [sigma * _core.px_across(stream, *axis) for sigma, axis in zip(blur, ((1.0, 0.0), (0.0, 1.0)), strict=True) if sigma > 0]
-    if band_px <= 0 or not sigmas:
+    sx, sy = blur
+    if band_px <= 0 or (sx <= 0 and sy <= 0):
         return None
-    return max(1, math.floor(max(sigmas) * math.sqrt(2 * math.pi) / band_px))
+    a, b, c, d, _, _ = _core.absolute_matrix(stream).values
+    xx, yy, xy = (a * sx) ** 2 + (c * sy) ** 2, (b * sx) ** 2 + (d * sy) ** 2, a * b * sx * sx + c * d * sy * sy
+    widest = math.sqrt((xx + yy + math.hypot(xx - yy, 2 * xy)) / 2) * _core.PX_PER_PT / _core.ZOOM.get()
+    return max(1, math.floor(widest * math.sqrt(2 * math.pi) / band_px))
 
 
 # What makes the shape a <use> draws more than its outline in its paint

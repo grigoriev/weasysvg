@@ -1649,3 +1649,9 @@ def test_portable_blur_levels_follow_a_stretched_axis() -> None:
     stream = SimpleNamespace(ctm=Matrix(50 * 3 / 4, 0, 0, 3 / 4 / 50))
     assert filters._most_blur_levels(stream, (0.1, 0.1)) == 12
     assert filters._most_blur_levels(stream, (0.0, 0.1)) == 1
+    assert filters._most_blur_levels(stream, (0.0, 0.0)) is None
+
+
+def test_portable_blur_levels_follow_a_sheared_blur() -> None:
+    # Sheared by 3, a blur of 4 spreads 13.2 px along its widest direction: 33 levels, not the 10 of either axis
+    assert filters._most_blur_levels(SimpleNamespace(ctm=Matrix(3 / 4, 0, 9 / 4, 3 / 4)), (4.0, 4.0)) == 33
