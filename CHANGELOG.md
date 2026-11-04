@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
 ### Added
 
 - In `weasysvg.portable()`, no opacity level of a gradient is narrower than `band_px` CSS px of the drawing as
