@@ -399,6 +399,23 @@ def test_portable_blur_has_no_levels_closer_than_a_pixel(deviation: str, levels:
     assert len(re.findall(r"\bf\*\s", content)) == levels
 
 
+def test_portable_blur_keeps_a_faint_drawing() -> None:
+    # A faint group keeps its fade in its field: ten levels of full opacity would start above it and paint nothing
+    document = filtered('<feGaussianBlur stdDeviation="4"/>', GRAY_SHADOW, target='<g filter="url(#f)"><rect x="20" y="20" width="160" height="80" fill="red" fill-opacity="0.04"/></g>')
+    soft, flat = render(document), portable(document)
+    assert soft_masks(flat) == 0
+    assert pixel(flat, 75, 45) != WHITE
+    assert max(ImageStat.Stat(ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))).mean) < 1.5
+
+
+def test_portable_blur_of_a_color_covered_by_another_paints_it_not() -> None:
+    # The red rect lies under the blue one: its share is nothing, and it gets no level
+    document = filtered('<feGaussianBlur stdDeviation="3"/>', GRAY_SHADOW, target='<g filter="url(#f)"><rect x="20" y="20" width="60" height="40" fill="red"/><rect x="20" y="20" width="60" height="40" fill="blue"/></g>')
+    flat = portable(document)
+    assert soft_masks(flat) == 0
+    assert "1 0 0 rg" not in flat.decode("latin-1")
+
+
 def test_portable_blur_along_one_axis_keeps_the_other_edge_sharp() -> None:
     pdf = portable(filtered('<feGaussianBlur stdDeviation="0 4"/>'))
     assert soft_masks(pdf) == 0

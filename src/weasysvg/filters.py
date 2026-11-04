@@ -1545,11 +1545,16 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
     most = _most_blur_levels(stream, layer.blur)
     for level in fields:
         rgba, opacity = _level_paint(layer, level, solid)
-        steps = levelsets.thresholds(opacity, most)
-        traced = levelsets.contours(level.values, [threshold for threshold, _ in steps])
+        # The levels span the field up to its peak: a faint field, which holds the fade of its layer, would
+        # otherwise lie below the first of a few levels and paint nothing
+        peak = cast("tuple[int, int]", level.values.getextrema())[1] / 255
+        if not peak:
+            continue
+        steps = levelsets.thresholds(opacity * peak, most)
+        traced = levelsets.contours(level.values, [threshold * peak for threshold, _ in steps])
+        # Each level lies below the peak, which reaches it: no level is empty
         for threshold, alpha in steps:
-            if traced[threshold]:
-                _draw_level(stream, level, traced[threshold], rgba, alpha, paint)
+            _draw_level(stream, level, traced[threshold * peak], rgba, alpha, paint)
     return True
 
 
