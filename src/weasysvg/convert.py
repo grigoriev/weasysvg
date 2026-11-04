@@ -343,7 +343,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--band-px",
         type=not_negative,
         default=DEFAULT_BAND_PX,
-        help=f"flat SVG: the least width of an opacity level of a gradient, in px as shown; 0 for a level per 1/64 (default: {DEFAULT_BAND_PX:g})",
+        help=f"flat SVG: the least width of an opacity level of a gradient or a blur, in px as shown; 0 for a level per 1/64 (default: {DEFAULT_BAND_PX:g})",
     )
     parser.add_argument("-a", "--keep-aspect-ratio", action="store_true", help="accepted for compatibility: the size is always the SVG's own")
     parser.add_argument("input", nargs="?", default="-", help="input SVG file (default: stdin)")

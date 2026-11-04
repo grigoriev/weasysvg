@@ -136,7 +136,7 @@ weasysvg-convert -f svg -o flat.svg diagram.svg         # flat SVG for Word
 | `-f`, `--format` | `png` | `pdf`, `png` or `svg` |
 | `-o`, `--output` | stdout | the output file |
 | `-d`, `--dpi-x`, `-p`, `--dpi-y` | `96` | pixels per inch of the absolute lengths of the root |
-| `--band-px` | `1` | flat SVG: the least width of an opacity level of a gradient, in px as shown; `0` for a level per 1/64 |
+| `--band-px` | `1` | flat SVG: the least width of an opacity level of a gradient or a blur, in px as shown; `0` for a level per 1/64 |
 | `-a`, `--keep-aspect-ratio` | | accepted for pandoc; the size is always the SVG's own |
 
 The size is the one `rsvg-convert` gives: the `width` and `height` of the root, else its `viewBox`. A PDF
