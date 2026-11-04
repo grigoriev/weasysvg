@@ -18,7 +18,7 @@ from helpers import SVG_NS, close, svg
 from PIL import Image
 
 from weasysvg import convert
-from weasysvg.convert import ConvertError, constant_masks_as_opacity, length_px, root_attributes, size_px, sized, to_pdf, to_png, to_svg
+from weasysvg.convert import ConvertError, constant_masks_as_opacity, length_px, root_attributes, shared_clip_paths, size_px, sized, to_pdf, to_png, to_svg
 
 RED_RECT = svg('<rect width="200" height="100" fill="red"/>')
 # A red rect cut by a binary mask: a soft mask by default, a clip in the portable PDF
@@ -338,3 +338,37 @@ def test_a_mask_on_a_transformed_element_stays() -> None:
 def test_an_svg_without_a_view_box_stays() -> None:
     document = cairo_svg(CONSTANT, '<g mask="url(#mask-0)"/>', view_box="")
     assert constant_masks_as_opacity(document) == document
+
+
+SHAPE = '<path d="M 0 0 L 10 0 L 5 8 Z"/>'
+BAND = '<path d="M 0 0 L 10 0 L 10 2 L 0 2 Z"/>'
+
+
+def test_identical_clip_paths_are_shared() -> None:
+    # cairo writes the clip of a shape again for every paint inside it: each opacity level of a gradient
+    clips = f'<clipPath id="clip-0">{SHAPE}</clipPath><clipPath id="clip-1">{BAND}</clipPath><clipPath id="clip-2">{SHAPE}</clipPath><clipPath id="clip-3" clip-path="url(#clip-2)">{BAND}</clipPath>'
+    drawing = '<g clip-path="url(#clip-0)"><g clip-path="url(#clip-1)"><rect width="1" height="1"/></g></g><g clip-path="url(#clip-2)"><g clip-path="url(#clip-3)"><rect width="1" height="1"/></g></g>'
+    flat = shared_clip_paths(cairo_svg(clips, drawing)).decode()
+    assert flat.count("<clipPath") == 3
+    assert 'id="clip-2"' not in flat
+    assert 'clip-path="url(#clip-2)"' not in flat
+    assert flat.count('clip-path="url(#clip-0)"') == 3
+    # A clip of its own makes another clip, even with the same path
+    assert '<clipPath id="clip-3" clip-path="url(#clip-0)">' in flat
+    assert flat.startswith('<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg"')
+
+
+def test_a_flat_svg_without_shared_clip_paths_stays() -> None:
+    document = cairo_svg(f'<clipPath id="clip-0">{SHAPE}</clipPath><clipPath id="clip-1">{BAND}</clipPath>', '<g clip-path="url(#clip-0)"/><g clip-path="url(#clip-1)"/>')
+    assert shared_clip_paths(document) == document
+
+
+def test_flat_svg_writes_the_clip_of_a_faded_shape_once() -> None:
+    # A gradient with a transparent stop is painted once per opacity level, each inside the clip of the shape
+    document = (
+        f'<svg xmlns="{SVG_NS}" width="100" height="100"><defs><linearGradient id="g"><stop stop-color="navy"/><stop offset="1" stop-color="navy" stop-opacity="0"/></linearGradient></defs>'
+        '<path d="M10 10 C40 0 60 30 90 10 L80 90 C50 70 30 100 10 90 Z" fill="url(#g)"/></svg>'
+    ).encode()
+    clips = re.findall(r"<clipPath id=\"[^\"]+\"(.*?)</clipPath>", to_svg(document).decode(), re.DOTALL)
+    assert len(clips) > 1
+    assert len(clips) == len(set(clips))

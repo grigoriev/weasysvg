@@ -187,7 +187,7 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI) -
         with open(svg_path, "rb") as handle:
             flat = handle.read()
     width, height = size_px(svg, dpi_x, dpi_y)
-    return sized(constant_masks_as_opacity(flat), width * 72 / dpi_x, height * 72 / dpi_y)
+    return sized(shared_clip_paths(constant_masks_as_opacity(flat)), width * 72 / dpi_x, height * 72 / dpi_y)
 
 
 SVG_NS = "http://www.w3.org/2000/svg"
@@ -218,6 +218,46 @@ def constant_masks_as_opacity(flat: bytes) -> bytes:
         return flat
     _drop_unused_masks(root, _as_opacity(root, opacities))
     return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+
+
+def shared_clip_paths(flat: bytes) -> bytes:
+    """The flat SVG with each clip path written once, its copies named by the first.
+
+    cairo writes the clip of a shape anew for every paint inside it. A gradient with a transparent stop is
+    painted once per opacity level in the portable PDF, so a long outline came out once per level.
+    """
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    root = ET.fromstring(flat)
+    first: dict[bytes, str] = {}
+    shared: dict[str, str] = {}
+    copies: list[ET.Element] = []
+    # Document order: cairo defines a clip before the clip that names it
+    for clip in root.iter(f"{{{SVG_NS}}}clipPath"):
+        _name_shared(clip, shared)
+        for child in clip.iter():
+            _name_shared(child, shared)
+        attributes = sorted((name, value) for name, value in clip.attrib.items() if name != "id")
+        key = repr(attributes).encode() + b"".join(ET.tostring(child) for child in clip)
+        if key in first:
+            shared[f"url(#{clip.get('id')})"] = first[key]
+            copies.append(clip)
+        else:
+            first[key] = f"url(#{clip.get('id')})"
+    if not copies:
+        return flat
+    for element in root.iter():
+        _name_shared(element, shared)
+    parents = {child: parent for parent in root.iter() for child in parent}
+    for clip in copies:
+        parents[clip].remove(clip)
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+
+
+def _name_shared(element: ET.Element, shared: dict[str, str]) -> None:
+    reference = element.get("clip-path")
+    if reference in shared:
+        element.set("clip-path", shared[reference])
 
 
 def _as_opacity(root: ET.Element, opacities: dict[str, float]) -> set[str]:

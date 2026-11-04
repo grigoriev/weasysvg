@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The flat SVG of `weasysvg-convert` writes each clip path once. cairo wrote the clip of a shape again for every
+  paint inside it, and a gradient with a transparent stop is painted once per opacity level: the OpenStreetMap
+  logo came out at 29 MB, now 9.6 MB, and Word slowed down on it.
+
 ## [0.5.0] - 2026-11-03
 
 ### Added
