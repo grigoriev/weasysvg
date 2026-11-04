@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- In `weasysvg.portable()`, no opacity level of a gradient is narrower than `band_px` CSS px of the drawing as
+  shown, 1 by default, where its opacity changes most slowly. A small gradient gets fewer levels: a level per
+  1/64 was a third of a pixel over 20 px, and the flat SVG drew each one in full. `weasysvg-convert --band-px`
+  and `to_svg(band_px=)` set it; 0 keeps a level per 1/64. The Inkscape logo flattens to 1.5 MB, from 3.0 MB.
+
 ### Fixed
 
 - The flat SVG of `weasysvg-convert` writes each clip path once. cairo wrote the clip of a shape again for every

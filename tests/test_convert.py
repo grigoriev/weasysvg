@@ -372,3 +372,27 @@ def test_flat_svg_writes_the_clip_of_a_faded_shape_once() -> None:
     clips = re.findall(r"<clipPath id=\"[^\"]+\"(.*?)</clipPath>", to_svg(document).decode(), re.DOTALL)
     assert len(clips) > 1
     assert len(clips) == len(set(clips))
+
+
+@pytest.mark.parametrize("band", ["-1", "inf", "wide"])
+def test_main_refuses_a_band_px_below_0(band: str, tmp_path: Path) -> None:
+    source = tmp_path / "in.svg"
+    source.write_text(RED_RECT)
+    with pytest.raises(SystemExit) as raised:
+        convert.main(["-f", "svg", "--band-px", band, "-o", str(tmp_path / "out.svg"), str(source)])
+    assert raised.value.code == 2
+
+
+FADED = svg('<defs><linearGradient id="g"><stop stop-color="navy"/><stop offset="1" stop-color="navy" stop-opacity="0"/></linearGradient></defs><rect width="200" height="100" fill="url(#g)"/>')
+
+
+def test_main_passes_band_px_to_the_flat_svg(tmp_path: Path) -> None:
+    # 200 px of fading: a level per pixel at 1 px, per 64th at 0, 50 levels 4 px wide
+    source = tmp_path / "in.svg"
+    source.write_text(FADED)
+    counts = {}
+    for band in ("0", "4"):
+        out = tmp_path / f"out-{band}.svg"
+        assert convert.main(["-f", "svg", "--band-px", band, "-o", str(out), str(source)]) == 0
+        counts[band] = out.read_text().count("<clipPath")
+    assert counts["4"] < counts["0"]

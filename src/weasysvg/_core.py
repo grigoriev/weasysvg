@@ -59,6 +59,12 @@ _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips",
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
 # Drawing for a portable PDF, per thread and task: see portable()
 PORTABLE: ContextVar[bool] = ContextVar("weasysvg_portable", default=False)
+# The least width of an opacity level of a gradient in a portable PDF, in CSS px as the drawing is shown. A level
+# narrower than a pixel shows no more than one a pixel wide, and each one more is drawn in full by a flat SVG.
+DEFAULT_BAND_PX = 1.0
+BAND_PX: ContextVar[float] = ContextVar("weasysvg_band_px", default=DEFAULT_BAND_PX)
+# How much larger the drawing is drawn than it is shown: the flat SVG is read from a PDF drawn larger
+ZOOM: ContextVar[float] = ContextVar("weasysvg_zoom", default=1.0)
 # The smallest box a group gets, in user units
 MIN_GROUP_EXTENT = 1e4
 
@@ -81,13 +87,19 @@ def original_draw_node() -> Callable[..., None]:
 
 
 @contextmanager
-def portable() -> Iterator[None]:
-    """Draw without soft masks and blend modes where the same picture allows it, for the duration."""
-    token = PORTABLE.set(True)
+def portable(*, band_px: float = DEFAULT_BAND_PX, zoom: float = 1.0) -> Iterator[None]:
+    """Draw without soft masks and blend modes where the same picture allows it, for the duration.
+
+    A gradient with transparent stops is painted once per level of its opacity, no level narrower than
+    band_px CSS px of the drawing shown zoom times smaller than drawn. 0 takes a level per 1/64 of opacity.
+    """
+    tokens = (PORTABLE.set(True), BAND_PX.set(band_px), ZOOM.set(zoom))
     try:
         yield
     finally:
-        PORTABLE.reset(token)
+        ZOOM.reset(tokens[2])
+        BAND_PX.reset(tokens[1])
+        PORTABLE.reset(tokens[0])
 
 
 def add_tree_pass(rank: int, name: str, function: TreePass) -> None:

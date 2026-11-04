@@ -106,7 +106,9 @@ with weasysvg.portable():
 - The opacity of the stops of a gradient, and a fill opacity on it, become the level sets of that opacity along
   the gradient: strips across a linear gradient, rings of a radial one, each painted with the color shading at
   a constant opacity, within 1/64. A radial gradient whose circles do not hold each other keeps its soft mask.
-  Where the opacity jumps at one offset, a viewer may show a line of one pixel.
+  Where the opacity jumps at one offset, a viewer may show a line of one pixel. No level is narrower than
+  `portable(band_px=1)` CSS px where the opacity changes most slowly: a small gradient gets fewer levels.
+  `band_px=0` takes a level per 1/64 always.
 - The blur of a `<use>` of one shape is the blur of that shape, in any paint.
 
 A clip path that one PDF clip cannot express becomes one path of all its fills, in any PDF: a `<use>`, several
@@ -131,6 +133,7 @@ weasysvg-convert -f svg -o flat.svg diagram.svg         # flat SVG for Word
 | `-f`, `--format` | `png` | `pdf`, `png` or `svg` |
 | `-o`, `--output` | stdout | the output file |
 | `-d`, `--dpi-x`, `-p`, `--dpi-y` | `96` | pixels per inch of the absolute lengths of the root |
+| `--band-px` | `1` | flat SVG: the least width of an opacity level of a gradient, in px as shown; `0` for a level per 1/64 |
 | `-a`, `--keep-aspect-ratio` | | accepted for pandoc; the size is always the SVG's own |
 
 The size is the one `rsvg-convert` gives: the `width` and `height` of the root, else its `viewBox`. A PDF

@@ -588,19 +588,21 @@ def _level(pieces: list[tuple[float, float, float, float]], level: float, extend
     return intervals
 
 
-def levels(function: Any, domain: Any, extend: bool) -> list[tuple[float, list[Interval]]]:
+def levels(function: Any, domain: Any, extend: bool, axis_px: float = 0.0) -> list[tuple[float, list[Interval]]]:
     """The level sets of the stop opacity along the gradient: the opacity each adds, and where.
 
     Level k holds the offsets where the opacity reaches (k - 0.5) / n of its peak, a union of intervals, one
     inside the next as for a blur (levelsets.thresholds). Painted in order they add up to the opacity within
     1/64, rising and falling alike, and each meets the one below with its own edge only: two regions side by
     side would each smooth their shared edge, a light seam in any viewer. Levels over the same offsets merge.
-    With extend the ends reach on without end.
+    With extend the ends reach on without end. With axis_px, the length of the axis in CSS px as shown, no level
+    is narrower than _core.BAND_PX where the opacity changes most slowly.
     """
     pieces = [piece for piece in _alpha_pieces(function, domain) if piece[1] > piece[0]]
     peak = max((max(piece[2], piece[3]) for piece in pieces), default=0.0)
+    most = _most_levels(pieces, peak, float(domain[1]) - float(domain[0]), axis_px)
     out: list[tuple[float, list[Interval]]] = []
-    for threshold, opacity in levelsets.thresholds(peak) if peak > 0 else []:
+    for threshold, opacity in levelsets.thresholds(peak, most) if peak > 0 else []:
         intervals = _level(pieces, threshold * peak, extend)
         # Each level lies below the peak, which reaches it: a level is never empty
         if out and out[-1][1] == intervals:
@@ -611,6 +613,31 @@ def levels(function: Any, domain: Any, extend: bool) -> list[tuple[float, list[I
     return out
 
 
+def _most_levels(pieces: list[tuple[float, float, float, float]], peak: float, span: float, axis_px: float) -> int | None:
+    """How many levels keep each at least _core.BAND_PX wide where the opacity changes most slowly; None for no limit.
+
+    A piece over w px that changes the opacity by d holds d / peak * n edges of n levels, w * peak / (d * n) px apart.
+    """
+    band_px = _core.BAND_PX.get()
+    if band_px <= 0 or axis_px <= 0 or span <= 0 or peak <= 0:
+        return None
+    room = [(end - start) / span * axis_px * peak / abs(a1 - a0) for start, end, a0, a1 in pieces if a1 != a0]
+    return max(1, math.ceil(max(room) / band_px)) if room else None
+
+
+def _axis_px(stream: Any, shading_type: int, points: list[float]) -> float:
+    """The length of the axis of a shading in CSS px as the drawing is shown.
+
+    For a radial shading it is the growth of the radius and the travel of the center: the widest a ring gets.
+    """
+    scale = math.sqrt(abs(_core.absolute_matrix(stream).determinant)) * _core.PX_PER_PT / _core.ZOOM.get()
+    if shading_type == 2:
+        x1, y1, x2, y2 = points
+        return math.hypot(x2 - x1, y2 - y1) * scale
+    fx, fy, fr, cx, cy, r = points
+    return (abs(r - fr) + math.hypot(cx - fx, cy - fy)) * scale
+
+
 def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any, Reach]) -> None:
     """Paint the color shading once per level of its opacity, clipped to the level and at the opacity it adds."""
     shading_type, domain, coords, extend, function, (lowest, highest, half_width) = shading
@@ -619,7 +646,7 @@ def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, 
     # Where the opacity jumps at one offset, as between two cycles of spreadMethod="repeat", the edge of a level
     # meets the jump of the color: a viewer that takes the color of a shading at the center of each pixel paints
     # the pixel across the edge in the color of the far side, a line of one pixel
-    for opacity, intervals in levels(function, domain, extend):
+    for opacity, intervals in levels(function, domain, extend, _axis_px(stream, shading_type, points)):
         stream.push_state()
         try:
             for low, high in intervals:

@@ -15,7 +15,7 @@ from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, 
 from PIL import ImageChops, ImageStat
 
 import weasysvg
-from weasysvg import paint
+from weasysvg import _core, paint
 from weasysvg.paint import GRADIENT_CELL, drop_empty_presentation
 
 RED = (255, 0, 0)
@@ -265,6 +265,33 @@ def test_levels_skip_a_clear_piece() -> None:
     # Clear up to the middle, then rising: no level reaches into the clear half
     found = paint.levels(linear((0, 0.0), (0.5, 0.0), (1, 1.0)), (0, 1), True)
     assert all(low >= 0.5 and high == math.inf for _, [(low, high)] in found)
+
+
+@pytest.mark.parametrize(("axis_px", "count"), [(20.0, 20), (200.0, 64), (0.0, 64)])
+def test_no_level_is_narrower_than_a_pixel(axis_px: float, count: int) -> None:
+    # Over 20 px a level per pixel shows all a screen can: 64 levels were a third of a pixel each
+    assert len(paint.levels(linear((0, 0.0), (1, 1.0)), (0, 1), False, axis_px)) == count
+
+
+def test_the_slowest_change_sets_the_width_of_a_level() -> None:
+    # A fast rise over 2 px, then a slow fall over 18 px: the fall needs 18 levels to keep its levels a pixel wide
+    assert len(paint.levels(linear((0, 0.0), (0.1, 1.0), (1, 0.0)), (0, 1), False, 20.0)) == 18
+
+
+def test_wider_levels_with_band_px() -> None:
+    token = _core.BAND_PX.set(4.0)
+    try:
+        assert len(paint.levels(linear((0, 0.0), (1, 1.0)), (0, 1), False, 40.0)) == 10
+    finally:
+        _core.BAND_PX.reset(token)
+
+
+def test_band_px_0_keeps_a_level_per_64th() -> None:
+    token = _core.BAND_PX.set(0.0)
+    try:
+        assert len(paint.levels(linear((0, 0.0), (1, 1.0)), (0, 1), False, 10.0)) == 64
+    finally:
+        _core.BAND_PX.reset(token)
 
 
 def test_levels_of_one_opacity_are_one_coat() -> None:
