@@ -458,6 +458,23 @@ def track_groups() -> None:
         wp_stream.Stream.add_pattern = _add_pattern
 
 
+def px_across(stream: Any, ux: float, uy: float) -> float:
+    """CSS px as shown between two lines of stream one user unit apart, across the unit direction (ux, uy).
+
+    A transform may stretch one direction and squeeze another: the area it scales by says neither.
+    """
+    a, b, c, d, _, _ = absolute_matrix(stream).values
+    across = math.hypot(d * ux - b * uy, a * uy - c * ux)
+    return abs(a * d - b * c) / across * PX_PER_PT / ZOOM.get() if across else 0.0
+
+
+def px_most(stream: Any) -> float:
+    """CSS px as shown of one user unit of stream along the direction the transform stretches most."""
+    a, b, c, d, _, _ = absolute_matrix(stream).values
+    total = a * a + b * b + c * c + d * d
+    return math.sqrt((total + math.sqrt(max(0.0, total * total - 4 * (a * d - b * c) ** 2))) / 2) * PX_PER_PT / ZOOM.get()
+
+
 def px_per_unit(svg: Any) -> float:
     """How many CSS px one user unit spans, through every transform and group."""
     try:

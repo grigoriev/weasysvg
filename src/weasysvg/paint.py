@@ -622,20 +622,22 @@ def _most_levels(pieces: list[tuple[float, float, float, float]], peak: float, s
     if band_px <= 0 or axis_px <= 0 or span <= 0 or peak <= 0:
         return None
     room = [(end - start) / span * axis_px * peak / abs(a1 - a0) for start, end, a0, a1 in pieces if a1 != a0]
-    return max(1, math.ceil(max(room) / band_px)) if room else None
+    return max(1, math.floor(max(room) / band_px)) if room else None
 
 
 def _axis_px(stream: Any, shading_type: int, points: list[float]) -> float:
     """The length of the axis of a shading in CSS px as the drawing is shown.
 
-    For a radial shading it is the growth of the radius and the travel of the center: the widest a ring gets.
+    For a linear shading it is the distance between the lines across its ends. For a radial one it is the growth
+    of the radius and the travel of the center, along the direction the transform stretches most: the widest a
+    ring gets.
     """
-    scale = math.sqrt(abs(_core.absolute_matrix(stream).determinant)) * _core.PX_PER_PT / _core.ZOOM.get()
     if shading_type == 2:
         x1, y1, x2, y2 = points
-        return math.hypot(x2 - x1, y2 - y1) * scale
+        length = math.hypot(x2 - x1, y2 - y1)
+        return length * _core.px_across(stream, (x2 - x1) / length, (y2 - y1) / length) if length else 0.0
     fx, fy, fr, cx, cy, r = points
-    return (abs(r - fr) + math.hypot(cx - fx, cy - fy)) * scale
+    return (abs(r - fr) + math.hypot(cx - fx, cy - fy)) * _core.px_most(stream)
 
 
 def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any, Reach]) -> None:

@@ -102,7 +102,7 @@ with weasysvg.portable():
   coverage reaches each level, one inside the next, each filled with a constant opacity. Painted in order,
   they add up to the blur within 1/64 of opacity. The contours are traced through the blurred coverage, so
   any shape keeps the profile of a real Gaussian; a rect takes its exact blur. Where an edge rises fastest,
-  its contours lie at least `band_px` CSS px apart: a blur of 4 px takes 11 levels.
+  its contours lie at least `band_px` CSS px apart: a blur of 4 px takes 10 levels.
 
 - The opacity of the stops of a gradient, and a fill opacity on it, become the level sets of that opacity along
   the gradient: strips across a linear gradient, rings of a radial one, each painted with the color shading at

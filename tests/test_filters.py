@@ -16,6 +16,7 @@ import weasyprint
 from helpers import RecordingStream, content, page_html, pixel, rasterize, render, svg
 from PIL import ImageChops, ImageStat
 from weasyprint import svg as wp_svg
+from weasyprint.matrix import Matrix
 
 import weasysvg
 from weasysvg import filters, shapeblur, turbulence
@@ -391,9 +392,9 @@ def test_portable_blur_follows_the_gaussian() -> None:
         assert 1 - cast(int, image.getpixel((100, y))) / 255 == pytest.approx(NormalDist().cdf((y + 0.5 - 40) / 5), abs=0.02)
 
 
-@pytest.mark.parametrize(("deviation", "levels"), [("1", 3), ("4", 11), ("0 4", 11)])
+@pytest.mark.parametrize(("deviation", "levels"), [("1", 2), ("4", 10), ("0 4", 10), ("1 4", 10)])
 def test_portable_blur_has_no_levels_closer_than_a_pixel(deviation: str, levels: int) -> None:
-    # An edge blurred by 4 px rises by at most 1/10 a px: 11 levels are a pixel apart there, 64 were a sixth
+    # An edge blurred by 4 px rises by at most 1/10 a px: 10 levels are a pixel apart there, 64 were a sixth
     content = portable(filtered(f'<feGaussianBlur stdDeviation="{deviation}"/>')).decode("latin-1")
     assert len(re.findall(r"\bf\*\s", content)) == levels
 
@@ -1641,3 +1642,10 @@ def test_content_the_coverage_cannot_take_keeps_the_levels(body: str, limits: di
     defs = '<linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><mask id="m"><rect width="200" height="200" fill="white"/></mask>'
     blurred_content(body, defs=defs)
     assert calls == [1]
+
+
+def test_portable_blur_levels_follow_a_stretched_axis() -> None:
+    # Stretched 50 times along x, a blur of 0.1 along x is 5 px wide: 12 levels; squeezed along y, its edge there is sharp
+    stream = SimpleNamespace(ctm=Matrix(50 * 3 / 4, 0, 0, 3 / 4 / 50))
+    assert filters._most_blur_levels(stream, (0.1, 0.1)) == 12
+    assert filters._most_blur_levels(stream, (0.0, 0.1)) == 1

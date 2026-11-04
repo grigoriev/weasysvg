@@ -13,6 +13,7 @@ from xml.etree import ElementTree as ET
 import pytest
 from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, streams, svg
 from PIL import ImageChops, ImageStat
+from weasyprint.matrix import Matrix
 
 import weasysvg
 from weasysvg import _core, paint
@@ -355,7 +356,8 @@ def test_reach_of_circles_that_move_away_from_a_corner() -> None:
 )
 def test_portable_gradient_opacity_has_no_soft_mask_and_matches(gradient: str) -> None:
     body = f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)" fill-opacity="0.7"/><rect x="20" y="40" width="160" height="20" fill="none" stroke="url(#g)" stroke-width="8"/>'
-    soft, flat = render(svg(body)), portable_render(body)
+    # A level per 1/64: the levels of a pixel each cut the opacity in steps of a tenth across the 20 px of the stroke
+    soft, flat = render(svg(body)), portable_render(body, band_px=0)
     assert "/SMask" in soft.decode("latin-1")
     assert "/SMask" not in flat.decode("latin-1")
     difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
@@ -396,8 +398,8 @@ KNOCKOUT = (
 )
 
 
-def portable_render(body: str) -> bytes:
-    with weasysvg.portable():
+def portable_render(body: str, band_px: float = _core.DEFAULT_BAND_PX) -> bytes:
+    with weasysvg.portable(band_px=band_px):
         return render(svg(body))
 
 
@@ -1200,3 +1202,13 @@ def test_a_half_circle_arc_is_round(arc: str) -> None:
         angle = math.radians(degrees)
         inside = [r for r in range(80 * scale, 120 * scale) if cast("int", image.getpixel((round((150 - r / scale * math.cos(angle)) * scale), round((150 - r / scale * math.sin(angle)) * scale)))) < 128]
         assert abs(max(inside) / scale - 100) <= 0.5, degrees
+
+
+def test_the_axis_of_a_gradient_is_measured_along_it() -> None:
+    # A gradient 1 unit long, stretched 100 times along it and squeezed along the other: 100 px, not 1
+    stream = SimpleNamespace(ctm=Matrix(100 * 3 / 4, 0, 0, 3 / 4 / 100))
+    assert paint._axis_px(stream, 2, [0.0, 0.0, 1.0, 0.0]) == pytest.approx(100)
+    assert paint._axis_px(stream, 2, [0.0, 0.0, 0.0, 1.0]) == pytest.approx(0.01)
+    assert paint._axis_px(stream, 2, [1.0, 1.0, 1.0, 1.0]) == 0
+    # A ring grows widest along the stretched direction
+    assert paint._axis_px(stream, 3, [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) == pytest.approx(100)

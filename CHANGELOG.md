@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shown, 1 by default, where its opacity changes most slowly. A small gradient gets fewer levels: a level per
   1/64 was a third of a pixel over 20 px, and the flat SVG drew each one in full. `weasysvg-convert --band-px`
   and `to_svg(band_px=)` set it; 0 keeps a level per 1/64.
-- The levels of a blur in `weasysvg.portable()` follow `band_px` too: where a blurred edge rises fastest, its
-  contours lie at least `band_px` apart. A blur of 4 px takes 11 levels, not 64. The flat SVG of the corpus
-  shrinks from 261 MB to 27 MB and flattens in 6.5 s, not 81 s: Tux from 244 MB, which librsvg refused to
-  draw, to 15.5 MB, the Inkscape logo from 3.0 MB to 0.96 MB. Against the PDF none drifts further.
+- The levels of a blur in `weasysvg.portable()` follow `band_px` too: where the softest blurred edge rises
+  fastest, its contours lie at least `band_px` apart. A blur of 4 px takes 10 levels, not 64. The flat SVG of
+  the corpus shrinks from 261 MB to 25 MB and flattens in 6.4 s, not 84 s: Tux from 244 MB, which librsvg
+  refused to draw, to 12.9 MB, the Inkscape logo from 3.0 MB to 1.0 MB. Against the PDF none drifts further.
+- Both measure a length as shown along its own direction: a transform that stretches one axis and squeezes
+  the other keeps the levels along the stretched one.
 
 ### Fixed
 

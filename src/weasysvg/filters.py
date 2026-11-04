@@ -1554,18 +1554,18 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
 
 
 def _most_blur_levels(stream: Any, blur: tuple[float, float]) -> int | None:
-    """How many levels keep the contours of a blurred edge at least _core.BAND_PX apart; None for no limit.
+    """How many levels keep the contours of the softest blurred edge at least _core.BAND_PX apart; None for no limit.
 
     An edge blurred by sigma px rises fastest at its middle, by 1 / (sigma sqrt(2 pi)) a px: n levels there
-    lie sigma sqrt(2 pi) / n px apart, and farther everywhere else.
+    lie sigma sqrt(2 pi) / n px apart, and farther everywhere else. The softest edge is the widest one as shown:
+    a sharper edge has its contours closer.
     """
     band_px = _core.BAND_PX.get()
     # A blur along one axis leaves the edges across the other sharp: those have no levels
-    sigmas = [sigma for sigma in blur if sigma > 0]
+    sigmas = [sigma * _core.px_across(stream, *axis) for sigma, axis in zip(blur, ((1.0, 0.0), (0.0, 1.0)), strict=True) if sigma > 0]
     if band_px <= 0 or not sigmas:
         return None
-    sigma_px = min(sigmas) * math.sqrt(abs(_core.absolute_matrix(stream).determinant)) * _core.PX_PER_PT / _core.ZOOM.get()
-    return max(1, math.ceil(sigma_px * math.sqrt(2 * math.pi) / band_px))
+    return max(1, math.floor(max(sigmas) * math.sqrt(2 * math.pi) / band_px))
 
 
 # What makes the shape a <use> draws more than its outline in its paint
