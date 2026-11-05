@@ -109,7 +109,7 @@ shown. `band_px=0` takes a level per 1/64 of opacity always.
 
 - The opacity of the stops of a gradient, and a fill opacity on it, become the level sets of that opacity along
   the gradient: strips across a linear gradient, rings of a radial one, each painted with the color shading at
-  a constant opacity, within one level. A radial gradient whose circles do not hold each other keeps its soft
+  a constant opacity, within one level. A gradient of one color fills each level with that color. A radial gradient whose circles do not hold each other keeps its soft
   mask. Where the opacity jumps at one offset, a viewer may show a line of one pixel. No level is narrower
   than `band_px` CSS px where the opacity changes most slowly: a small gradient gets fewer levels.
 - The blur of a `<use>` of one shape is the blur of that shape, in any paint.

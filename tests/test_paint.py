@@ -352,6 +352,8 @@ def test_reach_of_circles_that_move_away_from_a_corner() -> None:
         '<radialGradient id="g" fx="0.001" fy="0.5"><stop stop-color="red" stop-opacity="0.5"/><stop offset="1" stop-color="blue" stop-opacity="0.5"/></radialGradient>',
         # Opaque stops faded by the fill opacity: one coat
         '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>',
+        # One color that fades: each level is filled with the color
+        '<radialGradient id="g"><stop stop-color="red" stop-opacity="0.1"/><stop offset="1" stop-color="red"/></radialGradient>',
     ],
 )
 def test_portable_gradient_opacity_has_no_soft_mask_and_matches(gradient: str) -> None:
@@ -364,6 +366,30 @@ def test_portable_gradient_opacity_has_no_soft_mask_and_matches(gradient: str) -
     # Within a step of 1/64 of the opacity, and the edges of the levels
     assert max(ImageStat.Stat(difference).mean) < 3
     assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 24
+
+
+def test_portable_gradient_of_one_color_fills_its_levels() -> None:
+    # The shine of the lens of the OpenStreetMap logo: a level is one path in the color, not a clip and a shading
+    gradient = '<radialGradient id="g"><stop stop-color="navy" stop-opacity="0"/><stop offset="1" stop-color="navy"/></radialGradient>'
+    flat = content(portable_render(f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)"/>'))
+    assert " sh" not in flat
+    assert flat.count("f*") > 1
+
+
+def test_portable_gradient_of_two_colors_paints_the_shading_in_each_level() -> None:
+    gradient = '<radialGradient id="g"><stop stop-color="navy" stop-opacity="0"/><stop offset="1" stop-color="red"/></radialGradient>'
+    flat = content(portable_render(f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)"/>'))
+    assert flat.count(" sh") > 1
+    assert "f*" not in flat
+
+
+def test_a_shading_in_a_color_profile_keeps_its_levels() -> None:
+    # A fill would have to name the profile again: the levels paint the shading
+    function = {"FunctionType": 2, "C0": [0, 0, 1], "C1": [0, 0, 1]}
+    stream = SimpleNamespace(_resources={"Shading": {"s0": {"ColorSpace": SimpleNamespace(), "Function": function}, "s1": {"ColorSpace": "/DeviceRGB", "Function": function}}})
+    assert paint._constant_color(stream, "s0") is None
+    assert paint._constant_color(stream, "s1") == ("DeviceRGB", [0.0, 0.0, 1.0])
+    assert paint._constant_color(stream, "s2") is None
 
 
 def test_portable_gradient_that_repeats() -> None:

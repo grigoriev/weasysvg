@@ -196,7 +196,8 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *
         flat = pathlib.Path(svg_path).read_bytes() if os.path.exists(svg_path) else b""
         check_pdftocairo(result.returncode, result.stderr.decode(errors="replace"), flat)
     width, height = size_px(svg, dpi_x, dpi_y)
-    return sized(shared_clip_paths(constant_masks_as_opacity(flat)), width * 72 / dpi_x, height * 72 / dpi_y)
+    # Rounded first: clip paths that differ in the sixth place are then one
+    return sized(shared_clip_paths(fewer_stops(short_path_data(constant_masks_as_opacity(flat)))), width * 72 / dpi_x, height * 72 / dpi_y)
 
 
 MISSING_PDFTOCAIRO = "SVG output needs pdftocairo of Poppler on the PATH"
@@ -350,6 +351,85 @@ def _constant_opacity(mask: ET.Element, box: list[float]) -> float | None:
     left, top, right, bottom = box[0], box[1], box[0] + box[2], box[1] + box[3]
     covers = x <= left and y <= top and x + width >= right and y + height >= bottom
     return opacity if covers and 0 <= opacity <= 1 else None
+
+
+# How far a stop may lie off the line between the stops kept around it: in percent of a color channel, and in opacity
+STOP_COLOR_TOLERANCE = 0.1
+STOP_OPACITY_TOLERANCE = 0.001
+_STOP_COLOR = re.compile(r"rgb\(\s*([-\d.]+)%,\s*([-\d.]+)%,\s*([-\d.]+)%\s*\)")
+
+
+def fewer_stops(flat: bytes) -> bytes:
+    """The flat SVG with the stops of each gradient that lie on the line between their neighbors left out.
+
+    cairo samples the function of a PDF shading into 257 stops, where WeasyPrint wrote a few linear pieces:
+    the blurred glare of Tux came out at 32361 stops, of which 293 change the gradient.
+    """
+    ET.register_namespace("", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+    root = ET.fromstring(flat)
+    dropped = False
+    for gradient in root.iter():
+        if gradient.tag not in (f"{{{SVG_NS}}}linearGradient", f"{{{SVG_NS}}}radialGradient"):
+            continue
+        stops = [child for child in gradient if child.tag == f"{{{SVG_NS}}}stop"]
+        values = [_stop_values(stop) for stop in stops]
+        if len(stops) < 3 or any(value is None for value in values):  # noqa: PLR2004
+            continue
+        kept = _kept_stops(cast("list[tuple[float, ...]]", values))
+        for index, stop in enumerate(stops):
+            if index not in kept:
+                gradient.remove(stop)
+                dropped = True
+    if not dropped:
+        return flat
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+
+
+def _stop_values(stop: ET.Element) -> tuple[float, ...] | None:
+    """Offset, red, green, blue in percent and opacity of a stop as cairo writes it; None for any other form."""
+    color = _STOP_COLOR.fullmatch(stop.get("stop-color", ""))
+    try:
+        return (float(stop.get("offset", "")), *(float(channel) for channel in color.groups()), float(stop.get("stop-opacity", "1"))) if color else None
+    except ValueError:
+        return None
+
+
+def _kept_stops(values: list[tuple[float, ...]]) -> set[int]:
+    """The stops that keep the gradient within the tolerances: the ends, and each one the line from the last kept one cannot skip."""
+    kept, anchor = {0, len(values) - 1}, 0
+    for end in range(2, len(values)):
+        if not all(_on_line(values[anchor], values[middle], values[end]) for middle in range(anchor + 1, end)):
+            anchor = end - 1
+            kept.add(anchor)
+    return kept
+
+
+def _on_line(start: tuple[float, ...], middle: tuple[float, ...], end: tuple[float, ...]) -> bool:
+    """Whether the stop middle lies, within the tolerances, where the gradient from start to end puts its offset."""
+    span = end[0] - start[0]
+    if span <= 0:
+        return False  # a jump at one offset: both stops make it
+    share = (middle[0] - start[0]) / span
+    tolerances = (STOP_COLOR_TOLERANCE,) * 3 + (STOP_OPACITY_TOLERANCE,)
+    return all(abs(a + (b - a) * share - m) <= tolerance for a, m, b, tolerance in zip(start[1:], middle[1:], end[1:], tolerances, strict=True))
+
+
+# The places a coordinate of a path keeps. The flat SVG is drawn FLAT_SCALE times larger: a hundredth of a unit is a
+# few thousandths of a pixel of the result, where cairo writes six places
+PATH_PLACES = 2
+_PATH_DATA = re.compile(rb'(<path\b[^>]*?\sd=")([^"]*)(")')
+_DECIMAL = re.compile(rb"-?\d+\.\d+")
+
+
+def short_path_data(flat: bytes) -> bytes:
+    """The flat SVG with the coordinates of its paths rounded to PATH_PLACES."""
+
+    def short(number: re.Match[bytes]) -> bytes:
+        text = f"{float(number.group(0)):.{PATH_PLACES}f}".rstrip("0").rstrip(".")
+        return b"0" if text == "-0" else text.encode()
+
+    return _PATH_DATA.sub(lambda path: path.group(1) + _DECIMAL.sub(short, path.group(2)) + path.group(3), flat)
 
 
 def sized(flat: bytes, width_pt: float, height_pt: float) -> bytes:
