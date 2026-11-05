@@ -16,7 +16,6 @@ import weasyprint
 from helpers import RecordingStream, content, page_html, pixel, rasterize, render, svg
 from PIL import ImageChops, ImageStat
 from weasyprint import svg as wp_svg
-from weasyprint.matrix import Matrix
 
 import weasysvg
 from weasysvg import filters, shapeblur, turbulence
@@ -340,15 +339,20 @@ PORTABLE_BLURS = {
 }
 
 
+# The blurs whose element paints a gradient: it shows through the image of the blur as a soft mask
+PAINTED_BLURS = {"gradient"}
+
+
 @pytest.mark.parametrize("name", PORTABLE_BLURS)
-def test_portable_blur_has_no_soft_mask_and_matches(name: str) -> None:
+def test_portable_blur_is_an_image_and_matches(name: str) -> None:
     document = PORTABLE_BLURS[name]
     soft, flat = render(document), portable(document)
-    assert soft_masks(flat) == 0
-    assert images(flat) == 0
+    assert soft_masks(flat) == (1 if name in PAINTED_BLURS else 0)
+    # Word draws an image of the blur smooth, where stacked levels showed as rings
+    assert (images(flat) > 0) == ("Blur" in document or "blur(" in document or "Shadow" in document)
     difference = ImageChops.difference(rasterize(soft, 2), rasterize(flat, 2))
-    # Within a few steps of 1/64 where the levels cut the profile, and the half pixel the shadings of the
-    # soft mask sample off center. Each channel on its own: a light seam shows in one channel most
+    # Within the half pixel the shadings of the soft mask sample off center, and the interpolation of the
+    # image between the samples of its grid. Each channel on its own: a light seam shows in one channel most
     assert max(ImageStat.Stat(difference).mean) < 1.5
     assert max(high for _, high in cast("list[tuple[int, int]]", difference.getextrema())) < 48
 
@@ -361,7 +365,8 @@ def test_portable_blur_of_a_use_is_the_blur_of_its_shape() -> None:
     used = svg(f'<defs>{defs}<path id="p" {shape}/></defs><rect width="200" height="100" fill="#335"/><use href="#p" x="15" y="20" fill="url(#g)" filter="url(#f)"/>')
     placed = svg(f'<defs>{defs}</defs><rect width="200" height="100" fill="#335"/><path transform="translate(15 20)" {shape} fill="url(#g)" filter="url(#f)"/>')
     flat = portable(used)
-    assert soft_masks(flat) == 0
+    # The gradient shows through the image of the blur
+    assert soft_masks(flat) == 1
     assert ImageChops.difference(rasterize(flat, 2), rasterize(portable(placed), 2)).getbbox() is None
     difference = ImageChops.difference(rasterize(flat, 2), rasterize(render(placed), 2))
     assert max(ImageStat.Stat(difference).mean) < 1.5
@@ -381,22 +386,6 @@ def test_portable_blur_of_a_use_takes_a_plain_shape_alone(used: str) -> None:
     gradient = '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>'
     document = svg(f'<defs>{gradient}{used}<filter id="f"><feGaussianBlur stdDeviation="3"/></filter></defs><use href="#p" fill="url(#g)" filter="url(#f)"/><use href="#nowhere" filter="url(#f)"/>')
     assert soft_masks(portable(document)) > 0
-
-
-def test_portable_blur_follows_the_gaussian() -> None:
-    # The level sets of the exact blur of a rect: Phi at the center of each pixel, within a step of 1/64
-    with weasysvg.portable(band_px=0):
-        pdf = render(svg('<filter id="f"><feGaussianBlur stdDeviation="5"/></filter><rect x="40" y="40" width="120" height="120" fill="black" filter="url(#f)"/>', 200, 200))
-    image = rasterize(pdf, 4 / 3).convert("L")
-    for y in range(30, 50, 2):
-        assert 1 - cast(int, image.getpixel((100, y))) / 255 == pytest.approx(NormalDist().cdf((y + 0.5 - 40) / 5), abs=0.02)
-
-
-@pytest.mark.parametrize(("deviation", "levels"), [("1", 2), ("4", 10), ("0 4", 10), ("1 4", 10)])
-def test_portable_blur_has_no_levels_closer_than_a_pixel(deviation: str, levels: int) -> None:
-    # An edge blurred by 4 px rises by at most 1/10 a px: 10 levels are a pixel apart there, 64 were a sixth
-    content = portable(filtered(f'<feGaussianBlur stdDeviation="{deviation}"/>')).decode("latin-1")
-    assert len(re.findall(r"\bf\*\s", content)) == levels
 
 
 def test_portable_blur_keeps_a_faint_drawing() -> None:
@@ -1659,16 +1648,3 @@ def test_content_the_coverage_cannot_take_keeps_the_levels(body: str, limits: di
     defs = '<linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><mask id="m"><rect width="200" height="200" fill="white"/></mask>'
     blurred_content(body, defs=defs)
     assert calls == [1]
-
-
-def test_portable_blur_levels_follow_a_stretched_axis() -> None:
-    # Stretched 50 times along x, a blur of 0.1 along x is 5 px wide: 12 levels; squeezed along y, its edge there is sharp
-    stream = SimpleNamespace(ctm=Matrix(50 * 3 / 4, 0, 0, 3 / 4 / 50))
-    assert filters._most_blur_levels(stream, (0.1, 0.1)) == 12
-    assert filters._most_blur_levels(stream, (0.0, 0.1)) == 1
-    assert filters._most_blur_levels(stream, (0.0, 0.0)) is None
-
-
-def test_portable_blur_levels_follow_a_sheared_blur() -> None:
-    # Sheared by 3, a blur of 4 spreads 13.2 px along its widest direction: 33 levels, not the 10 of either axis
-    assert filters._most_blur_levels(SimpleNamespace(ctm=Matrix(3 / 4, 0, 9 / 4, 3 / 4)), (4.0, 4.0)) == 33

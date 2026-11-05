@@ -95,17 +95,17 @@ with weasysvg.portable():
     pdf = weasyprint.HTML("diagram.html").write_pdf()
 ```
 
-`portable(band_px=1)` sets the least width of a level of the gradients and blurs below, in CSS px as the
-drawing is shown. `band_px=0` takes a level per 1/64 of opacity always.
+`portable(band_px=1)` sets the least width of a level of the gradients below, in CSS px as the drawing is
+shown. `band_px=0` takes a level per 1/64 of opacity always.
 
 - A mask of opaque white areas, then opaque black ones (`rect`, `circle`, `ellipse`), becomes a clip path.
   D2 cuts its edges under the labels with such a mask. A mask without a white area hides the element.
 - A mask of one gray or translucent shape becomes a clip to the shape and an opacity of the element.
-- A blur, and the shadow of `feDropShadow` or `drop-shadow()`, becomes the regions where the blurred
-  coverage reaches each level, one inside the next, each filled with a constant opacity. Painted in order,
-  they add up to the blur within one level. The contours are traced through the blurred coverage, so any
-  shape keeps the profile of a real Gaussian; a rect takes its exact blur. Where the softest edge rises
-  fastest, its contours lie at least `band_px` CSS px apart: a blur of 4 px takes 10 levels.
+- A blur, and the shadow of `feDropShadow` or `drop-shadow()`, becomes an image: its color, and as its alpha
+  the blurred coverage, sampled up to three times per standard deviation and interpolated. Any shape keeps the
+  profile of a real Gaussian; a rect takes its exact blur. An element that paints a gradient or a pattern
+  shows it through that image as a soft mask. A blur has no sharp edge to lose in an image, and Word draws it
+  smooth: levels of constant opacity showed there as rings.
 
 - The opacity of the stops of a gradient, and a fill opacity on it, become the level sets of that opacity along
   the gradient: strips across a linear gradient, rings of a radial one, each painted with the color shading at
@@ -115,7 +115,8 @@ drawing is shown. `band_px=0` takes a level per 1/64 of opacity always.
 - The blur of a `<use>` of one shape is the blur of that shape, in any paint.
 
 A clip path that one PDF clip cannot express becomes one path of all its fills, in any PDF: a `<use>`, several
-children, an even-odd child. Text in a clip path, a gradient mask, images and blend modes still use soft masks.
+children, an even-odd child. Text in a clip path, a gradient mask, images, the blur of a gradient and blend
+modes still use soft masks.
 The setting holds per thread and task.
 
 ## Command line: weasysvg-convert
@@ -136,7 +137,7 @@ weasysvg-convert -f svg -o flat.svg diagram.svg         # flat SVG for Word
 | `-f`, `--format` | `png` | `pdf`, `png` or `svg` |
 | `-o`, `--output` | stdout | the output file |
 | `-d`, `--dpi-x`, `-p`, `--dpi-y` | `96` | pixels per inch of the absolute lengths of the root |
-| `--band-px` | `1` | flat SVG: the least width of an opacity level of a gradient or a blur, in px as shown; `0` for a level per 1/64 |
+| `--band-px` | `1` | flat SVG: the least width of an opacity level of a gradient, in px as shown; `0` for a level per 1/64 |
 | `-a`, `--keep-aspect-ratio` | | accepted for pandoc; the size is always the SVG's own |
 
 The size is the one `rsvg-convert` gives: the `width` and `height` of the root, else its `viewBox`. A PDF
@@ -145,7 +146,8 @@ fetched: an SVG cannot read a local file or the network.
 
 `-f svg` writes a flat SVG for Word and LibreOffice, which draw no `<foreignObject>`, no filters and only
 some masks. It draws a portable PDF and reads it back with `pdftocairo -svg` of Poppler, which must be on
-the `PATH`. Text becomes glyph outlines. A soft mask the portable PDF keeps becomes an image. The opacity of
+the `PATH`. Text becomes glyph outlines. A blur becomes an image, and so does a soft mask the portable PDF
+keeps. The opacity of
 a group, which cairo writes as a mask over the whole drawing, becomes an `opacity` again.
 
 ## Features

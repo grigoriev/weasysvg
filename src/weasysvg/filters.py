@@ -46,7 +46,7 @@ from weasyprint.svg import utils as wp_utils
 from weasyprint.svg.bounding_box import is_valid_bounding_box
 from weasyprint.svg.utils import alpha_value, color, parse_url, size
 
-from . import _core, coverage, levelsets, shapeblur, turbulence
+from . import _core, coverage, shapeblur, turbulence
 from .paint import BOXED
 
 if TYPE_CHECKING:
@@ -1494,17 +1494,6 @@ def stacked_opacities(shares: list[Image.Image]) -> list[Image.Image]:
     return out[::-1]
 
 
-def _add_level(stream: Any, grid: shapeblur.Field, rings: list[levelsets.Ring]) -> None:
-    """Add the outline of rings, given in grid samples, to the path of stream."""
-    (x0, y0), (dx, dy) = grid.first, grid.cell
-    for ring in rings:
-        points = levelsets.simplified(ring, levelsets.SIMPLIFY_CELLS)
-        stream.move_to(x0 + points[0][0] * dx, y0 + points[0][1] * dy)
-        for x, y in points[1:]:
-            stream.line_to(x0 + x * dx, y0 + y * dy)
-        stream.close()
-
-
 def _solid_paint(node: Any, layer: Layer) -> Any:
     """The one color a source layer paints with, recolored and with its fill opacity; None for a gradient or pattern."""
     fill = str(node.get("fill", "black")).strip()
@@ -1517,12 +1506,12 @@ def _solid_paint(node: Any, layer: Layer) -> Any:
 
 
 def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer, stream: Any, big: Region) -> bool:
-    """Draw the blurred layer as stacked level sets, each in a constant opacity; False when it cannot.
+    """Draw the blurred layer as an image of each field in its color; False when it cannot.
 
-    Each level is the region where the blurred coverage reaches a threshold, inside its contours
-    (levelsets.py). Painted in order, the levels add up to the profile of the blur within 1/64 of opacity.
-    A level in one color is a filled path: cairo writes it as one SVG path, where a clip and a group
-    cost a clip path and a mask each.
+    A field is an image, its alpha the blurred coverage: in one color, or as the mask of the paint of the
+    element. cairo writes it as an SVG <image>, which Word draws as smooth as the PNG. Stacked level sets in
+    constant opacities showed in Word as rings, one at each contour. A blur has no sharp edge to lose in an
+    image.
     """
     used = _used_shape(svg, node, font_size)
     if used is not None:
@@ -1539,41 +1528,16 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
         return False
     paint, solid = None, _solid_paint(node, layer) if layer.kind == "source" else None
     if layer.kind == "source" and solid is None and any(level.rgb is None for level in fields):
-        # The paint of the element over all of box, drawn once and shown through each level
+        # The paint of the element over all of box, drawn once and shown through the image of each field
         paint = stream.add_group(*big)
         _paint_box(svg, original, node, font_size, context, paint, big, layer.recolor)
-    most = _most_blur_levels(stream, layer.blur)
     for level in fields:
-        rgba, opacity = _level_paint(layer, level, solid)
-        # The levels span the field up to its peak: a faint field, which holds the fade of its layer, would
-        # otherwise lie below the first of a few levels and paint nothing
-        peak = cast("tuple[int, int]", level.values.getextrema())[1] / 255
-        if not peak:
+        # A field that covers nothing, as the faint end of a stack of colors, paints nothing
+        if not cast("tuple[int, int]", level.values.getextrema())[1]:
             continue
-        steps = levelsets.thresholds(opacity * peak, most)
-        traced = levelsets.contours(level.values, [threshold * peak for threshold, _ in steps])
-        # Each level lies below the peak, which reaches it: no level is empty
-        for threshold, alpha in steps:
-            _draw_level(stream, level, traced[threshold * peak], rgba, alpha, paint)
+        rgba, opacity = _level_paint(layer, level, solid)
+        _draw_field(stream, level, rgba, opacity, paint, big)
     return True
-
-
-def _most_blur_levels(stream: Any, blur: tuple[float, float]) -> int | None:
-    """How many levels keep the contours of the softest blurred edge at least _core.BAND_PX apart; None for no limit.
-
-    An edge blurred by sigma px rises fastest at its middle, by 1 / (sigma sqrt(2 pi)) a px: n levels there
-    lie sigma sqrt(2 pi) / n px apart, and farther everywhere else. The softest edge is the widest one as shown:
-    a sharper edge has its contours closer. Through a transform, the blur is a Gaussian of covariance
-    L diag(sx^2, sy^2) L^T, whose widest deviation is the root of its larger eigenvalue, shear and all.
-    """
-    band_px = _core.BAND_PX.get()
-    sx, sy = blur
-    if band_px <= 0 or (sx <= 0 and sy <= 0):
-        return None
-    a, b, c, d, _, _ = _core.absolute_matrix(stream).values
-    xx, yy, xy = (a * sx) ** 2 + (c * sy) ** 2, (b * sx) ** 2 + (d * sy) ** 2, a * b * sx * sx + c * d * sy * sy
-    widest = math.sqrt((xx + yy + math.hypot(xx - yy, 2 * xy)) / 2) * _core.PX_PER_PT / _core.ZOOM.get()
-    return max(1, math.floor(widest * math.sqrt(2 * math.pi) / band_px))
 
 
 # What makes the shape a <use> draws more than its outline in its paint
@@ -1611,25 +1575,36 @@ def _level_paint(layer: Layer, level: _Field, solid: Any) -> tuple[Any, float]:
     return None, layer.opacity
 
 
-def _draw_level(stream: Any, level: _Field, rings: list[levelsets.Ring], rgba: Any, alpha: float, paint: Any) -> None:
-    """One level: its contours filled in rgba at alpha, or the paint of the element shown through them."""
+def _draw_field(stream: Any, level: _Field, rgba: Any, opacity: float, paint: Any, box: Region) -> None:
+    """A field as an image over its grid, its alpha the blurred coverage times opacity: in rgba, or as the mask of paint."""
+    red, green, blue = (round(_clamp(value) * 255) for value in rgba.to("srgb").coordinates) if rgba is not None else (0, 0, 0)
+    # opacity holds the alpha of rgba already (_level_paint): the image takes the color alone
+    reach = _clamp(opacity)
+    picture = Image.new("RGBA", level.values.size, (red, green, blue, 0))
+    picture.putalpha(level.values.point(lambda value: round(value * reach)))
     stream.push_state()
     try:
         if level.clip is not None:
             stream.rectangle(*level.clip)
             stream.clip()
             stream.end()
-        # The color comes first: a graphics state inside path construction is ignored by viewers
         if rgba is not None:
-            stream.set_color(rgba.__class__(rgba.space, rgba.coordinates, alpha))
-        _add_level(stream, level.grid, rings)
-        if rgba is None:
-            stream.clip(even_odd=True)
-            stream.end()
-            stream.set_alpha(alpha, stroke=True, fill=True)
-            stream.draw_x_object(paint.id)
+            _draw_grid_image(stream, level.grid, picture)
         else:
-            stream.fill(even_odd=True)
+            # The paint of the element, a gradient or a pattern, shows through the alpha of the image
+            _draw_grid_image(stream.set_alpha_state(*box, mode="alpha"), level.grid, picture)
+            stream.draw_x_object(paint.id)
+    finally:
+        stream.pop_state()
+
+
+def _draw_grid_image(stream: Any, grid: shapeblur.Field, picture: Image.Image) -> None:
+    """picture over grid, one pixel per cell, interpolated: a cell holds a sample of a smooth profile, not a square of color."""
+    stream.push_state()
+    try:
+        stream.transform(e=grid.origin[0], f=grid.origin[1])
+        digest = hashlib.sha1(picture.tobytes(), usedforsecurity=False).hexdigest()[:20]
+        RasterImage(picture, f"weasysvg{digest}", None).draw(stream, grid.width * grid.cell[0], grid.height * grid.cell[1], {"image_rendering": "auto"})
     finally:
         stream.pop_state()
 
