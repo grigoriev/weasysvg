@@ -146,7 +146,8 @@ fetched: an SVG cannot read a local file or the network.
 
 `-f svg` writes a flat SVG for Word and LibreOffice, which draw no `<foreignObject>`, no filters and only
 some masks. It draws a portable PDF and reads it back with `pdftocairo -svg` of Poppler, which must be on
-the `PATH`. Text becomes glyph outlines. A blur becomes an image, and so does a soft mask the portable PDF
+the `PATH`. pdftocairo runs with at most 2 GB of address space on POSIX: cairo draws some soft masks with
+gigabytes, and out of memory the conversion fails at once with an error. Text becomes glyph outlines. A blur becomes an image, and so does a soft mask the portable PDF
 keeps. The opacity of
 a group, which cairo writes as a mask over the whole drawing, becomes an `opacity` again.
 
