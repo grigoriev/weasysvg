@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-05
+
 ### Fixed
 
 - A mask, a clip or a filter region in object bounding box units applies to an `<image>`, and to a group that
