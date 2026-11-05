@@ -547,6 +547,10 @@ def test_path_data_with_a_long_run_of_digits() -> None:
     assert short_path_data(b'<svg><path d="M ' + digits + b' 0.123 Z"/></svg>') == b'<svg><path d="M ' + digits + b' 0.12 Z"/></svg>'
 
 
+def test_path_data_keeps_a_token_it_cannot_read() -> None:
+    assert short_path_data(b'<svg><path d="M 1.5,2.25 L 3.125 4"/></svg>') == b'<svg><path d="M 1.5,2.25 L 3.12 4"/></svg>'
+
+
 def test_path_data_of_a_transformed_path_stays() -> None:
     # cairo writes a stroke in the units of the SVG, its scale in the transform: a hundredth there may be a pixel
     stroke = b'<path fill="none" stroke="navy" d="M 0.123456 0.2 L 0.876543 0.8 " transform="matrix(3000, 0, 0, 3000, 0, 0)"/>'

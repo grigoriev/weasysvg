@@ -444,9 +444,6 @@ def _narrow(ranges: list[list[float]], start: tuple[float, ...], middle: tuple[f
 PATH_PLACES = 2
 _PATH = re.compile(rb"<path\b[^>]*>")
 _DATA = re.compile(rb'\sd="[^"]*"')
-# A number starts after no digit or point, and gives back no digit: a long run of digits without a point is passed
-# over once, where a search from each of its digits read the rest of the run again
-_DECIMAL = re.compile(rb"(?<![\d.])-?\d++\.\d++")
 
 
 def short_path_data(flat: bytes) -> bytes:
@@ -456,15 +453,22 @@ def short_path_data(flat: bytes) -> bytes:
     where a hundredth of a unit of a viewBox one unit wide was a pixel of the result.
     """
 
-    def short(number: re.Match[bytes]) -> bytes:
-        text = f"{float(number.group(0)):.{PATH_PLACES}f}".rstrip("0").rstrip(".")
-        return b"0" if text == "-0" else text.encode()
-
     def path(tag: re.Match[bytes]) -> bytes:
         text = tag.group(0)
-        return text if b" transform=" in text else _DATA.sub(lambda data: _DECIMAL.sub(short, data.group(0)), text)
+        return text if b" transform=" in text else _DATA.sub(lambda data: b" ".join(_short(token) for token in data.group(0).split(b" ")), text)
 
     return _PATH.sub(path, flat)
+
+
+def _short(token: bytes) -> bytes:
+    """A decimal of path data rounded to PATH_PLACES; any other token as it is. cairo writes path data as tokens between spaces."""
+    if b"." not in token:
+        return token
+    try:
+        text = f"{float(token):.{PATH_PLACES}f}".rstrip("0").rstrip(".")
+    except ValueError:
+        return token  # d="1.5, a token cairo does not write
+    return b"0" if text == "-0" else text.encode()
 
 
 def sized(flat: bytes, width_pt: float, height_pt: float) -> bytes:
