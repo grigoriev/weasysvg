@@ -216,23 +216,26 @@ def pdftocairo_command(pdf_path: str, svg_path: str, posix: bool = os.name == "p
 
 
 def check_pdftocairo(returncode: int, stderr: str, flat: bytes) -> None:
-    """Raise ConvertError when pdftocairo did not write the flat SVG.
+    """Raise ConvertError when pdftocairo did not write the whole flat SVG.
 
-    Out of memory, pdftocairo either is killed by the kernel, without a word, or prints "out of memory" for each
-    drawing it fails, writes an empty file and exits with 0.
+    Out of memory, pdftocairo is killed by the kernel without a word; under the limit, cairo reports it on the
+    error output, and pdftocairo exits with 0 and a file cut short or empty. An allocation of Poppler or of C++
+    that fails prints "Out of memory" or std::bad_alloc and aborts.
     """
-    # Out of memory, pdftocairo repeats its error for every drawing: megabytes of it
+    # Out of memory, pdftocairo repeats its error for every drawing: megabytes of it, of which the message keeps one line
     message = stderr.strip().partition("\n")[0][:MAX_MESSAGE]
+    out_of_memory = "out of memory" in stderr.lower() or "bad_alloc" in stderr
+    if out_of_memory and returncode in (0, -signal.SIGABRT):
+        raise ConvertError(f"pdftocairo ran out of memory, over {PDFTOCAIRO_MEMORY // 1024**2} MB")
     if returncode < 0:
         name = signal.Signals(-returncode).name
         hint = ": out of memory, most likely" if -returncode == signal.SIGKILL else ""
-        raise ConvertError(f"pdftocairo was killed by {name}{hint}")
-    if returncode == COMMAND_NOT_FOUND and "pdftocairo" in message:
+        raise ConvertError(f"pdftocairo was killed by {name}{hint}" + (f": {message}" if message else ""))
+    # sh found no pdftocairo; the loader exits with 127 as well, when it cannot load a library
+    if returncode == COMMAND_NOT_FOUND and "pdftocairo" in message and "not found" in message:
         raise ConvertError(MISSING_PDFTOCAIRO)
     if returncode != 0:
         raise ConvertError(f"pdftocairo failed: {message}")
-    if "out of memory" in message:
-        raise ConvertError(f"pdftocairo ran out of memory, over {PDFTOCAIRO_MEMORY // 1024**2} MB")
     if not flat:
         raise ConvertError(f"pdftocairo wrote nothing: {message}" if message else "pdftocairo wrote nothing")
 

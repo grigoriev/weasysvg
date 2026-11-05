@@ -248,10 +248,17 @@ def fake_pdftocairo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, script: str
     ("script", "message"),
     [
         # Killed by the kernel, without a word and without a file
-        ("kill -KILL $$", "killed by SIGKILL: out of memory, most likely"),
-        ("kill -TERM $$", "killed by SIGTERM$"),
-        # Under a memory limit: an error for each drawing it fails, an empty file, and exit code 0
-        ('for i in 1 2 3; do echo "BAD status: out of memory" >&2; done; : > "$3"', "ran out of memory, over 2048 MB"),
+        ("kill -KILL $$", "killed by SIGKILL: out of memory, most likely$"),
+        ('echo "Terminated by the service" >&2; kill -TERM $$', "killed by SIGTERM: Terminated by the service$"),
+        # Under a memory limit cairo reports it and pdftocairo exits with 0, its file empty or cut short
+        ('echo "Internal Error: cairo context error: out of memory" >&2; : > "$3"', "ran out of memory, over 2048 MB"),
+        ('echo "Syntax Warning: odd" >&2; echo "cairo error: out of memory" >&2; echo "<svg" > "$3"', "ran out of memory"),
+        # A failing allocation of Poppler or of C++ aborts
+        ('echo "Out of memory" >&2; kill -ABRT $$', "ran out of memory"),
+        ("echo \"terminate called after throwing an instance of 'std::bad_alloc'\" >&2; kill -ABRT $$", "ran out of memory"),
+        ('echo "double free" >&2; kill -ABRT $$', "killed by SIGABRT: double free$"),
+        # The loader exits with 127 too, when it cannot load a library
+        ('echo "pdftocairo: error while loading shared libraries: libnss3.so" >&2; exit 127', "failed: pdftocairo: error while loading"),
         (': > "$3"', "wrote nothing$"),
         ('echo "Syntax Warning: odd" >&2; : > "$3"', "wrote nothing: Syntax Warning: odd$"),
         # Only the first line, and not all of it: out of memory, pdftocairo writes megabytes of errors
@@ -260,15 +267,17 @@ def fake_pdftocairo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, script: str
 )
 def test_flat_svg_reports_why_pdftocairo_wrote_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, script: str, message: str) -> None:
     fake_pdftocairo(tmp_path, monkeypatch, script)
+    document = RED_RECT.encode()
     with pytest.raises(ConvertError, match=message):
-        to_svg(RED_RECT.encode())
+        to_svg(document)
 
 
 @pytest.mark.skipif(os.name != "posix", reason="ulimit of sh")
 def test_flat_svg_limits_the_memory_of_pdftocairo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     fake_pdftocairo(tmp_path, monkeypatch, 'echo "limit $(ulimit -v)" >&2; exit 1')
+    document = RED_RECT.encode()
     with pytest.raises(ConvertError, match=f"limit {convert.PDFTOCAIRO_MEMORY // 1024}$"):
-        to_svg(RED_RECT.encode())
+        to_svg(document)
 
 
 @pytest.mark.skipif(os.name != "posix", reason="sh")
@@ -278,8 +287,9 @@ def test_flat_svg_reports_a_missing_pdftocairo_behind_sh(tmp_path: Path, monkeyp
     folder.mkdir()
     (folder / "sh").symlink_to(cast(str, shutil.which("sh")))
     monkeypatch.setenv("PATH", str(folder))
+    document = RED_RECT.encode()
     with pytest.raises(ConvertError, match="needs pdftocairo of Poppler"):
-        to_svg(RED_RECT.encode())
+        to_svg(document)
 
 
 def test_pdftocairo_runs_alone_outside_posix() -> None:
@@ -293,8 +303,9 @@ def test_pdftocairo_out_of_memory_fails_in_seconds(tmp_path: Path) -> None:
     pdf.write_bytes(subprocess.run([sys.executable, "-c", GREEDY_PDF], capture_output=True, check=True).stdout)
     svg_path = tmp_path / "out.svg"
     result = subprocess.run(convert.pdftocairo_command(str(pdf), str(svg_path)), capture_output=True, check=False, timeout=60)  # noqa: S603
+    stderr, flat = result.stderr.decode(errors="replace"), svg_path.read_bytes()
     with pytest.raises(ConvertError, match="ran out of memory"):
-        convert.check_pdftocairo(result.returncode, result.stderr.decode(errors="replace"), svg_path.read_bytes())
+        convert.check_pdftocairo(result.returncode, stderr, flat)
 
 
 # ---------------- command line ----------------
