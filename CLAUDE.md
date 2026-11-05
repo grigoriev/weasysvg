@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/claude-code) when working 
 weasysvg is a plugin for WeasyPrint 70.x that renders SVG natively and close to Chromium. One
 `weasysvg.install()` call monkeypatches WeasyPrint internals for the whole process. Everything stays
 vector in the PDF: weasysvg rasterizes no SVG content. The one image it makes is the noise of
-`feTurbulence`, computed in Python. resvg serves only as a reference in the corpus.
+`feTurbulence`, computed in Python. A portable PDF, which the flat SVG reads back, draws a blur as an
+image too (`filters._portable_blur`). resvg serves only as a reference in the corpus.
 
 ## Tech Stack
 
@@ -88,14 +89,17 @@ once.
   draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips; `paint.gray_mask` draws a
   mask of one gray shape as a clip and an opacity of the element. A gradient mask stays soft: nested levels copied
   the element per level, and 8 bit renderers lost the faint ones. `filters._portable_blur`
-  draws a blurred layer as stacked level sets: the field of `shapeblur.Field` (a rect: the product of its two
-  profiles), its contours at each level, each filled in a constant opacity. The color goes before the path. A
-  `<use>` of one shape blurs as that shape (`filters._used_shape`).
+  draws a blurred layer as an image over the grid of `shapeblur.Field` (a rect: the product of its two profiles):
+  its color, the field as alpha, interpolated. Word drew stacked levels of constant opacity as rings. The paint
+  of an element with a gradient or pattern shows through that image as a soft mask. A `<use>` of one shape
+  blurs as that shape (`filters._used_shape`). PDFium samples an interpolated image half a pixel off: the
+  profile of a blur is checked in the flat SVG through librsvg.
   `paint.draw_gradient` keeps the alpha shading WeasyPrint sets for stop opacities (`_AlphaSink` in place of
   `set_alpha_state`) and paints the color shading through the level sets of that opacity (`paint.levels`). Their
   reach is measured in the space of the shading: the cell of a gradient is about 1000 units.
 - `levelsets.py`: the opacities that stack into a profile in steps of 1/64, the contours of a sampled field by
-  marching squares (only the cells whose corners differ), and their simplification.
+  marching squares (only the cells whose corners differ), and their simplification. The gradients of
+  `paint.levels` use them.
 - `xobject.py`: each SVG image drawn into one Form XObject without a group dictionary, its BBox the viewport;
   an inline `<svg>` with visible overflow gets a box wide enough. The form carries no tags: the Figure around
   the `Do` marks it. One form per image, size, scale and resources dictionary.
@@ -112,7 +116,8 @@ changes on a node: WeasyPrint walks `<use>` targets, gradients and patterns more
 - `test_convert_visual.py` flattens each diagram of `corpus/svg/drawio` and `corpus/svg/diagrams` and a case of each
   portable feature, draws the flat SVG in librsvg (`rsvg-convert`, in Dockerfile.test and CI) and compares it with
   the default PDF in PDFium, both blurred by 2 px (PDFium snaps thin strokes, librsvg does not). resvg drew no
-  stroke painted by a pattern and faded gradients inside one; Chromium and Word draw them as librsvg does. It also fails on a filter or a mask without an image in the flat SVG.
+  stroke painted by a pattern and faded gradients inside one; Chromium and Word draw them as librsvg does. It also fails on a filter or a mask without an image in the flat SVG,
+  and on an image of its own in an SVG without a blur.
   A failure writes the reference, the drawing and the difference into the tmp_path of the test.
 - Coverage is 100% of lines. One branch cannot be reached: `conditional.py` (a failing element whose
   parent no longer holds it).

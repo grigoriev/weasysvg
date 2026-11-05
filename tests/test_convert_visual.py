@@ -19,6 +19,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+from statistics import NormalDist
 from typing import cast
 
 import pypdfium2 as pdfium
@@ -111,6 +112,10 @@ FEATURES = {
 }
 
 
+# What a blur looks like in an SVG: an feGaussianBlur, an feDropShadow, a CSS blur() or drop-shadow()
+BLURS = re.compile(rb"feGaussianBlur|feDropShadow|blur\(|drop-shadow\(")
+
+
 def corpus_cases() -> list[str]:
     return sorted(str(path.relative_to(CORPUS)) for folder in ("drawio", "diagrams") for path in (CORPUS / folder).glob("*.svg"))
 
@@ -140,7 +145,10 @@ def check(name: str, document: bytes, tmp_path: Path) -> None:
     # cairo keeps the alpha of a raster image in a mask through a filter: any other filter is one Word does not draw
     assert 'filter="url(' not in re.sub(r"<mask\b.*?</mask>", "", text, flags=re.DOTALL), "a filter: Word draws none"
     # cairo writes the alpha of a raster image as a mask over that image: any other mask is a soft mask
-    assert text.count("<mask") <= text.count("<image") <= document.count(b"<image") + document.count(b"data:image") * 2
+    assert text.count("<mask") <= text.count("<image")
+    if not BLURS.search(document):
+        # An image of its own only for a blur, which Word draws smooth as an image and in rings as levels
+        assert text.count("<image") <= document.count(b"<image") + document.count(b"data:image") * 2
     width = round(size_px(document, 96, 96)[0] * SCALE)
     expected = reference(document, width)
     actual = drawn(flat, expected.size)
@@ -174,6 +182,15 @@ def test_flat_svg_of_a_feature_looks_like_the_pdf(name: str, tmp_path: Path) -> 
 def test_flat_svg_of_a_blur_looks_like_the_pdf(name: str, tmp_path: Path) -> None:
     # Every blur the unit tests draw in a portable PDF, through the flat SVG to another renderer
     check(f"blur-{name}", PORTABLE_BLURS[name].encode(), tmp_path)
+
+
+def test_flat_svg_of_a_blur_follows_the_gaussian() -> None:
+    # The image of the exact blur of a rect, interpolated between the centers of its cells: Phi at the center of each pixel
+    flat = to_svg(svg('<filter id="f"><feGaussianBlur stdDeviation="5"/></filter><rect x="40" y="40" width="120" height="120" fill="black" filter="url(#f)"/>', 200, 200).encode())
+    image = drawn(flat, (800, 800)).convert("L")
+    for y in range(30, 50, 2):
+        # 4 pixels per px: the center of px y is pixel 4 y + 2
+        assert 1 - cast(int, image.getpixel((400, 4 * y + 2))) / 255 == pytest.approx(NormalDist().cdf((y + 0.5 - 40) / 5), abs=0.02)
 
 
 def test_a_lost_label_fails_the_comparison(tmp_path: Path) -> None:

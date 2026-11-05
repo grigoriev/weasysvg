@@ -59,7 +59,7 @@ _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips",
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
 # Drawing for a portable PDF, per thread and task: see portable()
 PORTABLE: ContextVar[bool] = ContextVar("weasysvg_portable", default=False)
-# The least width of an opacity level of a gradient or a blur in a portable PDF, in CSS px as the drawing is shown.
+# The least width of an opacity level of a gradient in a portable PDF, in CSS px as the drawing is shown.
 # A level narrower than a pixel shows no more than one a pixel wide, and each one more is drawn in full by a flat SVG.
 DEFAULT_BAND_PX = 1.0
 BAND_PX: ContextVar[float] = ContextVar("weasysvg_band_px", default=DEFAULT_BAND_PX)
@@ -90,8 +90,9 @@ def original_draw_node() -> Callable[..., None]:
 def portable(*, band_px: float = DEFAULT_BAND_PX, zoom: float = 1.0) -> Iterator[None]:
     """Draw without soft masks and blend modes where the same picture allows it, for the duration.
 
-    A gradient with transparent stops and a blur are painted once per level of their opacity, no level narrower
-    than band_px CSS px of the drawing shown zoom times smaller than drawn. 0 takes a level per 1/64 of opacity.
+    A gradient with transparent stops is painted once per level of its opacity, no level narrower than band_px
+    CSS px of the drawing shown zoom times smaller than drawn. 0 takes a level per 1/64 of opacity. A blur is an
+    image of its color, with the blurred coverage as alpha.
     """
     tokens = (PORTABLE.set(True), BAND_PX.set(band_px), ZOOM.set(zoom))
     try:

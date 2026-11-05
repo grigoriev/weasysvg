@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- In `weasysvg.portable()` and the flat SVG, a blur becomes an image of its color with the blurred coverage as
+  its alpha, no longer levels of constant opacity. Word drew each level as a ring: the shadow of the
+  OpenStreetMap logo and the glare of Tux showed rings. An element that paints a gradient shows it through
+  that image as a soft mask. The flat SVG of Tux shrinks from 12.9 MB to 3.7 MB: each level of its blurred
+  gradients had cairo write the gradient again. `band_px` sets the levels of gradients only.
+
 ## [0.6.0] - 2026-11-04
 
 ### Added
