@@ -13,6 +13,7 @@ WEASYSVG_VISUAL_OUT set to a directory, every case writes them there, to look at
 
 from __future__ import annotations
 
+import base64
 import io
 import os
 import re
@@ -116,6 +117,57 @@ FEATURES = {
 BLURS = re.compile(rb"feGaussianBlur|feDropShadow|blur\(|drop-shadow\(")
 
 
+def png_url(picture: Image.Image) -> str:
+    out = io.BytesIO()
+    picture.save(out, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(out.getvalue()).decode()
+
+
+# A gray ramp, black on the left and white on the right, and a red and a translucent picture
+RAMP = png_url(Image.linear_gradient("L").rotate(90).resize((64, 64)))
+RED_PNG = png_url(Image.new("RGB", (64, 64), (220, 40, 40)))
+TRANSLUCENT_PNG = png_url(Image.new("RGBA", (64, 64), (40, 40, 220, 180)))
+STRIPES = Image.new("RGB", (64, 32), (220, 40, 40))
+STRIPES.paste((40, 160, 40), (0, 16, 64, 32))
+STRIPES_PNG = png_url(STRIPES)
+REMOVE_COLOR = '<filter id="remove" x="0%" y="0%" width="100%" height="100%"><feColorMatrix color-interpolation-filters="sRGB" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0"/></filter>'
+COLOR_TO_ALPHA = '<filter id="c2a" x="0%" y="0%" width="100%" height="100%"><feColorMatrix color-interpolation-filters="sRGB" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.2126 0.7152 0.0722 0 0"/></filter>'
+PLACED = 'width="160" height="80" x="20" y="10" preserveAspectRatio="none"'
+RAMP_MASK = f'<mask id="m"><image {PLACED} href="{RAMP}"/></mask>'
+BACKDROP = '<rect width="200" height="100" fill="#cfe"/>'
+# What weasysvg draws with an image, each against librsvg, which draws it as Chromium does
+IMAGES = {
+    "masked image": svg(f'{BACKDROP}<defs>{RAMP_MASK}</defs><image {PLACED} mask="url(#m)" href="{RED_PNG}"/>'),
+    "masked group of an image": svg(f'{BACKDROP}<defs>{RAMP_MASK}</defs><g mask="url(#m)"><image {PLACED} href="{RED_PNG}"/></g>'),
+    "masked use of an image": svg(f'{BACKDROP}<defs>{RAMP_MASK}<image id="r" {PLACED} href="{RED_PNG}"/></defs><g mask="url(#m)"><use href="#r"/></g>'),
+    # In PDF the soft mask of an image with alpha replaces the one of the graphics state
+    "masked translucent image": svg(f'{BACKDROP}<defs>{RAMP_MASK}</defs><image {PLACED} mask="url(#m)" href="{TRANSLUCENT_PNG}"/>'),
+    # The alpha of an image as cairo writes it: the gray of its alpha, through two filters, as the mask of its colors
+    "cairo image alpha": svg(
+        f'{BACKDROP}<defs>{REMOVE_COLOR}{COLOR_TO_ALPHA}<image id="a" width="64" height="64" href="{RAMP}"/><image id="c" width="64" height="64" href="{RED_PNG}"/>'
+        '<mask id="m"><g filter="url(#remove)"><use href="#a" filter="url(#c2a)" transform="matrix(2.5,0,0,1.25,20,10)"/></g></mask></defs>'
+        '<g mask="url(#m)"><use href="#c" transform="matrix(2.5,0,0,1.25,20,10)"/></g>'
+    ),
+    # A soft mask of a group as cairo writes it: the group turned white, its alpha kept, here a masked image
+    "cairo group mask": svg(
+        f'{BACKDROP}<defs>{REMOVE_COLOR}{COLOR_TO_ALPHA}<image id="a" width="64" height="64" href="{RAMP}"/><image id="k" width="64" height="64" href="{png_url(Image.new("RGB", (64, 64)))}"/>'
+        '<mask id="inner"><g filter="url(#remove)"><use href="#a" filter="url(#c2a)" transform="matrix(2.5,0,0,1.25,20,10)"/></g></mask>'
+        '<g id="grp"><g mask="url(#inner)"><use href="#k" transform="matrix(2.5,0,0,1.25,20,10)"/></g></g>'
+        '<mask id="outer"><g filter="url(#remove)"><use href="#grp"/></g></mask></defs>'
+        '<rect x="20" y="10" width="160" height="80" fill="rgb(220,40,40)" mask="url(#outer)"/>'
+    ),
+    # A color matrix recolors the pixels of an image as the paint of a shape: red and blue swap
+    "recolored image": svg(f'<defs><filter id="swap" color-interpolation-filters="sRGB"><feColorMatrix values="0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 1 0"/></filter></defs><g filter="url(#swap)"><image {PLACED} href="{STRIPES_PNG}"/></g>'),
+    "recolored translucent image": svg(f'{BACKDROP}<g filter="url(#remove)"><defs>{REMOVE_COLOR}</defs><image {PLACED} href="{TRANSLUCENT_PNG}"/></g>'),
+    # The box of an image in object bounding box units: its attributes, its own size. librsvg sizes an image of one side
+    # as SVG 1.1 did, not by its ratio as Chromium: test_paint covers that one
+    "image box": svg(
+        f'<defs><clipPath id="h" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath></defs><image x="20" y="10" width="160" height="80" preserveAspectRatio="none" clip-path="url(#h)" href="{RED_PNG}"/>'
+    ),
+    "image box of its size": svg(f'<defs><mask id="h" maskContentUnits="objectBoundingBox"><rect width="0.5" height="1" fill="white"/></mask></defs><image x="20" y="10" mask="url(#h)" href="{STRIPES_PNG}"/>'),
+}
+
+
 def corpus_cases() -> list[str]:
     return sorted(str(path.relative_to(CORPUS)) for folder in ("drawio", "diagrams") for path in (CORPUS / folder).glob("*.svg"))
 
@@ -151,7 +203,11 @@ def check(name: str, document: bytes, tmp_path: Path) -> None:
         assert text.count("<image") <= document.count(b"<image") + document.count(b"data:image") * 2
     width = round(size_px(document, 96, 96)[0] * SCALE)
     expected = reference(document, width)
-    actual = drawn(flat, expected.size)
+    compare(name, expected, drawn(flat, expected.size), flat, tmp_path, "the flat SVG differs from the PDF")
+
+
+def compare(name: str, expected: Image.Image, actual: Image.Image, source: bytes, tmp_path: Path, what: str) -> None:
+    """Fail when actual strays from expected, both blurred by BLUR, past MAX_MEAN on average or MAX_PEAK at most."""
     difference = ImageChops.difference(expected.filter(ImageFilter.GaussianBlur(BLUR)), actual.filter(ImageFilter.GaussianBlur(BLUR))).convert("L")
     mean, peak = ImageStat.Stat(difference).mean[0], cast("tuple[int, int]", difference.getextrema())[1]
     failed = mean > MAX_MEAN or peak > MAX_PEAK
@@ -163,9 +219,9 @@ def check(name: str, document: bytes, tmp_path: Path) -> None:
         expected.save(f"{stem}-reference.png")
         actual.save(f"{stem}-flat.png")
         difference.point(lambda value: min(255, value * 4)).save(f"{stem}-difference.png")
-        Path(f"{stem}.svg").write_bytes(flat)
+        Path(f"{stem}.svg").write_bytes(source)
     if failed:
-        pytest.fail(f"{name}: the flat SVG differs from the PDF by {mean:.2f} on average and {peak} at most; see {stem}-*.png")
+        pytest.fail(f"{name}: {what} by {mean:.2f} on average and {peak} at most; see {stem}-*.png")
 
 
 @pytest.mark.parametrize("name", corpus_cases())
@@ -188,6 +244,34 @@ def test_flat_svg_of_the_inkscape_logo_looks_like_the_pdf(tmp_path: Path) -> Non
     # Its strokes fade one color through a pattern: Poppler drew levels filled in that color there washed out, over
     # everything after them, so a stroke keeps the shading in each level
     check("real/wm-Inkscape_Logo.svg", (CORPUS / "real" / "wm-Inkscape_Logo.svg").read_bytes(), tmp_path)
+
+
+@pytest.mark.parametrize("name", ["drop shadow", "group of colors", "faded colors side by side"])
+def test_weasysvg_draws_its_own_flat_svg_of_a_blur(name: str) -> None:
+    # pandoc draws the SVG of a DOCX with weasysvg-convert: the flat SVG of a blur holds an image under a mask cairo
+    # writes through filters, which weasysvg drew opaque
+    document = PORTABLE_BLURS[name].encode()
+    width = round(size_px(document, 96, 96)[0] * SCALE)
+    expected = reference(document, width)
+    actual = reference(to_svg(document), width)
+    difference = ImageChops.difference(expected.filter(ImageFilter.GaussianBlur(BLUR)), actual.filter(ImageFilter.GaussianBlur(BLUR))).convert("L")
+    assert ImageStat.Stat(difference).mean[0] <= MAX_MEAN
+    assert cast("tuple[int, int]", difference.getextrema())[1] <= MAX_PEAK
+
+
+@pytest.mark.parametrize("name", IMAGES)
+def test_weasysvg_draws_an_image_as_librsvg(name: str, tmp_path: Path) -> None:
+    document = IMAGES[name].encode()
+    expected = drawn(document, (round(size_px(document, 96, 96)[0] * SCALE), round(size_px(document, 96, 96)[1] * SCALE)))
+    compare(name, expected, reference(document, expected.size[0]), document, tmp_path, "weasysvg differs from librsvg")
+
+
+@pytest.mark.parametrize("name", ["real/wm-Tux.svg", "real/wm-Openstreetmap_logo.svg"])
+def test_weasysvg_draws_a_flat_svg_as_librsvg(name: str, tmp_path: Path) -> None:
+    # pandoc draws the SVG of a DOCX with weasysvg-convert: its blurs are images under masks cairo writes through filters
+    flat = to_svg((CORPUS / name).read_bytes())
+    width, height = (round(side * SCALE) for side in size_px(flat, 96, 96))
+    compare(name, drawn(flat, (width, height)), reference(flat, width), flat, tmp_path, "weasysvg differs from librsvg")
 
 
 def test_flat_svg_of_a_blur_follows_the_gaussian() -> None:

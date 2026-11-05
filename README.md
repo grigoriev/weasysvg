@@ -34,8 +34,8 @@ pip install weasysvg
 ```
 
 weasysvg depends on WeasyPrint only. Every SVG feature it adds stays vector in the PDF, blur included.
-The one exception is the noise of `feTurbulence`: it has no vector form, so it is an image, computed in
-Python.
+The exceptions are images: the noise of `feTurbulence` has no vector form, so it is an image, computed in
+Python, and a color matrix or transfer function recolors the pixels of an image, also in Python.
 
 WeasyPrint needs Pango, see its
 [installation guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html).

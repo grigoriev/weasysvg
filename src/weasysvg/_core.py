@@ -57,6 +57,9 @@ _DRAWING: ContextVar[tuple[Any, float] | None] = ContextVar("weasysvg_drawing", 
 # The clip paths being drawn, per thread and task
 _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
+# Whether the element being drawn is under a soft mask of its own or of an ancestor: an image with alpha then draws in
+# a group, since in PDF its own soft mask replaces the one of the graphics state
+SOFT_MASKED: ContextVar[bool] = ContextVar("weasysvg_soft_masked", default=False)
 # Drawing for a portable PDF, per thread and task: see portable()
 PORTABLE: ContextVar[bool] = ContextVar("weasysvg_portable", default=False)
 # The least width of an opacity level of a gradient in a portable PDF, in CSS px as the drawing is shown.
@@ -196,6 +199,7 @@ def enable_draw_feature(name: str) -> None:
     if wp_svg.SVG.draw_node is not _draw_node:
         wp_svg.SVG.draw_node = _draw_node
     wp_bounding_box.BOUNDING_BOX_METHODS.setdefault("a", bounding_box_a)
+    wp_bounding_box.BOUNDING_BOX_METHODS.setdefault("image", bounding_box_image)
 
 
 def bounding_box_a(svg: Any, node: Any, font_size: float) -> Any:
@@ -207,6 +211,44 @@ def bounding_box_a(svg: Any, node: Any, font_size: float) -> Any:
         return text
     x, y, width, height = children
     return wp_bounding_box.extend_bounding_box(text, ((x, y), (x + width, y + height)))
+
+
+def bounding_box_image(svg: Any, node: Any, font_size: float) -> Any:
+    """The box of an <image>, which WeasyPrint leaves empty: where weasyprint.svg.images.image draws it.
+
+    Without it a mask, a clip or a filter region in object bounding box units had no box, and WeasyPrint drew the
+    image without them. cairo writes the alpha of an image as a mask over it: the flat SVG of a blur came out opaque.
+    """
+    x, y = svg.point(node.get("x"), node.get("y"), font_size)
+    width, height = svg.point(node.get("width"), node.get("height"), font_size)
+    if not width or not height:
+        url = node.get_href(node.get("{http://www.w3.org/XML/1998/namespace}base") or svg.url)
+        image = svg.context.get_image_from_uri(url=url, forced_mime_type="image/*")
+        if image is None:
+            return None
+        width, height = _image_size(image, font_size, width, height)
+    return (x, y, width, height) if width > 0 and height > 0 else None
+
+
+def _image_size(image: Any, font_size: float, width: float, height: float) -> tuple[float, float]:
+    """The size weasyprint.svg.images.image gives an image of which the <image> sets neither or one side."""
+    intrinsic_width, intrinsic_height, ratio = image.get_intrinsic_size(1, font_size)
+    if intrinsic_width is None and intrinsic_height is None:
+        if ratio is None or (not width and not height):
+            intrinsic_width, intrinsic_height = 300, 150
+        elif not width:
+            intrinsic_width, intrinsic_height = ratio * height, height
+        else:
+            intrinsic_width, intrinsic_height = width, width / ratio
+    elif intrinsic_width is None:
+        intrinsic_width = ratio * intrinsic_height
+    elif intrinsic_height is None:
+        intrinsic_height = intrinsic_width / ratio
+    if width and not height:
+        return width, width / ratio
+    if height and not width:
+        return height * ratio, height
+    return width or intrinsic_width, height or intrinsic_height
 
 
 def _group_opacity(node: Any) -> float | None:
@@ -326,11 +368,13 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
             self.transform(node, effects.font_size)
             del node.attrib["transform"]
         gray = None
+        masked = None
         if effects.mask is not None:
             # A portable PDF draws a gray mask as an opacity of the element
             gray = paint.gray_mask(self, node, effects.mask, effects.font_size)
             if gray is None:
                 paint.paint_mask(self, node, effects.mask, effects.font_size)
+                masked = SOFT_MASKED.set(True)
         outer = self.stream
         if gray is not None:
             self.stream = gray.start(outer, group_box(self, node, font_size))
@@ -345,6 +389,8 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
             if gray is not None:
                 self.stream = outer
                 gray.draw(outer, effects.blend)
+            if masked is not None:
+                SOFT_MASKED.reset(masked)
     finally:
         self.stream.pop_state()
         node.attrib.update(saved)

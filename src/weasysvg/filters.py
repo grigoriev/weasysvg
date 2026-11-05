@@ -17,7 +17,7 @@ feColorMatrix and feComponentTransfer recolor: each color the element paints wit
 functions, in linearRGB unless color-interpolation-filters says sRGB. Touches ``svg.color`` and
 ``svg.defs.color``, which parse the fill, stroke and stop colors, and ``svg.draw_gradient``: a
 recolored gradient gets intermediate stops, since the functions do not commute with interpolation.
-Images inside keep their colors.
+An image inside has its pixels recolored, within MAX_PIXEL_WORK (``_image``).
 
 PDF has no blur. A blurred layer is drawn through a soft mask that steps through the Gaussian profile
 of its edge: outside, the shape grown by a stroke; inside, bands along the edge (see _blur_mask).
@@ -26,6 +26,7 @@ of its edge: outside, the shape grown by a stroke; inside, bands along the edge 
 from __future__ import annotations
 
 import hashlib
+import io
 import logging
 import math
 import re
@@ -1787,7 +1788,79 @@ def _recolored_gradient(draw_gradient: Callable[..., Any]) -> Callable[..., Any]
     return draw
 
 
+_ORIGINAL_IMAGE = wp_svg.TAGS["image"]
+
+
+def _image(svg: Any, node: Any, font_size: float) -> None:
+    """Draw an <image>, inside a recolored element with its pixels recolored as the paint of its shapes.
+
+    A feColorMatrix or feComponentTransfer applies to the pixels of an image as to any paint. cairo writes the alpha of
+    an image under a mask as a group turned white, its alpha kept: the image kept its colors, black, and the luminance
+    mask covered nothing (the shading of the flat SVG of Tux).
+    """
+    if _core.SOFT_MASKED.get():
+        _image_in_group(svg, node, font_size)
+        return
+    functions = RECOLOR.get()
+    if not functions:
+        _ORIGINAL_IMAGE(svg, node, font_size)
+        return
+    context = svg.context
+    load = context.get_image_from_uri
+
+    def recolored(*args: Any, **kwargs: Any) -> Any:
+        image = load(*args, **kwargs)
+        return _recolored_raster(svg, image, functions) if isinstance(image, RasterImage) else image
+
+    context.get_image_from_uri = recolored
+    try:
+        _ORIGINAL_IMAGE(svg, node, font_size)
+    finally:
+        context.get_image_from_uri = load
+
+
+def _image_in_group(svg: Any, node: Any, font_size: float) -> None:
+    """An image under a soft mask, drawn in a group: the soft mask of the state then cuts the group, alpha and all.
+
+    In PDF the soft mask of an image with alpha replaces the one of the graphics state: a masked image drew unmasked.
+    """
+    box = _core.bounding_box_image(svg, node, font_size)
+    if box is None:
+        return
+    group = svg.stream.add_group(*box)
+    stream = svg.stream
+    token = _core.SOFT_MASKED.set(False)
+    svg.stream = group
+    try:
+        _image(svg, node, font_size)
+    finally:
+        svg.stream = stream
+        _core.SOFT_MASKED.reset(token)
+    stream.draw_x_object(group.id)
+
+
+def _recolored_raster(svg: Any, image: Any, functions: tuple[Recolor, ...]) -> Any:
+    """image with each pixel through functions in turn; image itself when MAX_PIXEL_WORK is spent."""
+    picture = Image.open(io.BytesIO(image.image_data.data)).convert("RGBA")
+    if not _charge(svg, picture.width * picture.height):
+        LOGGER.warning("SVG image is drawn without its recolor: too much pixel work")
+        return image
+
+    def function(pixel: RGBA) -> RGBA:
+        for step in functions:
+            pixel = step(pixel)
+        return pixel
+
+    out = _recolor_image(picture, function)
+    if cast("tuple[int, int]", out.getchannel("A").getextrema())[0] == 255:
+        # An opaque image needs no soft mask of its own
+        out = out.convert("RGB")
+    digest = hashlib.sha1(out.tobytes(), usedforsecurity=False).hexdigest()[:20]
+    return RasterImage(out, f"weasysvg{digest}", None)
+
+
 def install() -> None:
+    wp_svg.TAGS["image"] = _image
     wp_svg.color = wp_defs.color = _color
     wp_svg.draw_gradient = _recolored_gradient(wp_svg.draw_gradient)
     _core.add_restyler(restyle)

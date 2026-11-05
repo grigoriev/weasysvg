@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import io
 import logging
 import math
 import re
@@ -14,7 +16,7 @@ import pypdfium2.raw as pdfium_c
 import pytest
 import weasyprint
 from helpers import RecordingStream, content, page_html, pixel, rasterize, render, svg
-from PIL import ImageChops, ImageStat
+from PIL import Image, ImageChops, ImageStat
 from weasyprint import svg as wp_svg
 
 import weasysvg
@@ -498,6 +500,53 @@ def test_portable_silhouette_of_an_image_by_reference_keeps_the_mask(content: st
     target = f'{defs}<g filter="url(#f)"><rect x="40" y="20" width="20" height="20" fill="red"/>{content}</g>'
     document = filtered('<feFlood flood-color="green"/><feComposite in2="SourceAlpha" operator="in"/>', GRAY_SHADOW, target=target)
     assert soft_masks(portable(document)) > 0
+
+
+def picture_url(picture: Image.Image) -> str:
+    out = io.BytesIO()
+    picture.save(out, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(out.getvalue()).decode()
+
+
+SWAP = '<filter id="f" color-interpolation-filters="sRGB"><feColorMatrix values="0 0 1 0 0  0 1 0 0 0  1 0 0 0 0  0 0 0 1 0"/></filter>'
+
+
+@pytest.mark.parametrize("mode", ["RGB", "RGBA"])
+def test_color_matrix_recolors_the_pixels_of_an_image(mode: str) -> None:
+    # Red and blue swap places, in the pixels of the picture as in the paint of a shape
+    red = Image.new(mode, (10, 10), (255, 0, 0, 255)[: len(mode)])
+    image = f'<image x="20" y="20" width="60" height="40" href="{picture_url(red)}"/>'
+    pdf = render(svg(f'<defs>{SWAP}</defs><g filter="url(#f)">{image}<rect x="120" y="20" width="60" height="40" fill="red"/></g>'))
+    assert near(pixel(pdf, 37, 30), (0, 0, 255))
+    assert near(pixel(pdf, 112, 30), (0, 0, 255))
+    # An opaque result needs no soft mask of its own, whatever the picture had
+    assert pdf.count(b"/SMask") == 0
+
+
+def test_recolor_of_an_image_keeps_its_alpha() -> None:
+    # cairo turns the colors of an image white and keeps its alpha: half clear stays half clear
+    half = Image.new("RGBA", (10, 10), (0, 0, 0, 255))
+    half.paste((0, 0, 0, 0), (5, 0, 10, 10))
+    white = '<filter id="w" color-interpolation-filters="sRGB"><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"/></filter>'
+    pdf = render(svg(f'<rect width="200" height="100" fill="navy"/><defs>{white}</defs><g filter="url(#w)"><image width="200" height="100" preserveAspectRatio="none" href="{picture_url(half)}"/></g>'))
+    assert near(pixel(pdf, 37, 37), WHITE)
+    assert near(pixel(pdf, 112, 37), (0, 0, 128))
+
+
+def test_recolor_of_an_svg_image_goes_through_its_paint() -> None:
+    # An SVG drawn as an image has no pixels: its shapes take the recolor as they draw
+    inner = "data:image/svg+xml;base64," + base64.b64encode(svg('<rect width="200" height="100" fill="red"/>').encode()).decode()
+    pdf = render(svg(f'<defs>{SWAP}</defs><g filter="url(#f)"><image width="200" height="100" href="{inner}"/></g>'))
+    assert near(pixel(pdf, 75, 37), (0, 0, 255))
+
+
+def test_recolor_of_an_image_past_the_pixel_budget(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    monkeypatch.setattr(filters, "MAX_PIXEL_WORK", 50)
+    red = Image.new("RGB", (10, 10), (255, 0, 0))
+    with caplog.at_level(logging.WARNING, logger="weasysvg"):
+        pdf = render(svg(f'<defs>{SWAP}</defs><g filter="url(#f)"><image width="200" height="100" preserveAspectRatio="none" href="{picture_url(red)}"/></g>'))
+    assert near(pixel(pdf, 75, 37), RED)
+    assert "without its recolor" in caplog.text
 
 
 def test_portable_silhouette_of_html_keeps_the_mask() -> None:
