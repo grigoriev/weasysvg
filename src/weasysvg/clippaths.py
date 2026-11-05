@@ -171,6 +171,10 @@ def _plain_state(values: Any) -> None:
             raise Unsupported(f"graphics state {key}")
 
 
+# Why a clip path takes the alpha soft mask: its checks would cost more than the SVG has left
+BUDGET_SPENT = "the work budget of the SVG"
+
+
 def union(fills: list[Fill], charge: Callable[[int], bool] = lambda _: True) -> list[Subpath]:
     """The subpaths of one path whose nonzero fill is the union of fills.
 
@@ -182,21 +186,7 @@ def union(fills: list[Fill], charge: Callable[[int], bool] = lambda _: True) -> 
 
 def _oriented(fill: Fill, charge: Callable[[int], bool]) -> list[Subpath]:
     """The subpaths of fill, each turned so that the winding is 1 inside the fill and 0 outside it."""
-    subpaths = fill.subpaths
-    if not subpaths:
-        return []
-    points = [point for subpath in subpaths for point in subpath.points()]
-    size = math.dist((min(x for x, _ in points), min(y for _, y in points)), (max(x for x, _ in points), max(y for _, y in points)))
-    rings = [subpath.ring(max(size * FLATNESS, 1e-9)) for subpath in subpaths]
-    drawn = [(subpath, ring) for subpath, ring in zip(subpaths, rings, strict=True) if len(ring) > 2]
-    if sum(len(ring) for _, ring in drawn) > MAX_SEGMENTS:
-        raise Unsupported("a clip path of too many segments")
-    if _crossing([ring for _, ring in drawn], charge):
-        raise Unsupported("a clip path whose subpaths cross")
-    # A subpath that crosses nothing and has no area is a line there and back: it fills nothing
-    kept = [(subpath, ring, area) for subpath, ring in drawn if (area := shapeblur.signed_area(ring))]
-    if not charge(len(kept) * sum(len(ring) for _, ring, _ in kept)):
-        raise Unsupported("the work budget of the SVG")
+    kept = _kept(fill, charge)
     # The subpaths that hold each one: they do not cross, so one point tells
     holders = [[other for other in range(len(kept)) if other != index and _winding(kept[other][1], kept[index][1][0])] for index in range(len(kept))]
 
@@ -214,6 +204,26 @@ def _oriented(fill: Fill, charge: Callable[[int], bool]) -> list[Subpath]:
     return out
 
 
+def _kept(fill: Fill, charge: Callable[[int], bool]) -> list[tuple[Subpath, Ring, float]]:
+    """The subpaths of fill that enclose an area, with their ring and signed area; Unsupported where they cross."""
+    subpaths = fill.subpaths
+    if not subpaths:
+        return []
+    points = [point for subpath in subpaths for point in subpath.points()]
+    size = math.dist((min(x for x, _ in points), min(y for _, y in points)), (max(x for x, _ in points), max(y for _, y in points)))
+    rings = [subpath.ring(max(size * FLATNESS, 1e-9)) for subpath in subpaths]
+    drawn = [(subpath, ring) for subpath, ring in zip(subpaths, rings, strict=True) if len(ring) > 2]
+    if sum(len(ring) for _, ring in drawn) > MAX_SEGMENTS:
+        raise Unsupported("a clip path of too many segments")
+    if _crossing([ring for _, ring in drawn], charge):
+        raise Unsupported("a clip path whose subpaths cross")
+    # A subpath that crosses nothing and has no area is a line there and back: it fills nothing
+    kept = [(subpath, ring, area) for subpath, ring in drawn if (area := shapeblur.signed_area(ring))]
+    if not charge(len(kept) * sum(len(ring) for _, ring, _ in kept)):
+        raise Unsupported(BUDGET_SPENT)
+    return kept
+
+
 def _winding(ring: Ring, point: Point) -> int:
     """The winding number of ring around point."""
     x, y = point
@@ -227,32 +237,61 @@ def _winding(ring: Ring, point: Point) -> int:
     return winding
 
 
+# An edge sorted by its left end: its left and right x, its ends, its ring, its place in the ring and the size of it
+Edge = tuple[float, float, Point, Point, int, int, int]
+
+
+class _Budget:
+    """The pairs of edges compared, charged to the budget of the SVG in steps of CHARGE_STEP."""
+
+    def __init__(self, charge: Callable[[int], bool]) -> None:
+        self.charge = charge
+        self.pending = 0
+
+    def spend(self) -> None:
+        self.pending += 1
+        if self.pending == CHARGE_STEP:
+            self.settle()
+
+    def settle(self) -> None:
+        if not self.charge(self.pending):
+            raise Unsupported(BUDGET_SPENT)
+        self.pending = 0
+
+
 def _crossing(rings: list[Ring], charge: Callable[[int], bool]) -> bool:
     """Whether two edges of rings meet anywhere but at the point two neighbors share."""
+    edges = _edges(rings)
+    budget = _Budget(charge)
+    for position in range(len(edges)):
+        if _meets_a_later_edge(edges, position, budget):
+            return True
+    budget.settle()
+    return False
+
+
+def _edges(rings: list[Ring]) -> list[Edge]:
+    """The edges of rings, sorted by their left end."""
     edges = []
     for number, ring in enumerate(rings):
         count = len(ring)
         for index in range(count):
             start, end = ring[index], ring[(index + 1) % count]
             edges.append((min(start[0], end[0]), max(start[0], end[0]), start, end, number, index, count))
-    edges.sort()
-    compared = 0
-    for position, (_, right, start, end, number, index, count) in enumerate(edges):
-        for other in range(position + 1, len(edges)):
-            other_left, _, other_start, other_end, other_number, other_index, _ = edges[other]
-            if other_left > right:
-                break
-            compared += 1
-            if compared == CHARGE_STEP:
-                if not charge(compared):
-                    raise Unsupported("the work budget of the SVG")
-                compared = 0
-            if other_number == number and (other_index - index) % count in (1, count - 1):
-                continue  # neighbors share a point
-            if _meet(start, end, other_start, other_end):
-                return True
-    if not charge(compared):
-        raise Unsupported("the work budget of the SVG")
+    return sorted(edges)
+
+
+def _meets_a_later_edge(edges: list[Edge], position: int, budget: _Budget) -> bool:
+    """Whether the edge at position meets an edge after it that its x range reaches, a neighbor at their point aside."""
+    _, right, start, end, number, index, count = edges[position]
+    for other in range(position + 1, len(edges)):
+        other_left, _, other_start, other_end, other_number, other_index, _ = edges[other]
+        if other_left > right:
+            return False
+        budget.spend()
+        neighbors = other_number == number and (other_index - index) % count in (1, count - 1)
+        if not neighbors and _meet(start, end, other_start, other_end):
+            return True
     return False
 
 

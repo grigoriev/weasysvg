@@ -65,14 +65,16 @@ def test_read_closes_a_subpath_back_at_its_start_once() -> None:
 
 @pytest.mark.parametrize("operators", ["4 0 l f", "1 1 2 2 v f"])
 def test_read_needs_a_current_point(operators: str) -> None:
+    stream = content(operators)
     with pytest.raises(Unsupported, match="current point"):
-        clippaths.read(content(operators))
+        clippaths.read(stream)
 
 
 @pytest.mark.parametrize("operators", ["BT /F1 12 Tf (x) Tj ET", "0 0 1 1 re W n", "/x0 Do", "/sh0 sh"])
 def test_read_takes_fills_alone(operators: str) -> None:
+    stream = content(operators)
     with pytest.raises(Unsupported):
-        clippaths.read(content(operators))
+        clippaths.read(stream)
 
 
 def test_read_ignores_colors_and_lines() -> None:
@@ -82,8 +84,9 @@ def test_read_ignores_colors_and_lines() -> None:
 
 @pytest.mark.parametrize("state", [{"ca": 0.5}, {"BM": "/Multiply"}, {"SMask": "<< >>"}, {"LW": 2}])
 def test_read_takes_a_plain_graphics_state_only(state: dict[str, Any]) -> None:
+    stream = content("/a0 gs 0 0 1 1 re f", {"a0": state})
     with pytest.raises(Unsupported, match="graphics state"):
-        clippaths.read(content("/a0 gs 0 0 1 1 re f", {"a0": state}))
+        clippaths.read(stream)
 
 
 def test_plain_graphics_states() -> None:
@@ -144,14 +147,16 @@ def test_union_drops_a_subpath_without_area() -> None:
     ],
 )
 def test_union_needs_subpaths_that_do_not_meet(subpaths: list[Subpath]) -> None:
+    fills = [Fill(subpaths, False)]
     with pytest.raises(Unsupported, match="cross"):
-        clippaths.union([Fill(subpaths, False)])
+        clippaths.union(fills)
 
 
 def test_union_of_too_many_segments(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(clippaths, "MAX_SEGMENTS", 7)
+    fills = [Fill([square(0, 0, 10), square(2, 2, 2)], False)]
     with pytest.raises(Unsupported, match="too many"):
-        clippaths.union([Fill([square(0, 0, 10), square(2, 2, 2)], False)])
+        clippaths.union(fills)
 
 
 def test_winding() -> None:
@@ -193,8 +198,9 @@ def test_add_writes_lines_and_curves() -> None:
 def test_union_stops_when_the_budget_is_spent(step: int, monkeypatch: pytest.MonkeyPatch) -> None:
     # Within the loop of pairs, or at its end
     monkeypatch.setattr(clippaths, "CHARGE_STEP", step)
+    fills = [Fill([square(0, 0, 10), square(2, 2, 2)], False)]
     with pytest.raises(Unsupported, match="budget"):
-        clippaths.union([Fill([square(0, 0, 10), square(2, 2, 2)], False)], lambda _: False)
+        clippaths.union(fills, lambda _: False)
 
 
 def test_union_charges_the_holders_too() -> None:
@@ -204,8 +210,9 @@ def test_union_charges_the_holders_too() -> None:
         charges.append(cost)
         return len(charges) < 2
 
+    fills = [Fill([square(0, 0, 10), square(2, 2, 2)], False)]
     with pytest.raises(Unsupported, match="budget"):
-        clippaths.union([Fill([square(0, 0, 10), square(2, 2, 2)], False)], charge)
+        clippaths.union(fills, charge)
 
 
 def test_union_charges_each_step_of_pairs(monkeypatch: pytest.MonkeyPatch) -> None:
