@@ -3,7 +3,7 @@
  "hooks": {
   "weasyprint.images:RasterImage": {
    "fingerprint": "5aa8c1bb464cb1d9",
-   "used_by": "filters._draw_image draws the pixels of feTurbulence through it; filters._recolored_raster reads image_data and makes a recolored one"
+   "used_by": "filters._draw_image draws the pixels of feTurbulence through it; filters._recolored_raster reads its size and image_data and makes a recolored one"
   },
   "weasyprint.images:SVGImage.__init__": {
    "fingerprint": "3b9638a1dd917a25",
@@ -71,11 +71,11 @@
   },
   "weasyprint.svg:TAGS": {
    "fingerprint": "7a908f74c587f641",
-   "used_by": "markers, text, foreign_object and paint register drawing functions; filters._image replaces the one of <image>"
+   "used_by": "markers, text, foreign_object and paint register drawing functions; _core.draw_image replaces the one of <image>"
   },
   "weasyprint.svg.images:image": {
    "fingerprint": "4786dba10e1abd24",
-   "used_by": "filters._image wraps it; _core.bounding_box_image sizes an image as it does"
+   "used_by": "_core.draw_image wraps it; _core.bounding_box_image sizes an image as it does"
   },
   "weasyprint.svg:NOT_INHERITED_ATTRIBUTES": {
    "fingerprint": "b1f1b6182b76681a",

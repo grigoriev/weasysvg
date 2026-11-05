@@ -44,6 +44,9 @@ once.
   XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, trailing_space 18, empty_presentation 20, arcs 20, paint_order 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
   `bounding_box_a` and `bounding_box_image` give `<a>` and `<image>` the box WeasyPrint leaves empty.
+  `draw_image` replaces the drawing function of `<image>` (masks and filters turn it on): under a soft mask
+  (`SOFT_MASKED`) it draws the image in a group, since in PDF the soft mask of an image with alpha replaces the
+  one of the graphics state, and it passes the loaded image through the loaders filters registers.
   A node that holds text and has a filter, mask or clip is drawn once into a scratch group first
   (`measure_text`): WeasyPrint knows the box of a text only after drawing it. The text box is kept
   where `text-anchor` moved it (`text.anchored`).
@@ -57,9 +60,8 @@ once.
   `coverage.py` reads back for other content, else built in levels:
   the shapes grown by a stroke outside, bands along the edge inside (`RESTYLE`). Color matrices
   and transfer functions recolor every parsed color (`RECOLOR`), and the pixels of an `<image>` inside
-  (`_image`, which replaces the drawing function of WeasyPrint for it, within MAX_PIXEL_WORK). feComposite
-  arithmetic with a constant input is a recolor too. An image under a soft mask (`_core.SOFT_MASKED`) draws
-  in a group: in PDF the soft mask of an image with alpha replaces the one of the graphics state. `turbulence.py` computes the noise of feTurbulence as an image layer.
+  (`_recolored_raster`, a loader of `_core.draw_image`, within MAX_PIXEL_WORK). feComposite arithmetic with a
+  constant input is a recolor too. `turbulence.py` computes the noise of feTurbulence as an image layer.
 - `shapeblur.py`: the blur of one filled shape from its coverage, sampled on a grid and blurred with Pillow;
   `filters.py` draws the grid as a lattice mesh shading (type 5) in the mask and paints the whole region.
 - `coverage.py`: the coverage of any drawn content per color, read back from the PDF operators of a scratch

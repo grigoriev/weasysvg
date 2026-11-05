@@ -27,7 +27,7 @@ SNAPSHOT = ROOT / "upstream" / "hooks.json"
 
 # module:qualified.name -> what in weasysvg depends on it
 HOOKS: dict[str, str] = {
-    "weasyprint.images:RasterImage": "filters._draw_image draws the pixels of feTurbulence through it; filters._recolored_raster reads image_data and makes a recolored one",
+    "weasyprint.images:RasterImage": "filters._draw_image draws the pixels of feTurbulence through it; filters._recolored_raster reads its size and image_data and makes a recolored one",
     "weasyprint.images:SVGImage.__init__": "_core: tree passes and fetcher wrappers run before it",
     "weasyprint.html:handle_element": "conditional.handle_element: the lang of the element an image belongs to",
     "weasyprint.images:SVGImage.draw": "_core._svgimage_draw wraps it: conditional.svgimage_draw, nested SVGs are built while it draws; xobject.draw_as_form draws it into a form",
@@ -44,8 +44,8 @@ HOOKS: dict[str, str] = {
     "weasyprint.svg:Node.override_iter": "paint._materialized_override_iter",
     "weasyprint.svg:Node.text_children": "text.drop_invalid_rotate: rotate parsed during the cascade; text.keep_nested_tails: the tails of a <tspan> it drops",
     "weasyprint.svg:Node.tag": "clip paths, masks and the root are retagged <g> while they draw",
-    "weasyprint.svg:TAGS": "markers, text, foreign_object and paint register drawing functions; filters._image replaces the one of <image>",
-    "weasyprint.svg.images:image": "filters._image wraps it; _core.bounding_box_image sizes an image as it does",
+    "weasyprint.svg:TAGS": "markers, text, foreign_object and paint register drawing functions; _core.draw_image replaces the one of <image>",
+    "weasyprint.svg.images:image": "_core.draw_image wraps it; _core.bounding_box_image sizes an image as it does",
     "weasyprint.svg:NOT_INHERITED_ATTRIBUTES": "paint adds mix-blend-mode and isolation",
     "weasyprint.svg.defs:draw_gradient": "paint.draw_gradient, filters._recolored_gradient",
     "weasyprint.svg.defs:draw_pattern": "paint.draw_pattern",

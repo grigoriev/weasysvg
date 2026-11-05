@@ -231,7 +231,7 @@ def test_masked_image_with_alpha_is_unmasked() -> None:
     translucent = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="
     mask = '<mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="100" height="100" fill="white"/></mask>'
     pdf, _ = render(svg(f'<defs>{mask}</defs><image width="200" height="100" preserveAspectRatio="none" mask="url(#m)" href="data:image/png;base64,{translucent}"/>'))
-    still_broken(near(pixel(pdf, 120, 30), RED), "the mask of an image with alpha", "filters._image_in_group")
+    still_broken(near(pixel(pdf, 120, 30), RED), "the mask of an image with alpha", "_core._image_in_group")
 
 
 def test_clip_cycle_loses_the_svg() -> None:

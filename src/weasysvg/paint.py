@@ -1239,6 +1239,8 @@ def install(*, blend: bool = True) -> None:
     wp_stream.Stream.paint_shading = _paint_shading
     wp_defs.draw_pattern = wp_svg.draw_pattern = draw_pattern
     wp_defs.paint_mask = wp_svg.paint_mask = paint_mask
+    # An image with alpha under a soft mask draws in a group: its own soft mask would replace the mask
+    _core.enable_images()
     wp_svg.SVG.set_graphical_state = set_graphical_state
     _core.add_restyler(clip_restyle)
     wp_svg.Node.override_iter = _materialized_override_iter

@@ -6,6 +6,8 @@ import base64
 import io
 import math
 import re
+import subprocess
+import sys
 import threading
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,7 +15,7 @@ from typing import Any, cast
 from xml.etree import ElementTree as ET
 
 import pytest
-from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, streams, svg
+from helpers import SVG_NS, RecordingStream, content, page_html, pixel, rasterize, render, streams, svg
 from PIL import Image, ImageChops, ImageStat
 from weasyprint.matrix import Matrix
 
@@ -245,6 +247,43 @@ def test_mask_of_an_image(body: str) -> None:
     pdf = render(svg(f"<defs>{HALF_MASK}</defs>{body}"))
     assert near(css_pixel(pdf, 50, 50), RED)
     assert near(css_pixel(pdf, 150, 50), WHITE)
+
+
+# Renders stdin with the features but filters: tests/helpers.py would install them all
+WITHOUT_FILTERS = """
+import sys, weasyprint, weasysvg
+weasysvg.install(filters=False)
+assert "filters" not in weasysvg.installed()
+sys.stdout.buffer.write(weasyprint.HTML(string=sys.stdin.read()).write_pdf(uncompressed_pdf=True))
+"""
+
+
+def test_mask_of_an_image_with_alpha_without_filters() -> None:
+    # The group that keeps the mask of an image with alpha belongs to the masks, not to the filters
+    masked = picture(RED_PICTURE.convert("RGBA"), 'mask="url(#m)"')
+    document = svg(f"<defs>{HALF_MASK}</defs>{masked}")
+    pdf = subprocess.run([sys.executable, "-c", WITHOUT_FILTERS], input=page_html(document).encode(), capture_output=True, check=True).stdout  # noqa: S603
+    assert near(css_pixel(pdf, 50, 50), RED)
+    assert near(css_pixel(pdf, 150, 50), WHITE)
+
+
+def test_image_without_loaders_draws_as_weasyprint_does(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Masks alone turn the drawing of an image on, with no recolor to pass it through
+    monkeypatch.setattr(_core, "_IMAGE_LOADERS", [])
+    pdf = render(svg(picture(RED_PICTURE)))
+    assert near(css_pixel(pdf, 100, 50), RED)
+
+
+def test_an_image_loader_is_added_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(_core, "_IMAGE_LOADERS", [])
+
+    def loader(_svg: Any, image: Any) -> Any:
+        return image
+
+    _core.enable_images(loader)
+    _core.enable_images(loader)
+    _core.enable_images()
+    assert [loader] == _core._IMAGE_LOADERS
 
 
 def test_masked_image_that_does_not_load_draws_nothing() -> None:

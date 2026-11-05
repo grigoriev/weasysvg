@@ -213,6 +213,63 @@ def bounding_box_a(svg: Any, node: Any, font_size: float) -> Any:
     return wp_bounding_box.extend_bounding_box(text, ((x, y), (x + width, y + height)))
 
 
+_ORIGINAL_IMAGE = wp_svg.TAGS["image"]
+# What each image passes through once loaded, while it draws: filters recolors its pixels
+ImageLoader = Callable[[Any, Any], Any]
+_IMAGE_LOADERS: list[ImageLoader] = []
+
+
+def enable_images(loader: ImageLoader | None = None) -> None:
+    """Draw <image> with draw_image, its loaded image passed through loader as well."""
+    wp_svg.TAGS["image"] = draw_image
+    if loader is not None and loader not in _IMAGE_LOADERS:
+        _IMAGE_LOADERS.append(loader)
+
+
+def draw_image(svg: Any, node: Any, font_size: float) -> None:
+    """Draw an <image>: in a group under a soft mask, its image passed through the loaders."""
+    if SOFT_MASKED.get():
+        _image_in_group(svg, node, font_size)
+        return
+    if not _IMAGE_LOADERS:
+        _ORIGINAL_IMAGE(svg, node, font_size)
+        return
+    context = svg.context
+    load = context.get_image_from_uri
+
+    def loaded(*args: Any, **kwargs: Any) -> Any:
+        image = load(*args, **kwargs)
+        for loader in _IMAGE_LOADERS:
+            image = loader(svg, image)
+        return image
+
+    context.get_image_from_uri = loaded
+    try:
+        _ORIGINAL_IMAGE(svg, node, font_size)
+    finally:
+        context.get_image_from_uri = load
+
+
+def _image_in_group(svg: Any, node: Any, font_size: float) -> None:
+    """An image under a soft mask, drawn in a group: the soft mask of the state then cuts the group, alpha and all.
+
+    In PDF the soft mask of an image with alpha replaces the one of the graphics state: a masked image drew unmasked.
+    """
+    box = bounding_box_image(svg, node, font_size)
+    if box is None:
+        return
+    group = svg.stream.add_group(*box)
+    stream = svg.stream
+    token = SOFT_MASKED.set(False)
+    svg.stream = group
+    try:
+        draw_image(svg, node, font_size)
+    finally:
+        svg.stream = stream
+        SOFT_MASKED.reset(token)
+    stream.draw_x_object(group.id)
+
+
 def bounding_box_image(svg: Any, node: Any, font_size: float) -> Any:
     """The box of an <image>, which WeasyPrint leaves empty: where weasyprint.svg.images.image draws it.
 
@@ -232,23 +289,28 @@ def bounding_box_image(svg: Any, node: Any, font_size: float) -> Any:
 
 def _image_size(image: Any, font_size: float, width: float, height: float) -> tuple[float, float]:
     """The size weasyprint.svg.images.image gives an image of which the <image> sets neither or one side."""
-    intrinsic_width, intrinsic_height, ratio = image.get_intrinsic_size(1, font_size)
-    if intrinsic_width is None and intrinsic_height is None:
-        if ratio is None or (not width and not height):
-            intrinsic_width, intrinsic_height = 300, 150
-        elif not width:
-            intrinsic_width, intrinsic_height = ratio * height, height
-        else:
-            intrinsic_width, intrinsic_height = width, width / ratio
-    elif intrinsic_width is None:
-        intrinsic_width = ratio * intrinsic_height
-    elif intrinsic_height is None:
-        intrinsic_height = intrinsic_width / ratio
+    intrinsic_width, intrinsic_height, ratio = _intrinsic_size(image, font_size, width, height)
     if width and not height:
         return width, width / ratio
     if height and not width:
         return height * ratio, height
     return width or intrinsic_width, height or intrinsic_height
+
+
+def _intrinsic_size(image: Any, font_size: float, width: float, height: float) -> tuple[float, float, Any]:
+    """The intrinsic width, height and ratio weasyprint.svg.images.image takes for image, a side found from the other."""
+    intrinsic_width, intrinsic_height, ratio = image.get_intrinsic_size(1, font_size)
+    if intrinsic_width is not None and intrinsic_height is not None:
+        return intrinsic_width, intrinsic_height, ratio
+    if intrinsic_width is not None:
+        return intrinsic_width, intrinsic_width / ratio, ratio
+    if intrinsic_height is not None:
+        return ratio * intrinsic_height, intrinsic_height, ratio
+    if ratio is None or (not width and not height):
+        return 300, 150, ratio
+    if not width:
+        return ratio * height, height, ratio
+    return width, width / ratio, ratio
 
 
 def _group_opacity(node: Any) -> float | None:
