@@ -290,7 +290,7 @@ def draw_gradient(svg: Any, node: Any, gradient: Any, font_size: float, opacity:
             gradient.attrib["fr"] = "0"
             gradient.__class__ = type(cls.__name__, (cls,), {"__iter__": lambda _: iter(ring)})
         # In a portable PDF the opacity of the stops paints in bands, not through a soft mask
-        capture = _GRADIENT_ALPHA.set(_AlphaCapture()) if _core.PORTABLE.get() else None
+        capture = _GRADIENT_ALPHA.set(_AlphaCapture(stroke=stroke)) if _core.PORTABLE.get() else None
         try:
             with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
                 return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)
@@ -425,6 +425,8 @@ class _AlphaCapture:
 
     shading: tuple[int, Any, Any, bool, Any, Reach] | None = None
     painted: bool = False
+    # A stroke paints through a pattern, whose levels Poppler draws wrongly as fills (_paint_in_bands)
+    stroke: bool = False
 
 
 _GRADIENT_ALPHA: ContextVar[_AlphaCapture | None] = ContextVar("weasysvg_gradient_alpha", default=None)
@@ -474,7 +476,7 @@ def _paint_shading(self: Any, name: str) -> None:
         _ORIGINAL_PAINT_SHADING(self, name)
         return
     capture.painted = True
-    _paint_in_bands(self, name, capture.shading)
+    _paint_in_bands(self, name, capture.shading, capture.stroke)
 
 
 # The shares of the axis a level needs to span to cover the group, low and high, and for an axis the half width
@@ -640,17 +642,44 @@ def _axis_px(stream: Any, shading_type: int, points: list[float]) -> float:
     return (abs(r - fr) + math.hypot(cx - fx, cy - fy)) * _core.px_most(stream)
 
 
-def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any, Reach]) -> None:
-    """Paint the color shading once per level of its opacity, clipped to the level and at the opacity it adds."""
+def _constant_color(stream: Any, name: str) -> tuple[str, list[float]] | None:
+    """The color space and the color of the shading name when it paints one color all along; None when it changes.
+
+    A gradient that fades one color, as the shine of a lens, has the same color at every stop.
+    """
+    shading = stream._resources["Shading"].get(name)
+    space = shading.get("ColorSpace") if shading is not None else None
+    if not isinstance(space, str) or not space.startswith("/"):
+        return None  # an ICC profile, which a fill would have to name again
+    function = shading["Function"]
+    pieces = function["Functions"] if int(function["FunctionType"]) == 3 else [function]
+    colors = {tuple(float(value) for value in piece[end]) for piece in pieces for end in ("C0", "C1")}
+    return (space[1:], list(colors.pop())) if len(colors) == 1 else None
+
+
+def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any, Reach], stroke: bool = False) -> None:
+    """Paint the color shading once per level of its opacity, clipped to the level and at the opacity it adds.
+
+    A shading of one color fills each level with that color instead: cairo writes one path per level, where a
+    clip and a shading cost a clip path, a group and a gradient each.
+    """
     shading_type, domain, coords, extend, function, (lowest, highest, half_width) = shading
     first, last = float(domain[0]), float(domain[1])
     points = [float(value) for value in coords]
+    # The pattern of a stroke keeps the shading: Poppler drew its levels filled in one color washed out, over all that
+    # came after it (the Inkscape logo), where PDFium drew them right
+    constant = None if stroke else _constant_color(stream, name)
     # Where the opacity jumps at one offset, as between two cycles of spreadMethod="repeat", the edge of a level
     # meets the jump of the color: a viewer that takes the color of a shading at the center of each pixel paints
     # the pixel across the edge in the color of the far side, a line of one pixel
     for opacity, intervals in levels(function, domain, extend, _axis_px(stream, shading_type, points)):
         stream.push_state()
         try:
+            if constant is not None:
+                # The color and the opacity come first: a graphics state inside path construction is ignored by viewers
+                stream.set_alpha(opacity, stroke=True, fill=True)
+                stream.set_color_space(constant[0])
+                stream.set_color_special(None, False, *constant[1])
             for low, high in intervals:
                 # The offsets as shares of the axis, 0 at its start and 1 at its end, no farther than the group needs
                 share = [(value - first) / (last - first) if math.isfinite(value) else math.copysign(math.inf, value) for value in (low, high)]
@@ -660,6 +689,9 @@ def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, 
                 else:
                     _add_ring(stream, points, share[0], share[1])
             # The intervals do not overlap: even-odd is their union, and a ring is the outer circle less the inner one
+            if constant is not None:
+                stream.fill(even_odd=True)
+                continue
             stream.clip(even_odd=True)
             stream.end()
             stream.set_alpha(opacity, stroke=True, fill=True)

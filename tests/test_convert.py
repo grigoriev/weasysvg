@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import io
 import os
+import random
 import re
 import shutil
 import subprocess
@@ -20,7 +21,7 @@ from helpers import SVG_NS, close, svg
 from PIL import Image
 
 from weasysvg import convert
-from weasysvg.convert import ConvertError, constant_masks_as_opacity, length_px, root_attributes, shared_clip_paths, size_px, sized, to_pdf, to_png, to_svg
+from weasysvg.convert import ConvertError, constant_masks_as_opacity, fewer_stops, length_px, root_attributes, shared_clip_paths, short_path_data, size_px, sized, to_pdf, to_png, to_svg
 
 RED_RECT = svg('<rect width="200" height="100" fill="red"/>')
 # A red rect cut by a binary mask: a soft mask by default, a clip in the portable PDF
@@ -453,6 +454,112 @@ def test_identical_clip_paths_are_shared() -> None:
 def test_a_flat_svg_without_shared_clip_paths_stays() -> None:
     document = cairo_svg(f'<clipPath id="clip-0">{SHAPE}</clipPath><clipPath id="clip-1">{BAND}</clipPath>', '<g clip-path="url(#clip-0)"/><g clip-path="url(#clip-1)"/>')
     assert shared_clip_paths(document) == document
+
+
+def stops(*values: tuple[float, float, float]) -> str:
+    """Stops as cairo writes them: offset, red in percent, opacity."""
+    return "".join(f'<stop offset="{offset}" stop-color="rgb({red}%, 0%, 0%)" stop-opacity="{opacity}" />' for offset, red, opacity in values)
+
+
+def gradient(body: str) -> bytes:
+    return cairo_svg(f'<linearGradient id="linear-pattern-0">{body}</linearGradient>', '<rect width="1" height="1" fill="url(#linear-pattern-0)"/>')
+
+
+def test_stops_on_a_line_are_left_out() -> None:
+    # cairo samples a linear piece into 257 stops: the two ends make the same gradient
+    line = [(k / 256, 100 * k / 256, 1 - k / 256) for k in range(257)]
+    flat = fewer_stops(gradient(stops(*line))).decode()
+    assert flat.count("<stop") == 2
+    assert 'offset="0.0"' in flat
+    assert 'offset="1.0"' in flat
+
+
+def test_stops_keep_each_bend() -> None:
+    # Two linear pieces: the stop where they meet stays, and so does each one a straight line from the last kept one misses
+    bend = [(k / 8, 100 * min(k, 4) / 4, 1.0) for k in range(9)]
+    assert fewer_stops(gradient(stops(*bend))).decode().count("<stop") == 3
+    # A curve sampled as cairo samples it: a stop stays where the chord would miss the curve by more than the tolerance
+    curve = [(k / 256, 100 * (k / 256) ** 2, 1.0) for k in range(257)]
+    kept = fewer_stops(gradient(stops(*curve))).decode().count("<stop")
+    assert 3 < kept < 257
+
+
+def test_stops_of_a_jump_stay() -> None:
+    # Stops at one offset are a step: none lies on a line, also the middle one of three
+    jump = [(0, 0, 1.0), (0.5, 0, 1.0), (0.5, 100, 1.0), (1, 100, 1.0)]
+    assert fewer_stops(gradient(stops(*jump))).decode().count("<stop") == 4
+    steps = [(0, 0, 1.0), (0.5, 0, 1.0), (0.5, 50, 1.0), (0.5, 100, 1.0), (1, 100, 1.0)]
+    assert fewer_stops(gradient(stops(*steps))).decode().count("<stop") == 5
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # Two stops, a color cairo does not write, a value that is no number
+        stops((0, 0, 1.0), (1, 100, 1.0)),
+        '<stop offset="0" stop-color="red"/><stop offset="0.5" stop-color="red"/><stop offset="1" stop-color="red"/>',
+        stops((0, 0, 1.0), (0.5, 50, 1.0)) + '<stop offset="x" stop-color="rgb(100%, 0%, 0%)" stop-opacity="1" />',
+    ],
+)
+def test_stops_of_another_form_stay(body: str) -> None:
+    document = gradient(body)
+    assert fewer_stops(document) == document
+
+
+def kept_by_checking_each(values: list[tuple[float, ...]]) -> set[int]:
+    """The stops to keep, found the slow way: every stop between the last kept one and the next checked again."""
+    tolerances = (convert.STOP_COLOR_TOLERANCE,) * 3 + (convert.STOP_OPACITY_TOLERANCE,)
+
+    def on_line(start: tuple[float, ...], middle: tuple[float, ...], end: tuple[float, ...]) -> bool:
+        if end[0] <= start[0]:
+            return False
+        share = (middle[0] - start[0]) / (end[0] - start[0])
+        return all(abs(a + (b - a) * share - m) <= tolerance for a, m, b, tolerance in zip(start[1:], middle[1:], end[1:], tolerances, strict=True))
+
+    kept, anchor = {0, len(values) - 1}, 0
+    for end in range(2, len(values)):
+        if not all(on_line(values[anchor], values[middle], values[end]) for middle in range(anchor + 1, end)):
+            anchor = end - 1
+            kept.add(anchor)
+    return kept
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_stops_kept_in_one_pass_are_the_ones_checking_each_finds(seed: int) -> None:
+    # Runs of lines, curves, jumps and repeated offsets, as cairo samples a shading of several pieces
+    chance = random.Random(seed)
+    values, offset, color = [], 0.0, [chance.uniform(0, 100) for _ in range(3)] + [chance.random()]
+    slope = [chance.uniform(-200, 200) for _ in range(3)] + [chance.uniform(-2, 2)]
+    for _ in range(200):
+        step = 0.0 if chance.random() < 0.05 else 1 / 256
+        offset += step
+        if chance.random() < 0.1:
+            slope = [chance.uniform(-200, 200) for _ in range(3)] + [chance.uniform(-2, 2)]
+        noise = 0.0 if chance.random() < 0.7 else chance.uniform(-0.15, 0.15)
+        color = [channel + rate * step + noise for channel, rate in zip(color, slope, strict=True)]
+        values.append((offset, *color))
+    assert convert._kept_stops(values) == kept_by_checking_each(values)
+
+
+def test_path_data_with_a_long_run_of_digits() -> None:
+    # A run of digits without a point is no decimal: it stays, in one pass
+    digits = b"1" * 100_000
+    assert short_path_data(b'<svg><path d="M ' + digits + b' 0.123 Z"/></svg>') == b'<svg><path d="M ' + digits + b' 0.12 Z"/></svg>'
+
+
+def test_path_data_keeps_a_token_it_cannot_read() -> None:
+    assert short_path_data(b'<svg><path d="M 1.5,2.25 L 3.125 4"/></svg>') == b'<svg><path d="M 1.5,2.25 L 3.12 4"/></svg>'
+
+
+def test_path_data_of_a_transformed_path_stays() -> None:
+    # cairo writes a stroke in the units of the SVG, its scale in the transform: a hundredth there may be a pixel
+    stroke = b'<path fill="none" stroke="navy" d="M 0.123456 0.2 L 0.876543 0.8 " transform="matrix(3000, 0, 0, 3000, 0, 0)"/>'
+    assert short_path_data(b"<svg>" + stroke + b"</svg>") == b"<svg>" + stroke + b"</svg>"
+
+
+def test_path_data_keeps_two_places() -> None:
+    flat = short_path_data(b'<svg><path fill="red" d="M 1.123456 -0.004 L 10.5 2.0 Z M 1.123456 -0.004 " /><rect x="1.123456"/></svg>')
+    assert flat == b'<svg><path fill="red" d="M 1.12 0 L 10.5 2 Z M 1.12 0 " /><rect x="1.123456"/></svg>'
 
 
 def test_flat_svg_writes_the_clip_of_a_faded_shape_once() -> None:

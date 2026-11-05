@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   OpenStreetMap logo and the glare of Tux showed rings. An element that paints a gradient shows it through
   that image as a soft mask. The flat SVG of Tux shrinks from 12.9 MB to 3.7 MB: each level of its blurred
   gradients had cairo write the gradient again. `band_px` sets the levels of gradients only.
+- In `weasysvg.portable()`, a fill with a gradient of one color that fades fills each opacity level with that color,
+  where a level clipped the shading. A stroke keeps the shading: it paints through a pattern, and Poppler drew such
+  levels there washed out, over everything after them. cairo wrote a clip path, a group and a gradient per level, now one path. Word drew
+  the clipped levels of the OpenStreetMap lens wrongly: its digits came out sharp and opaque, where Chromium fades
+  them.
+- The flat SVG keeps the stops of a gradient that change it, within 0.1 % of a color channel and 0.001 of opacity:
+  cairo samples a shading into 257 stops. It rounds the coordinates of a path to two places, of a drawing eight
+  times as large. With both, the flat SVG of the OpenStreetMap logo shrinks from 6.6 MB to 2.9 MB, Tux from 3.7 MB
+  to 0.46 MB.
 
 ### Fixed
 
