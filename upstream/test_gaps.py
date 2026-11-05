@@ -231,7 +231,25 @@ def test_masked_image_with_alpha_is_unmasked() -> None:
     translucent = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="
     mask = '<mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="100" height="100" fill="white"/></mask>'
     pdf, _ = render(svg(f'<defs>{mask}</defs><image width="200" height="100" preserveAspectRatio="none" mask="url(#m)" href="data:image/png;base64,{translucent}"/>'))
-    still_broken(near(pixel(pdf, 120, 30), RED), "the mask of an image with alpha", "_core._image_in_group")
+    still_broken(near(pixel(pdf, 120, 30), RED), "the mask of an image with alpha", "the group of a soft-masked element in _core._draw_with_effects")
+
+
+MASK_HALF = (
+    '<linearGradient id="a"><stop stop-color="black"/><stop offset="1" stop-color="white"/></linearGradient><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="200" height="100" fill="url(#a)"/></mask>'
+)
+
+
+def test_masked_gradient_fades_twice() -> None:
+    # The mask is 0.5 in the middle: PDFium applies it again inside the cell of the pattern of the gradient
+    gradient = '<linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>'
+    pdf, _ = render(svg(f'<defs>{MASK_HALF}{gradient}</defs><rect width="200" height="100" fill="url(#g)" mask="url(#m)"/>'))
+    still_broken(pixel(pdf, 75, 37)[1] > 160, "a soft mask on a gradient fill", "the group of a soft-masked element in _core._draw_with_effects")
+
+
+def test_masked_pattern_vanishes() -> None:
+    pattern = '<pattern id="p" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="red"/></pattern>'
+    pdf, _ = render(svg(f'<defs>{MASK_HALF}{pattern}</defs><rect width="200" height="100" fill="url(#p)" mask="url(#m)"/>'))
+    still_broken(near(pixel(pdf, 135, 37), WHITE), "a soft mask on a pattern fill", "the group of a soft-masked element in _core._draw_with_effects")
 
 
 def test_clip_cycle_loses_the_svg() -> None:

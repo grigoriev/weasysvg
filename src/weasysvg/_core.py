@@ -57,9 +57,6 @@ _DRAWING: ContextVar[tuple[Any, float] | None] = ContextVar("weasysvg_drawing", 
 # The clip paths being drawn, per thread and task
 _ACTIVE_CLIPS: ContextVar[tuple[Any, ...]] = ContextVar("weasysvg_active_clips", default=())
 DRAW_FEATURES = {"filters": False, "masks": False, "blend": False}
-# Whether the element being drawn is under a soft mask of its own or of an ancestor: an image with alpha then draws in
-# a group, since in PDF its own soft mask replaces the one of the graphics state
-SOFT_MASKED: ContextVar[bool] = ContextVar("weasysvg_soft_masked", default=False)
 # Drawing for a portable PDF, per thread and task: see portable()
 PORTABLE: ContextVar[bool] = ContextVar("weasysvg_portable", default=False)
 # The least width of an opacity level of a gradient in a portable PDF, in CSS px as the drawing is shown.
@@ -227,10 +224,7 @@ def enable_images(loader: ImageLoader | None = None) -> None:
 
 
 def draw_image(svg: Any, node: Any, font_size: float) -> None:
-    """Draw an <image>: in a group under a soft mask, its image passed through the loaders."""
-    if SOFT_MASKED.get():
-        _image_in_group(svg, node, font_size)
-        return
+    """Draw an <image>, its image passed through the loaders."""
     if not _IMAGE_LOADERS:
         _ORIGINAL_IMAGE(svg, node, font_size)
         return
@@ -248,26 +242,6 @@ def draw_image(svg: Any, node: Any, font_size: float) -> None:
         _ORIGINAL_IMAGE(svg, node, font_size)
     finally:
         context.get_image_from_uri = load
-
-
-def _image_in_group(svg: Any, node: Any, font_size: float) -> None:
-    """An image under a soft mask, drawn in a group: the soft mask of the state then cuts the group, alpha and all.
-
-    In PDF the soft mask of an image with alpha replaces the one of the graphics state: a masked image drew unmasked.
-    """
-    box = bounding_box_image(svg, node, font_size)
-    if box is None:
-        return
-    group = svg.stream.add_group(*box)
-    stream = svg.stream
-    token = SOFT_MASKED.set(False)
-    svg.stream = group
-    try:
-        draw_image(svg, node, font_size)
-    finally:
-        svg.stream = stream
-        SOFT_MASKED.reset(token)
-    stream.draw_x_object(group.id)
 
 
 def bounding_box_image(svg: Any, node: Any, font_size: float) -> Any:
@@ -430,18 +404,22 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
             self.transform(node, effects.font_size)
             del node.attrib["transform"]
         gray = None
-        masked = None
+        soft = None
+        outer = self.stream
         if effects.mask is not None:
             # A portable PDF draws a gray mask as an opacity of the element
             gray = paint.gray_mask(self, node, effects.mask, effects.font_size)
             if gray is None:
                 paint.paint_mask(self, node, effects.mask, effects.font_size)
-                masked = SOFT_MASKED.set(True)
-        outer = self.stream
+                # The element draws in a group, which the soft mask cuts once. PDFium and Poppler apply the soft mask
+                # of the state again inside the cell of a pattern: a gradient faded twice, an SVG pattern vanished. In
+                # PDF the soft mask of an image with alpha replaces it: a masked image drew unmasked.
+                soft = outer.add_group(*group_box(self, node, font_size))
+                self.stream = soft
         if gray is not None:
             self.stream = gray.start(outer, group_box(self, node, font_size))
-        # The gray mask blends its group: inside it there is nothing to blend with
-        inner = effects.without_blend() if gray is not None else effects
+        # A group under a mask blends as one with what lies under it: inside it there is nothing to blend with
+        inner = effects.without_blend() if gray is not None or soft is not None else effects
         try:
             if effects.clip is None:
                 _draw_grouped(self, original, node, font_size, fill_stroke, context, inner, saved.get("opacity", 1))
@@ -451,8 +429,11 @@ def _draw_with_effects(self: Any, node: Any, font_size: float, fill_stroke: bool
             if gray is not None:
                 self.stream = outer
                 gray.draw(outer, effects.blend)
-            if masked is not None:
-                SOFT_MASKED.reset(masked)
+            if soft is not None:
+                self.stream = outer
+                if effects.blend is not None:
+                    outer.set_blend_mode(effects.blend)
+                outer.draw_x_object(soft.id)
     finally:
         self.stream.pop_state()
         node.attrib.update(saved)

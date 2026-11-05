@@ -194,10 +194,9 @@ def test_pattern_on_a_shape_without_box() -> None:
 def test_mask_is_set_before_the_path() -> None:
     body = '<defs><mask id="m"><rect width="100" height="100" fill="white"/></mask></defs><rect width="200" height="100" fill="red" mask="url(#m)"/>'
     pdf = render(svg(body))
-    # The form of the SVG draws the rect
-    drawing = next(stream for stream in streams(pdf) if "0 0 200 100 re\nf" in stream)
-    # The soft mask comes first, then the path: no path construction between them
-    assert re.search(r"/s\d+ gs\n(?:(?!.* re\n).*\n)*?0 0 200 100 re\nf", drawing)
+    # The rect draws in a group of its own, and the soft mask comes before the group: no path construction between
+    assert any("0 0 200 100 re\nf" in stream and " gs\n0 0 200 100 re" not in stream for stream in streams(pdf))
+    assert any(re.search(r"/s\d+ gs\n(?:(?!.* re\n).*\n)*?/x\d+ Do", stream) for stream in streams(pdf))
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 120, 30), WHITE)
 
@@ -283,7 +282,8 @@ def test_an_image_loader_is_added_once(monkeypatch: pytest.MonkeyPatch) -> None:
     _core.enable_images(loader)
     _core.enable_images(loader)
     _core.enable_images()
-    assert [loader] == _core._IMAGE_LOADERS
+    assert len(_core._IMAGE_LOADERS) == 1
+    assert _core._IMAGE_LOADERS[0] is loader
 
 
 def test_masked_image_that_does_not_load_draws_nothing() -> None:

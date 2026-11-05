@@ -44,9 +44,10 @@ once.
   XML (conditional 10, nested_text 15, invalid_rotate 16, nested_tails 17, trailing_space 18, empty_presentation 20, arcs 20, paint_order 20, foreign_object 30) and wraps the URL
   fetcher. `svg.SVG.draw_node` combines filter, mask, blend and the opacity group in CSS order.
   `bounding_box_a` and `bounding_box_image` give `<a>` and `<image>` the box WeasyPrint leaves empty.
-  `draw_image` replaces the drawing function of `<image>` (masks and filters turn it on): under a soft mask
-  (`SOFT_MASKED`) it draws the image in a group, since in PDF the soft mask of an image with alpha replaces the
-  one of the graphics state, and it passes the loaded image through the loaders filters registers.
+  `draw_image` replaces the drawing function of `<image>` (filters turn it on) and passes the loaded image
+  through the loaders filters registers. An element under a soft mask draws in a group, which the mask cuts
+  once: PDFium and Poppler apply the soft mask of the state again inside the cell of a pattern (a gradient), and
+  in PDF the soft mask of an image with alpha replaces it.
   A node that holds text and has a filter, mask or clip is drawn once into a scratch group first
   (`measure_text`): WeasyPrint knows the box of a text only after drawing it. The text box is kept
   where `text-anchor` moved it (`text.anchored`).

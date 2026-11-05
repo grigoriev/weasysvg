@@ -13,7 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   holds one. WeasyPrint has no bounding box for an image: the mask was left out and the image drawn opaque.
   The flat SVG writes the alpha of an image, since 0.6.1 each blur, as such a mask: weasysvg-convert, which
   pandoc draws the SVG of a DOCX with, drew the shadow of the OpenStreetMap logo as a dark rectangle.
-- An image with alpha under a mask draws in a group: in PDF its own soft mask replaced the mask.
+- An element under a soft mask draws in a group, which the mask cuts once. PDFium and Poppler applied the mask
+  again inside the cell of a pattern: a gradient fill under a mask of 0.5 showed at 0.25, an SVG pattern fill
+  vanished. In PDF the soft mask of an image with alpha replaced the mask: a masked image drew unmasked. WeasyPrint
+  alone has these gaps too.
 - `feColorMatrix` and `feComponentTransfer` recolor the pixels of an image too, as they recolor the paint of a
   shape, within `MAX_PIXEL_WORK`. cairo turns a soft mask white through such a filter: the shading of the
   flat SVG of Tux was missing.
