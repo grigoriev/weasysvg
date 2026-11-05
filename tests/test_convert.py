@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import io
 import os
+import random
 import re
 import shutil
 import subprocess
@@ -503,6 +504,47 @@ def test_stops_of_a_jump_stay() -> None:
 def test_stops_of_another_form_stay(body: str) -> None:
     document = gradient(body)
     assert fewer_stops(document) == document
+
+
+def kept_by_checking_each(values: list[tuple[float, ...]]) -> set[int]:
+    """The stops to keep, found the slow way: every stop between the last kept one and the next checked again."""
+    tolerances = (convert.STOP_COLOR_TOLERANCE,) * 3 + (convert.STOP_OPACITY_TOLERANCE,)
+
+    def on_line(start: tuple[float, ...], middle: tuple[float, ...], end: tuple[float, ...]) -> bool:
+        if end[0] <= start[0]:
+            return False
+        share = (middle[0] - start[0]) / (end[0] - start[0])
+        return all(abs(a + (b - a) * share - m) <= tolerance for a, m, b, tolerance in zip(start[1:], middle[1:], end[1:], tolerances, strict=True))
+
+    kept, anchor = {0, len(values) - 1}, 0
+    for end in range(2, len(values)):
+        if not all(on_line(values[anchor], values[middle], values[end]) for middle in range(anchor + 1, end)):
+            anchor = end - 1
+            kept.add(anchor)
+    return kept
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_stops_kept_in_one_pass_are_the_ones_checking_each_finds(seed: int) -> None:
+    # Runs of lines, curves, jumps and repeated offsets, as cairo samples a shading of several pieces
+    chance = random.Random(seed)
+    values, offset, color = [], 0.0, [chance.uniform(0, 100) for _ in range(3)] + [chance.random()]
+    slope = [chance.uniform(-200, 200) for _ in range(3)] + [chance.uniform(-2, 2)]
+    for _ in range(200):
+        step = 0.0 if chance.random() < 0.05 else 1 / 256
+        offset += step
+        if chance.random() < 0.1:
+            slope = [chance.uniform(-200, 200) for _ in range(3)] + [chance.uniform(-2, 2)]
+        noise = 0.0 if chance.random() < 0.7 else chance.uniform(-0.15, 0.15)
+        color = [channel + rate * step + noise for channel, rate in zip(color, slope, strict=True)]
+        values.append((offset, *color))
+    assert convert._kept_stops(values) == kept_by_checking_each(values)
+
+
+def test_path_data_of_a_transformed_path_stays() -> None:
+    # cairo writes a stroke in the units of the SVG, its scale in the transform: a hundredth there may be a pixel
+    stroke = b'<path fill="none" stroke="navy" d="M 0.123456 0.2 L 0.876543 0.8 " transform="matrix(3000, 0, 0, 3000, 0, 0)"/>'
+    assert short_path_data(b"<svg>" + stroke + b"</svg>") == b"<svg>" + stroke + b"</svg>"
 
 
 def test_path_data_keeps_two_places() -> None:

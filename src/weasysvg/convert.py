@@ -242,6 +242,8 @@ def check_pdftocairo(returncode: int, stderr: str, flat: bytes) -> None:
 
 
 SVG_NS = "http://www.w3.org/2000/svg"
+# What starts each flat SVG a rewrite of the tree returns, as cairo starts it
+XML_DECLARATION = b'<?xml version="1.0" encoding="UTF-8"?>\n'
 XLINK_NS = "http://www.w3.org/1999/xlink"
 # What cairo writes for the alpha of a group: a mask of one rect of black at that opacity, through this filter
 _REMOVE_COLOR = "url(#filter-remove-color)"
@@ -268,7 +270,7 @@ def constant_masks_as_opacity(flat: bytes) -> bytes:
     if not opacities:
         return flat
     _drop_unused_masks(root, _as_opacity(root, opacities))
-    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+    return XML_DECLARATION + ET.tostring(root)
 
 
 def shared_clip_paths(flat: bytes) -> bytes:
@@ -302,7 +304,7 @@ def shared_clip_paths(flat: bytes) -> bytes:
     parents = {child: parent for parent in root.iter() for child in parent}
     for clip in copies:
         parents[clip].remove(clip)
-    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+    return XML_DECLARATION + ET.tostring(root)
 
 
 def _name_shared(element: ET.Element, shared: dict[str, str]) -> None:
@@ -383,7 +385,7 @@ def fewer_stops(flat: bytes) -> bytes:
                 dropped = True
     if not dropped:
         return flat
-    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root)
+    return XML_DECLARATION + ET.tostring(root)
 
 
 def _stop_values(stop: ET.Element) -> tuple[float, ...] | None:
@@ -396,40 +398,71 @@ def _stop_values(stop: ET.Element) -> tuple[float, ...] | None:
 
 
 def _kept_stops(values: list[tuple[float, ...]]) -> set[int]:
-    """The stops that keep the gradient within the tolerances: the ends, and each one the line from the last kept one cannot skip."""
+    """The stops that keep the gradient within the tolerances: the ends, and each one the line from the last kept one cannot skip.
+
+    The stops between the last kept one and the next allow, per channel, a range of slopes of that line: each new stop
+    narrows it, and the line to a stop is good while its slopes lie in all ranges. One pass, where checking every stop
+    between again for each new one took a second for the 32361 stops of Tux.
+    """
+    tolerances = (STOP_COLOR_TOLERANCE,) * 3 + (STOP_OPACITY_TOLERANCE,)
     kept, anchor = {0, len(values) - 1}, 0
-    for end in range(2, len(values)):
-        if not all(_on_line(values[anchor], values[middle], values[end]) for middle in range(anchor + 1, end)):
+    ranges = _open_ranges()
+    for end in range(1, len(values)):
+        if end > anchor + 1 and not _within(values[anchor], values[end], ranges):
             anchor = end - 1
             kept.add(anchor)
+            ranges = _open_ranges()
+        _narrow(ranges, values[anchor], values[end], tolerances)
     return kept
 
 
-def _on_line(start: tuple[float, ...], middle: tuple[float, ...], end: tuple[float, ...]) -> bool:
-    """Whether the stop middle lies, within the tolerances, where the gradient from start to end puts its offset."""
+def _open_ranges() -> list[list[float]]:
+    return [[-math.inf, math.inf] for _ in range(4)]
+
+
+def _within(start: tuple[float, ...], end: tuple[float, ...], ranges: list[list[float]]) -> bool:
+    """Whether the line from start to end passes every stop that narrowed ranges, within the tolerances."""
     span = end[0] - start[0]
     if span <= 0:
         return False  # a jump at one offset: both stops make it
-    share = (middle[0] - start[0]) / span
-    tolerances = (STOP_COLOR_TOLERANCE,) * 3 + (STOP_OPACITY_TOLERANCE,)
-    return all(abs(a + (b - a) * share - m) <= tolerance for a, m, b, tolerance in zip(start[1:], middle[1:], end[1:], tolerances, strict=True))
+    return all(low <= (b - a) / span <= high for a, b, (low, high) in zip(start[1:], end[1:], ranges, strict=True))
+
+
+def _narrow(ranges: list[list[float]], start: tuple[float, ...], middle: tuple[float, ...], tolerances: tuple[float, ...]) -> None:
+    """Narrow ranges to the slopes of the lines from start that pass middle within the tolerances."""
+    span = middle[0] - start[0]
+    for (a, m, tolerance), bounds in zip(zip(start[1:], middle[1:], tolerances, strict=True), ranges, strict=True):
+        if span > 0:
+            bounds[0], bounds[1] = max(bounds[0], (m - tolerance - a) / span), min(bounds[1], (m + tolerance - a) / span)
+        elif abs(m - a) > tolerance:
+            # At the offset of start, a line passes middle only when start does already
+            bounds[0], bounds[1] = math.inf, -math.inf
 
 
 # The places a coordinate of a path keeps. The flat SVG is drawn FLAT_SCALE times larger: a hundredth of a unit is a
 # few thousandths of a pixel of the result, where cairo writes six places
 PATH_PLACES = 2
-_PATH_DATA = re.compile(rb'(<path\b[^>]*?\sd=")([^"]*)(")')
+_PATH = re.compile(rb"<path\b[^>]*>")
+_DATA = re.compile(rb'\sd="[^"]*"')
 _DECIMAL = re.compile(rb"-?\d+\.\d+")
 
 
 def short_path_data(flat: bytes) -> bytes:
-    """The flat SVG with the coordinates of its paths rounded to PATH_PLACES."""
+    """The flat SVG with the coordinates of its paths rounded to PATH_PLACES.
+
+    A path with a transform keeps them: cairo writes a stroke in the units of the SVG and its scale in the transform,
+    where a hundredth of a unit of a viewBox one unit wide was a pixel of the result.
+    """
 
     def short(number: re.Match[bytes]) -> bytes:
         text = f"{float(number.group(0)):.{PATH_PLACES}f}".rstrip("0").rstrip(".")
         return b"0" if text == "-0" else text.encode()
 
-    return _PATH_DATA.sub(lambda path: path.group(1) + _DECIMAL.sub(short, path.group(2)) + path.group(3), flat)
+    def path(tag: re.Match[bytes]) -> bytes:
+        text = tag.group(0)
+        return text if b" transform=" in text else _DATA.sub(lambda data: _DECIMAL.sub(short, data.group(0)), text)
+
+    return _PATH.sub(path, flat)
 
 
 def sized(flat: bytes, width_pt: float, height_pt: float) -> bytes:
