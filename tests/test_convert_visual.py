@@ -184,6 +184,12 @@ def test_flat_svg_of_a_blur_looks_like_the_pdf(name: str, tmp_path: Path) -> Non
     check(f"blur-{name}", PORTABLE_BLURS[name].encode(), tmp_path)
 
 
+def test_flat_svg_of_the_inkscape_logo_looks_like_the_pdf(tmp_path: Path) -> None:
+    # Its strokes fade one color through a pattern: Poppler drew levels filled in that color there washed out, over
+    # everything after them, so a stroke keeps the shading in each level
+    check("real/wm-Inkscape_Logo.svg", (CORPUS / "real" / "wm-Inkscape_Logo.svg").read_bytes(), tmp_path)
+
+
 def test_flat_svg_of_a_blur_follows_the_gaussian() -> None:
     # The image of the exact blur of a rect, interpolated between the centers of its cells: Phi at the center of each pixel
     flat = to_svg(svg('<filter id="f"><feGaussianBlur stdDeviation="5"/></filter><rect x="40" y="40" width="120" height="120" fill="black" filter="url(#f)"/>', 200, 200).encode())

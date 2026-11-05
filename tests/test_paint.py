@@ -376,6 +376,14 @@ def test_portable_gradient_of_one_color_fills_its_levels() -> None:
     assert flat.count("f*") > 1
 
 
+def test_portable_stroke_of_one_color_paints_the_shading_in_each_level() -> None:
+    # A stroke paints through a pattern, whose levels Poppler draws wrongly when they are fills
+    gradient = '<linearGradient id="g"><stop stop-color="navy"/><stop offset="1" stop-color="navy" stop-opacity="0"/></linearGradient>'
+    flat = "".join(streams(portable_render(f'<defs>{gradient}</defs><rect x="20" y="20" width="160" height="60" fill="none" stroke="url(#g)" stroke-width="8"/>')))
+    assert flat.count(" sh") > 1
+    assert "f*" not in flat
+
+
 def test_portable_gradient_of_two_colors_paints_the_shading_in_each_level() -> None:
     gradient = '<radialGradient id="g"><stop stop-color="navy" stop-opacity="0"/><stop offset="1" stop-color="red"/></radialGradient>'
     flat = content(portable_render(f'<defs>{gradient}</defs><rect x="10" y="10" width="180" height="80" fill="url(#g)"/>'))

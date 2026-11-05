@@ -101,7 +101,8 @@ once.
   `paint.draw_gradient` keeps the alpha shading WeasyPrint sets for stop opacities (`_AlphaSink` in place of
   `set_alpha_state`) and paints the color shading through the level sets of that opacity (`paint.levels`). A shading
   of one color fills each level with it instead (`paint._constant_color`): cairo writes one path, not a clip, a
-  group and a gradient. Their reach is measured in the space of the shading: the cell of a gradient is about 1000 units.
+  group and a gradient. Not for a stroke: it paints through a pattern, where Poppler drew those fills washed out
+  over all that followed (the Inkscape logo). Their reach is measured in the space of the shading: the cell of a gradient is about 1000 units.
 - `levelsets.py`: the opacities that stack into a profile in steps of 1/64, the contours of a sampled field by
   marching squares (only the cells whose corners differ), and their simplification. The gradients of
   `paint.levels` use them.

@@ -290,7 +290,7 @@ def draw_gradient(svg: Any, node: Any, gradient: Any, font_size: float, opacity:
             gradient.attrib["fr"] = "0"
             gradient.__class__ = type(cls.__name__, (cls,), {"__iter__": lambda _: iter(ring)})
         # In a portable PDF the opacity of the stops paints in bands, not through a soft mask
-        capture = _GRADIENT_ALPHA.set(_AlphaCapture()) if _core.PORTABLE.get() else None
+        capture = _GRADIENT_ALPHA.set(_AlphaCapture(stroke=stroke)) if _core.PORTABLE.get() else None
         try:
             with _add_pattern_override(stream, _scaled_add_pattern(stream, cell)):
                 return _ORIGINAL_DRAW_GRADIENT(svg, node, gradient, font_size, opacity, stroke)
@@ -425,6 +425,8 @@ class _AlphaCapture:
 
     shading: tuple[int, Any, Any, bool, Any, Reach] | None = None
     painted: bool = False
+    # A stroke paints through a pattern, whose levels Poppler draws wrongly as fills (_paint_in_bands)
+    stroke: bool = False
 
 
 _GRADIENT_ALPHA: ContextVar[_AlphaCapture | None] = ContextVar("weasysvg_gradient_alpha", default=None)
@@ -474,7 +476,7 @@ def _paint_shading(self: Any, name: str) -> None:
         _ORIGINAL_PAINT_SHADING(self, name)
         return
     capture.painted = True
-    _paint_in_bands(self, name, capture.shading)
+    _paint_in_bands(self, name, capture.shading, capture.stroke)
 
 
 # The shares of the axis a level needs to span to cover the group, low and high, and for an axis the half width
@@ -655,7 +657,7 @@ def _constant_color(stream: Any, name: str) -> tuple[str, list[float]] | None:
     return (space[1:], list(colors.pop())) if len(colors) == 1 else None
 
 
-def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any, Reach]) -> None:
+def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, Any, Reach], stroke: bool = False) -> None:
     """Paint the color shading once per level of its opacity, clipped to the level and at the opacity it adds.
 
     A shading of one color fills each level with that color instead: cairo writes one path per level, where a
@@ -664,7 +666,9 @@ def _paint_in_bands(stream: Any, name: str, shading: tuple[int, Any, Any, bool, 
     shading_type, domain, coords, extend, function, (lowest, highest, half_width) = shading
     first, last = float(domain[0]), float(domain[1])
     points = [float(value) for value in coords]
-    constant = _constant_color(stream, name)
+    # The pattern of a stroke keeps the shading: Poppler drew its levels filled in one color washed out, over all that
+    # came after it (the Inkscape logo), where PDFium drew them right
+    constant = None if stroke else _constant_color(stream, name)
     # Where the opacity jumps at one offset, as between two cycles of spreadMethod="repeat", the edge of a level
     # meets the jump of the color: a viewer that takes the color of a shading at the center of each pixel paints
     # the pixel across the edge in the color of the far side, a line of one pixel
