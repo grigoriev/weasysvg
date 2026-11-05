@@ -444,7 +444,9 @@ def _narrow(ranges: list[list[float]], start: tuple[float, ...], middle: tuple[f
 PATH_PLACES = 2
 _PATH = re.compile(rb"<path\b[^>]*>")
 _DATA = re.compile(rb'\sd="[^"]*"')
-_DECIMAL = re.compile(rb"-?\d+\.\d+")
+# A number starts after no digit or point, and gives back no digit: a long run of digits without a point is passed
+# over once, where a search from each of its digits read the rest of the run again
+_DECIMAL = re.compile(rb"(?<![\d.])-?\d++\.\d++")
 
 
 def short_path_data(flat: bytes) -> bytes:

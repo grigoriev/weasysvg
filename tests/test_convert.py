@@ -541,6 +541,12 @@ def test_stops_kept_in_one_pass_are_the_ones_checking_each_finds(seed: int) -> N
     assert convert._kept_stops(values) == kept_by_checking_each(values)
 
 
+def test_path_data_with_a_long_run_of_digits() -> None:
+    # A run of digits without a point is no decimal: it stays, in one pass
+    digits = b"1" * 100_000
+    assert short_path_data(b'<svg><path d="M ' + digits + b' 0.123 Z"/></svg>') == b'<svg><path d="M ' + digits + b' 0.12 Z"/></svg>'
+
+
 def test_path_data_of_a_transformed_path_stays() -> None:
     # cairo writes a stroke in the units of the SVG, its scale in the transform: a hundredth there may be a pixel
     stroke = b'<path fill="none" stroke="navy" d="M 0.123456 0.2 L 0.876543 0.8 " transform="matrix(3000, 0, 0, 3000, 0, 0)"/>'
