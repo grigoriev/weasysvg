@@ -19,7 +19,9 @@ import base64
 import contextlib
 import math
 import os
+import pathlib
 import re
+import signal
 import sys
 import xml.etree.ElementTree as ET
 from collections.abc import Iterator
@@ -46,6 +48,13 @@ MAX_PNG_PIXELS = 50_000_000
 FLAT_SCALE = 8
 # How long pdftocairo may read back one PDF, in seconds
 PDFTOCAIRO_TIMEOUT = 60
+# The address space pdftocairo may take, in bytes. The flat SVG of the corpus needs under 50 MB, but cairo draws a soft mask
+# of a rotated radial shading with gigabytes: out of memory it fails at once, rather than taking the memory of the service.
+PDFTOCAIRO_MEMORY = 2 * 1024**3
+# The exit code of sh when it finds no command to exec
+COMMAND_NOT_FOUND = 127
+# The most of the error output of pdftocairo a ConvertError repeats, in characters
+MAX_MESSAGE = 200
 
 
 class ConvertError(Exception):
@@ -178,17 +187,57 @@ def to_svg(svg: bytes, dpi_x: float = DEFAULT_DPI, dpi_y: float = DEFAULT_DPI, *
         with open(pdf_path, "wb") as handle:
             handle.write(to_pdf(svg, dpi_x, dpi_y, portable=True, scale=FLAT_SCALE, band_px=band_px))
         try:
-            result = subprocess.run(["pdftocairo", "-svg", pdf_path, svg_path], capture_output=True, check=False, timeout=PDFTOCAIRO_TIMEOUT)  # noqa: S603, S607
+            result = subprocess.run(pdftocairo_command(pdf_path, svg_path), capture_output=True, check=False, timeout=PDFTOCAIRO_TIMEOUT)  # noqa: S603
         except FileNotFoundError as error:
-            raise ConvertError("SVG output needs pdftocairo of Poppler on the PATH") from error
+            raise ConvertError(MISSING_PDFTOCAIRO) from error
         except subprocess.TimeoutExpired as error:
             raise ConvertError(f"pdftocairo took longer than {PDFTOCAIRO_TIMEOUT} s") from error
-        if result.returncode != 0:
-            raise ConvertError(f"pdftocairo failed: {result.stderr.decode(errors='replace').strip()}")
-        with open(svg_path, "rb") as handle:
-            flat = handle.read()
+        # Killed, pdftocairo may leave no file at all
+        flat = pathlib.Path(svg_path).read_bytes() if os.path.exists(svg_path) else b""
+        check_pdftocairo(result.returncode, result.stderr.decode(errors="replace"), flat)
     width, height = size_px(svg, dpi_x, dpi_y)
     return sized(shared_clip_paths(constant_masks_as_opacity(flat)), width * 72 / dpi_x, height * 72 / dpi_y)
+
+
+MISSING_PDFTOCAIRO = "SVG output needs pdftocairo of Poppler on the PATH"
+
+
+def pdftocairo_command(pdf_path: str, svg_path: str, posix: bool = os.name == "posix") -> list[str]:
+    """The command that writes the flat SVG of pdf_path to svg_path, at most PDFTOCAIRO_MEMORY of address space on POSIX.
+
+    sh sets the limit and execs pdftocairo, so the exit code and the signal are its own. A preexec_fn would set
+    it without sh, but is not safe in a process with threads, as pandoc-service runs the flattening. Where ulimit
+    -v is not supported, pdftocairo runs without the limit.
+    """
+    if not posix:
+        return ["pdftocairo", "-svg", pdf_path, svg_path]
+    script = 'ulimit -v "$0" 2>/dev/null; exec pdftocairo -svg "$1" "$2"'
+    return ["sh", "-c", script, str(PDFTOCAIRO_MEMORY // 1024), pdf_path, svg_path]
+
+
+def check_pdftocairo(returncode: int, stderr: str, flat: bytes) -> None:
+    """Raise ConvertError when pdftocairo did not write the whole flat SVG.
+
+    Out of memory, pdftocairo is killed by the kernel without a word; under the limit, cairo reports it on the
+    error output, and pdftocairo exits with 0 and a file cut short or empty. An allocation of Poppler or of C++
+    that fails prints "Out of memory" or std::bad_alloc and aborts.
+    """
+    # Out of memory, pdftocairo repeats its error for every drawing: megabytes of it, of which the message keeps one line
+    message = stderr.strip().partition("\n")[0][:MAX_MESSAGE]
+    out_of_memory = "out of memory" in stderr.lower() or "bad_alloc" in stderr
+    if out_of_memory and returncode in (0, -signal.SIGABRT):
+        raise ConvertError(f"pdftocairo ran out of memory, over {PDFTOCAIRO_MEMORY // 1024**2} MB")
+    if returncode < 0:
+        name = signal.Signals(-returncode).name
+        hint = ": out of memory, most likely" if -returncode == signal.SIGKILL else ""
+        raise ConvertError(f"pdftocairo was killed by {name}{hint}" + (f": {message}" if message else ""))
+    # sh found no pdftocairo; the loader exits with 127 as well, when it cannot load a library
+    if returncode == COMMAND_NOT_FOUND and "pdftocairo" in message and "not found" in message:
+        raise ConvertError(MISSING_PDFTOCAIRO)
+    if returncode != 0:
+        raise ConvertError(f"pdftocairo failed: {message}")
+    if not flat:
+        raise ConvertError(f"pdftocairo wrote nothing: {message}" if message else "pdftocairo wrote nothing")
 
 
 SVG_NS = "http://www.w3.org/2000/svg"

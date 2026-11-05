@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
 import re
+import shutil
 import subprocess
 import sys
 import zlib
@@ -214,6 +216,96 @@ def test_flat_svg_reports_a_failing_pdftocairo(monkeypatch: pytest.MonkeyPatch) 
     document = RED_RECT.encode()
     with pytest.raises(ConvertError, match="pdftocairo failed: Syntax Error"):
         to_svg(document)
+
+
+# A soft mask of a rotated radial shading, the lens of the OpenStreetMap logo, which cairo draws with gigabytes. weasysvg
+# draws the stop opacity as levels, so only WeasyPrint alone makes this PDF: tests/helpers.py installs weasysvg in this process
+GREEDY_PDF = """
+import sys
+from weasysvg import convert
+stops = ('<stop stop-color="#d0e9f2" stop-opacity="0" offset="0"/><stop stop-color="#d0e9f2" stop-opacity="0" offset=".839"/>'
+         '<stop stop-color="#d0e9f2" stop-opacity=".282" offset=".943"/><stop stop-color="#d0e9f2" offset="1"/>')
+lens = ('M127.03 132.72c26.1 26.09 68.4 26.09 94.49 0 26.1-26.1 26.1-68.4 0-94.493-26.09-26.093-68.39-26.093-94.49 0'
+        '-26.09 26.093-26.09 68.393 0 94.493z')
+svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><defs><radialGradient id="g" gradientUnits="userSpaceOnUse"'
+       ' cx="128" cy="86" r="47" gradientTransform="rotate(-45 -51.091 19.464)">' + stops + '</radialGradient></defs>'
+       '<path d="' + lens + '" fill="url(#g)"/></svg>')
+sys.stdout.buffer.write(convert.to_pdf(svg.encode()))
+"""
+
+
+def fake_pdftocairo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, script: str) -> None:
+    """Put a pdftocairo that runs script, with the PDF and the SVG as $2 and $3, first on the PATH."""
+    folder = tmp_path / "bin"
+    folder.mkdir()
+    fake = folder / "pdftocairo"
+    fake.write_text(f"#!/bin/sh\n{script}\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{folder}{os.pathsep}{os.environ['PATH']}")
+
+
+@pytest.mark.parametrize(
+    ("script", "message"),
+    [
+        # Killed by the kernel, without a word and without a file
+        ("kill -KILL $$", "killed by SIGKILL: out of memory, most likely$"),
+        ('echo "Terminated by the service" >&2; kill -TERM $$', "killed by SIGTERM: Terminated by the service$"),
+        # Under a memory limit cairo reports it and pdftocairo exits with 0, its file empty or cut short
+        ('echo "Internal Error: cairo context error: out of memory" >&2; : > "$3"', "ran out of memory, over 2048 MB"),
+        ('echo "Syntax Warning: odd" >&2; echo "cairo error: out of memory" >&2; echo "<svg" > "$3"', "ran out of memory"),
+        # A failing allocation of Poppler or of C++ aborts
+        ('echo "Out of memory" >&2; kill -ABRT $$', "ran out of memory"),
+        ("echo \"terminate called after throwing an instance of 'std::bad_alloc'\" >&2; kill -ABRT $$", "ran out of memory"),
+        ('echo "double free" >&2; kill -ABRT $$', "killed by SIGABRT: double free$"),
+        # The loader exits with 127 too, when it cannot load a library
+        ('echo "pdftocairo: error while loading shared libraries: libnss3.so" >&2; exit 127', "failed: pdftocairo: error while loading"),
+        (': > "$3"', "wrote nothing$"),
+        ('echo "Syntax Warning: odd" >&2; : > "$3"', "wrote nothing: Syntax Warning: odd$"),
+        # Only the first line, and not all of it: out of memory, pdftocairo writes megabytes of errors
+        ('printf "%0300d\\nsecond\\n" 0 >&2; exit 1', "failed: 0{200}$"),
+    ],
+)
+def test_flat_svg_reports_why_pdftocairo_wrote_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, script: str, message: str) -> None:
+    fake_pdftocairo(tmp_path, monkeypatch, script)
+    document = RED_RECT.encode()
+    with pytest.raises(ConvertError, match=message):
+        to_svg(document)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="ulimit of sh")
+def test_flat_svg_limits_the_memory_of_pdftocairo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_pdftocairo(tmp_path, monkeypatch, 'echo "limit $(ulimit -v)" >&2; exit 1')
+    document = RED_RECT.encode()
+    with pytest.raises(ConvertError, match=f"limit {convert.PDFTOCAIRO_MEMORY // 1024}$"):
+        to_svg(document)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="sh")
+def test_flat_svg_reports_a_missing_pdftocairo_behind_sh(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # sh is there, pdftocairo is not: sh exits with 127
+    folder = tmp_path / "bin"
+    folder.mkdir()
+    (folder / "sh").symlink_to(cast(str, shutil.which("sh")))
+    monkeypatch.setenv("PATH", str(folder))
+    document = RED_RECT.encode()
+    with pytest.raises(ConvertError, match="needs pdftocairo of Poppler"):
+        to_svg(document)
+
+
+def test_pdftocairo_runs_alone_outside_posix() -> None:
+    assert convert.pdftocairo_command("in.pdf", "out.svg", posix=False) == ["pdftocairo", "-svg", "in.pdf", "out.svg"]
+
+
+@pytest.mark.skipif(shutil.which("pdftocairo") is None or os.name != "posix", reason="needs pdftocairo of Poppler and ulimit of sh")
+def test_pdftocairo_out_of_memory_fails_in_seconds(tmp_path: Path) -> None:
+    # Without the limit this PDF takes 8.3 GB and 39 s; with it, pdftocairo gives up in a few seconds
+    pdf = tmp_path / "in.pdf"
+    pdf.write_bytes(subprocess.run([sys.executable, "-c", GREEDY_PDF], capture_output=True, check=True).stdout)
+    svg_path = tmp_path / "out.svg"
+    result = subprocess.run(convert.pdftocairo_command(str(pdf), str(svg_path)), capture_output=True, check=False, timeout=60)  # noqa: S603
+    stderr, flat = result.stderr.decode(errors="replace"), svg_path.read_bytes()
+    with pytest.raises(ConvertError, match="ran out of memory"):
+        convert.check_pdftocairo(result.returncode, stderr, flat)
 
 
 # ---------------- command line ----------------

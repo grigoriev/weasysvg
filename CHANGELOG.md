@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that image as a soft mask. The flat SVG of Tux shrinks from 12.9 MB to 3.7 MB: each level of its blurred
   gradients had cairo write the gradient again. `band_px` sets the levels of gradients only.
 
+### Fixed
+
+- The flat SVG of `weasysvg-convert` reports why pdftocairo wrote nothing. Killed by the kernel, it said only
+  "pdftocairo failed: "; under a memory limit, pdftocairo wrote an empty or cut file, exited with 0 and the flat
+  SVG passed. Now each case raises its own `ConvertError`: the signal, out of memory anywhere in the error output
+  (also an abort of Poppler or of C++), no output, and only the first line of the error output, which runs to
+  megabytes out of memory.
+- pdftocairo runs with at most 2 GB of address space on POSIX (`PDFTOCAIRO_MEMORY`). cairo draws a soft mask of a
+  rotated radial shading with gigabytes: one such lens of the OpenStreetMap logo took 8.3 GB and 39 s, and the
+  whole logo was killed at 21 GB. It fails in a few seconds now. The flattening of weasysvg keeps no such soft
+  mask today, and stays under 50 MB.
+
 ## [0.6.0] - 2026-11-04
 
 ### Added

@@ -84,7 +84,10 @@ once.
   `-f svg` draws inside `_core.portable()` and reads the PDF back with `pdftocairo -svg`; it sets the root
   size in pt, since Poppler 25.03 writes it without a unit, reads a PDF `FLAT_SCALE` (8) times as large, as cairo
   hints each glyph outline at the size it is drawn, and writes the constant masks cairo makes of a group
-  opacity back as `opacity`. Its tests need `poppler-utils` (Dockerfile.test, CI).
+  opacity back as `opacity`. Its tests need `poppler-utils` (Dockerfile.test, CI). pdftocairo runs through
+  `sh -c 'ulimit -v'` with `PDFTOCAIRO_MEMORY` of address space: a preexec_fn is not safe in the threads of
+  pandoc-service. Out of memory, pdftocairo exits with 0 and a file cut short or empty, aborts, or is killed:
+  `check_pdftocairo` reads the whole error output for it.
 - `_core.PORTABLE` (`portable()`): draw without soft masks where the picture allows it. `paint.paint_mask`
   draws a binary mask (opaque white, then opaque black rect, circle, ellipse) as clips; `paint.gray_mask` draws a
   mask of one gray shape as a clip and an opacity of the element. A gradient mask stays soft: nested levels copied
