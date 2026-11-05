@@ -17,7 +17,7 @@ feColorMatrix and feComponentTransfer recolor: each color the element paints wit
 functions, in linearRGB unless color-interpolation-filters says sRGB. Touches ``svg.color`` and
 ``svg.defs.color``, which parse the fill, stroke and stop colors, and ``svg.draw_gradient``: a
 recolored gradient gets intermediate stops, since the functions do not commute with interpolation.
-Images inside keep their colors.
+An image inside has its pixels recolored, within MAX_PIXEL_WORK (``_recolored_raster``).
 
 PDF has no blur. A blurred layer is drawn through a soft mask that steps through the Gaussian profile
 of its edge: outside, the shape grown by a stroke; inside, bands along the edge (see _blur_mask).
@@ -26,6 +26,7 @@ of its edge: outside, the shape grown by a stroke; inside, bands along the edge 
 from __future__ import annotations
 
 import hashlib
+import io
 import logging
 import math
 import re
@@ -53,6 +54,8 @@ if TYPE_CHECKING:
     from xml.etree import ElementTree as ET
 
 LOGGER = logging.getLogger("weasysvg")
+# The darkest and the brightest value of a channel, as Pillow gives them
+Extrema = tuple[int, int]
 Region = tuple[float, float, float, float]
 RGBA = tuple[float, float, float, float]
 Recolor = Callable[[RGBA], RGBA]
@@ -1448,7 +1451,7 @@ def _shape_fields(svg: Any, node: Any, font_size: float, blur: tuple[float, floa
         return None
     values = grid.blurred()
     # A path that encloses nothing paints nothing, as a rect without a size in Chromium
-    return [_Field(None, values, grid)] if cast("tuple[int, int]", values.getextrema())[1] else []
+    return [_Field(None, values, grid)] if cast(Extrema, values.getextrema())[1] else []
 
 
 def _content_fields(svg: Any, original: Callable[..., None], node: Any, font_size: float, context: Any, layer: Layer) -> list[_Field] | None:
@@ -1533,7 +1536,7 @@ def _portable_blur(svg: Any, original: Callable[..., None], node: Any, font_size
         _paint_box(svg, original, node, font_size, context, paint, big, layer.recolor)
     for level in fields:
         # A field that covers nothing, as the faint end of a stack of colors, paints nothing
-        if not cast("tuple[int, int]", level.values.getextrema())[1]:
+        if not cast(Extrema, level.values.getextrema())[1]:
             continue
         rgba, opacity = _level_paint(layer, level, solid)
         _draw_field(stream, level, rgba, opacity, paint, big)
@@ -1787,7 +1790,36 @@ def _recolored_gradient(draw_gradient: Callable[..., Any]) -> Callable[..., Any]
     return draw
 
 
+def _recolored_raster(svg: Any, image: Any) -> Any:
+    """image with each pixel through the recolor being drawn, as the paint of a shape; image itself without one.
+
+    A feColorMatrix or feComponentTransfer applies to the pixels of an image as to any paint. cairo writes the alpha of
+    an image under a mask as a group turned white, its alpha kept: the image kept its colors, black, and the luminance
+    mask covered nothing (the shading of the flat SVG of Tux). An SVG image takes the recolor through its own paint.
+    """
+    functions = RECOLOR.get()
+    if not functions or not isinstance(image, RasterImage):
+        return image
+    # Charged before the pixels are read: an image past the budget costs no decoding
+    if not _charge(svg, image.width * image.height):
+        LOGGER.warning("SVG image is drawn without its recolor: too much pixel work")
+        return image
+
+    def function(pixel: RGBA) -> RGBA:
+        for step in functions:
+            pixel = step(pixel)
+        return pixel
+
+    out = _recolor_image(Image.open(io.BytesIO(image.image_data.data)).convert("RGBA"), function)
+    if cast(Extrema, out.getchannel("A").getextrema())[0] == 255:
+        # An opaque image needs no soft mask of its own
+        out = out.convert("RGB")
+    digest = hashlib.sha1(out.tobytes(), usedforsecurity=False).hexdigest()[:20]
+    return RasterImage(out, f"weasysvg{digest}", None)
+
+
 def install() -> None:
+    _core.enable_images(_recolored_raster)
     wp_svg.color = wp_defs.color = _color
     wp_svg.draw_gradient = _recolored_gradient(wp_svg.draw_gradient)
     _core.add_restyler(restyle)

@@ -218,6 +218,22 @@ def test_link_has_no_bounding_box() -> None:
     still_broken(near(pixel(pdf, 56, 30), WHITE), "the bounding box of <a>", "_core.bounding_box_a")
 
 
+def test_image_has_no_bounding_box() -> None:
+    # A mask in objectBoundingBox units on an <image> masks nothing: WeasyPrint has no box for it
+    red = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
+    mask = '<mask id="m" maskContentUnits="objectBoundingBox"><rect width="0.5" height="1" fill="white"/></mask>'
+    pdf, _ = render(svg(f'<defs>{mask}</defs><image width="200" height="100" preserveAspectRatio="none" mask="url(#m)" href="data:image/png;base64,{red}"/>'))
+    still_broken(near(pixel(pdf, 120, 30), RED), "the bounding box of <image>", "_core.bounding_box_image")
+
+
+def test_masked_image_with_alpha_is_unmasked() -> None:
+    # In PDF the soft mask of an image with alpha replaces the soft mask of the graphics state
+    translucent = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="
+    mask = '<mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="100"><rect width="100" height="100" fill="white"/></mask>'
+    pdf, _ = render(svg(f'<defs>{mask}</defs><image width="200" height="100" preserveAspectRatio="none" mask="url(#m)" href="data:image/png;base64,{translucent}"/>'))
+    still_broken(near(pixel(pdf, 120, 30), RED), "the mask of an image with alpha", "_core._image_in_group")
+
+
 def test_clip_cycle_loses_the_svg() -> None:
     clip = '<clipPath id="c"><rect width="50" height="50" clip-path="url(#c)"/></clipPath>'
     _, errors = render(svg(f'<defs>{clip}</defs><rect width="100" height="100" fill="red" clip-path="url(#c)"/>'))

@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import base64
+import io
 import math
 import re
+import subprocess
+import sys
 import threading
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,8 +15,8 @@ from typing import Any, cast
 from xml.etree import ElementTree as ET
 
 import pytest
-from helpers import SVG_NS, RecordingStream, content, pixel, rasterize, render, streams, svg
-from PIL import ImageChops, ImageStat
+from helpers import SVG_NS, RecordingStream, content, page_html, pixel, rasterize, render, streams, svg
+from PIL import Image, ImageChops, ImageStat
 from weasyprint.matrix import Matrix
 
 import weasysvg
@@ -203,6 +207,137 @@ def test_mask_on_a_group_and_content_units() -> None:
     pdf = render(svg(body))
     assert near(pixel(pdf, 30, 30), RED)
     assert near(pixel(pdf, 120, 30), WHITE)
+
+
+def png_url(picture: Image.Image) -> str:
+    out = io.BytesIO()
+    picture.save(out, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(out.getvalue()).decode()
+
+
+# Opaque on the left half, clear on the right half
+HALF = Image.new("L", (40, 40), 0)
+HALF.paste(255, (0, 0, 20, 40))
+RED_PICTURE = Image.new("RGB", (40, 40), (255, 0, 0))
+HALF_MASK = f'<mask id="m"><image width="200" height="100" preserveAspectRatio="none" href="{png_url(HALF)}"/></mask>'
+
+
+def picture(source: Image.Image, extra: str = "") -> str:
+    return f'<image width="200" height="100" preserveAspectRatio="none" {extra} href="{png_url(source)}"/>'
+
+
+def css_pixel(pdf: bytes, x: int, y: int) -> tuple[int, int, int]:
+    return cast("tuple[int, int, int]", rasterize(pdf, 4 / 3).getpixel((x, y)))
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # The mask region of an image takes its box in object bounding box units, which WeasyPrint leaves empty
+        picture(RED_PICTURE, 'mask="url(#m)"'),
+        f'<g mask="url(#m)">{picture(RED_PICTURE)}</g>',
+        # cairo writes the alpha of an image this way: a masked group with a <use> of it
+        f'<defs><g id="u">{picture(RED_PICTURE)}</g></defs><g mask="url(#m)"><use href="#u"/></g>',
+        # In PDF the soft mask of an image with alpha replaces the one of the state: it draws in a group the mask cuts
+        picture(RED_PICTURE.convert("RGBA"), 'mask="url(#m)"'),
+        f'<g mask="url(#m)"><g>{picture(RED_PICTURE.convert("RGBA"))}</g></g>',
+    ],
+)
+def test_mask_of_an_image(body: str) -> None:
+    pdf = render(svg(f"<defs>{HALF_MASK}</defs>{body}"))
+    assert near(css_pixel(pdf, 50, 50), RED)
+    assert near(css_pixel(pdf, 150, 50), WHITE)
+
+
+# Renders stdin with the features but filters: tests/helpers.py would install them all
+WITHOUT_FILTERS = """
+import sys, weasyprint, weasysvg
+weasysvg.install(filters=False)
+assert "filters" not in weasysvg.installed()
+sys.stdout.buffer.write(weasyprint.HTML(string=sys.stdin.read()).write_pdf(uncompressed_pdf=True))
+"""
+
+
+def test_mask_of_an_image_with_alpha_without_filters() -> None:
+    # The group that keeps the mask of an image with alpha belongs to the masks, not to the filters
+    masked = picture(RED_PICTURE.convert("RGBA"), 'mask="url(#m)"')
+    document = svg(f"<defs>{HALF_MASK}</defs>{masked}")
+    pdf = subprocess.run([sys.executable, "-c", WITHOUT_FILTERS], input=page_html(document).encode(), capture_output=True, check=True).stdout  # noqa: S603
+    assert near(css_pixel(pdf, 50, 50), RED)
+    assert near(css_pixel(pdf, 150, 50), WHITE)
+
+
+def test_image_without_loaders_draws_as_weasyprint_does(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Masks alone turn the drawing of an image on, with no recolor to pass it through
+    monkeypatch.setattr(_core, "_IMAGE_LOADERS", [])
+    pdf = render(svg(picture(RED_PICTURE)))
+    assert near(css_pixel(pdf, 100, 50), RED)
+
+
+def test_an_image_loader_is_added_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(_core, "_IMAGE_LOADERS", [])
+
+    def loader(_svg: Any, image: Any) -> Any:
+        return image
+
+    _core.enable_images(loader)
+    _core.enable_images(loader)
+    _core.enable_images()
+    assert [loader] == _core._IMAGE_LOADERS
+
+
+def test_masked_image_that_does_not_load_draws_nothing() -> None:
+    # An image without a box under a mask: WeasyPrint draws nothing for it either
+    pdf = render(svg(f'<defs>{HALF_MASK}</defs><g mask="url(#m)"><rect width="10" height="10" fill="red"/><image href="data:image/png;base64,AAAA"/></g>'))
+    assert near(css_pixel(pdf, 5, 5), RED)
+    assert near(css_pixel(pdf, 100, 50), WHITE)
+
+
+@pytest.mark.parametrize(
+    ("attributes", "box"),
+    [
+        ('x="10" y="20" width="60" height="40"', (10, 20, 60, 40)),
+        # The size of the picture, 40 by 20 px, or one side and its ratio
+        ('x="10" y="20"', (10, 20, 40, 20)),
+        ('width="80"', (0, 0, 80, 40)),
+        ('height="30"', (0, 0, 60, 30)),
+    ],
+)
+def test_bounding_box_of_an_image(attributes: str, box: tuple[int, int, int, int]) -> None:
+    # A mask of the left half of the box in its units shows where the box lies
+    source = Image.new("RGB", (40, 20), (255, 0, 0))
+    mask = '<mask id="h" maskContentUnits="objectBoundingBox"><rect width="0.5" height="1" fill="white"/></mask>'
+    pdf = render(svg(f'<defs>{mask}</defs><image {attributes} preserveAspectRatio="none" mask="url(#h)" href="{png_url(source)}"/>'))
+    x, y, width, height = box
+    middle = y + height // 2
+    assert near(css_pixel(pdf, x + width // 4, middle), RED)
+    assert near(css_pixel(pdf, x + 3 * width // 4, middle), WHITE)
+
+
+def test_bounding_box_of_an_image_that_does_not_load() -> None:
+    node = SimpleNamespace(get=lambda name, default=None: None, get_href=lambda base: "missing.png")
+    canvas = SimpleNamespace(point=lambda *args: (0.0, 0.0), url=None, context=SimpleNamespace(get_image_from_uri=lambda **kwargs: None))
+    assert _core.bounding_box_image(canvas, node, 16) is None
+
+
+def sized_image(width: float | None, height: float | None, ratio: float | None) -> Any:
+    return SimpleNamespace(get_intrinsic_size=lambda resolution, font_size: (width, height, ratio))
+
+
+@pytest.mark.parametrize(
+    ("image", "width", "height", "size"),
+    [
+        # An SVG without a size or a ratio is 300 by 150, as in WeasyPrint
+        (sized_image(None, None, None), 0, 0, (300, 150)),
+        (sized_image(None, None, 2.0), 0, 50, (100, 50)),
+        (sized_image(None, None, 2.0), 80, 0, (80, 40)),
+        (sized_image(None, 30, 2.0), 0, 0, (60, 30)),
+        (sized_image(30, None, 3.0), 0, 0, (30, 10)),
+        (sized_image(40, 20, 2.0), 0, 0, (40, 20)),
+    ],
+)
+def test_size_of_an_image_as_weasyprint_draws_it(image: Any, width: float, height: float, size: tuple[float, float]) -> None:
+    assert _core._image_size(image, 16, width, height) == size
 
 
 def test_mask_in_user_space() -> None:

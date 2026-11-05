@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A mask, a clip or a filter region in object bounding box units applies to an `<image>`, and to a group that
+  holds one. WeasyPrint has no bounding box for an image: the mask was left out and the image drawn opaque.
+  The flat SVG writes the alpha of an image, since 0.6.1 each blur, as such a mask: weasysvg-convert, which
+  pandoc draws the SVG of a DOCX with, drew the shadow of the OpenStreetMap logo as a dark rectangle.
+- An image with alpha under a mask draws in a group: in PDF its own soft mask replaced the mask.
+- `feColorMatrix` and `feComponentTransfer` recolor the pixels of an image too, as they recolor the paint of a
+  shape, within `MAX_PIXEL_WORK`. cairo turns a soft mask white through such a filter: the shading of the
+  flat SVG of Tux was missing.
+
 ## [0.6.1] - 2026-11-05
 
 ### Changed
