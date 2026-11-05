@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-05
+
 ### Changed
 
 - In `weasysvg.portable()` and the flat SVG, a blur becomes an image of its color with the blurred coverage as
