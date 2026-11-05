@@ -135,7 +135,7 @@ COLOR_TO_ALPHA = '<filter id="c2a" x="0%" y="0%" width="100%" height="100%"><feC
 PLACED = 'width="160" height="80" x="20" y="10" preserveAspectRatio="none"'
 RAMP_MASK = f'<mask id="m"><image {PLACED} href="{RAMP}"/></mask>'
 BACKDROP = '<rect width="200" height="100" fill="#cfe"/>'
-# What weasysvg draws with an image, each against librsvg, which draws it as Chromium does
+# What weasysvg draws with an image or under a mask, each against librsvg, which draws it as Chromium does
 IMAGES = {
     "masked image": svg(f'{BACKDROP}<defs>{RAMP_MASK}</defs><image {PLACED} mask="url(#m)" href="{RED_PNG}"/>'),
     "masked group of an image": svg(f'{BACKDROP}<defs>{RAMP_MASK}</defs><g mask="url(#m)"><image {PLACED} href="{RED_PNG}"/></g>'),
@@ -159,6 +159,24 @@ IMAGES = {
     # A color matrix recolors the pixels of an image as the paint of a shape: red and blue swap
     "recolored image": svg(f'<defs><filter id="swap" color-interpolation-filters="sRGB"><feColorMatrix values="0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 1 0"/></filter></defs><g filter="url(#swap)"><image {PLACED} href="{STRIPES_PNG}"/></g>'),
     "recolored translucent image": svg(f'{BACKDROP}<g filter="url(#remove)"><defs>{REMOVE_COLOR}</defs><image {PLACED} href="{TRANSLUCENT_PNG}"/></g>'),
+    # A fill or a stroke through a pattern under a soft mask: PDFium and Poppler applied the mask again inside the
+    # cell of the pattern, a gradient faded twice and an SVG pattern vanished
+    "masked linear gradient": svg(
+        f'{BACKDROP}<defs>{RAMP_MASK}<linearGradient id="g"><stop stop-color="crimson"/><stop offset="1" stop-color="navy"/></linearGradient></defs><rect x="20" y="10" width="160" height="80" fill="url(#g)" mask="url(#m)"/>'
+    ),
+    "masked radial gradient": svg(
+        f'{BACKDROP}<defs>{RAMP_MASK}<radialGradient id="g" gradientUnits="userSpaceOnUse" cx="100" cy="50" r="90"><stop stop-color="gold"/><stop offset="1" stop-color="crimson"/></radialGradient></defs>'
+        f'<g mask="url(#m)"><circle cx="100" cy="50" r="45" fill="url(#g)"/><rect x="20" y="70" width="160" height="15" fill="none" stroke="url(#g)" stroke-width="6"/></g>'
+    ),
+    "masked svg pattern": svg(
+        f'{BACKDROP}<defs>{RAMP_MASK}<pattern id="p" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="10" height="20" fill="crimson"/><rect x="10" width="10" height="20" fill="navy"/></pattern></defs>'
+        f'<rect x="20" y="10" width="160" height="80" fill="url(#p)" mask="url(#m)"/>'
+    ),
+    # The element blends with what lies under it as one group, after its mask
+    "masked blended gradient": svg(
+        f'{BACKDROP}<defs>{RAMP_MASK}<linearGradient id="g"><stop stop-color="crimson"/><stop offset="1" stop-color="navy"/></linearGradient></defs>'
+        f'<rect x="20" y="10" width="160" height="80" fill="url(#g)" mask="url(#m)" style="mix-blend-mode:multiply"/>'
+    ),
     # The box of an image in object bounding box units: its attributes, its own size. librsvg sizes an image of one side
     # as SVG 1.1 did, not by its ratio as Chromium: test_paint covers that one
     "image box": svg(
@@ -246,7 +264,7 @@ def test_flat_svg_of_the_inkscape_logo_looks_like_the_pdf(tmp_path: Path) -> Non
     check("real/wm-Inkscape_Logo.svg", (CORPUS / "real" / "wm-Inkscape_Logo.svg").read_bytes(), tmp_path)
 
 
-@pytest.mark.parametrize("name", ["drop shadow", "group of colors", "faded colors side by side"])
+@pytest.mark.parametrize("name", ["drop shadow", "gradient", "group of colors", "faded colors side by side"])
 def test_weasysvg_draws_its_own_flat_svg_of_a_blur(name: str) -> None:
     # pandoc draws the SVG of a DOCX with weasysvg-convert: the flat SVG of a blur holds an image under a mask cairo
     # writes through filters, which weasysvg drew opaque
@@ -260,7 +278,7 @@ def test_weasysvg_draws_its_own_flat_svg_of_a_blur(name: str) -> None:
 
 
 @pytest.mark.parametrize("name", IMAGES)
-def test_weasysvg_draws_an_image_as_librsvg(name: str, tmp_path: Path) -> None:
+def test_weasysvg_draws_as_librsvg(name: str, tmp_path: Path) -> None:
     document = IMAGES[name].encode()
     expected = drawn(document, (round(size_px(document, 96, 96)[0] * SCALE), round(size_px(document, 96, 96)[1] * SCALE)))
     compare(name, expected, reference(document, expected.size[0]), document, tmp_path, "weasysvg differs from librsvg")
