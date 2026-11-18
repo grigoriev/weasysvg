@@ -37,7 +37,7 @@ import math
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
@@ -316,10 +316,8 @@ def _materialized_override_iter(self: Any, iterator: Any) -> None:
 
 
 def set_graphical_state(self: Any, node: Any, font_size: float, context: Any = None) -> tuple[Any, Any]:
-    """WeasyPrint sets the line width for a plain color only: a gradient or pattern stroke drew 1 unit wide."""
+    """The graphical state of WeasyPrint, with the dashes it sets wrong set again."""
     fill, stroke = _ORIGINAL_SET_GRAPHICAL_STATE(self, node, font_size, context=context)
-    if stroke:
-        self.stream.set_line_width(self.length(node.get("stroke-width", "1px"), font_size))
     _reset_dashes(self, node, font_size)
     return fill, stroke
 
@@ -445,7 +443,6 @@ class _AlphaSink:
     box: tuple[float, float, float, float]
     capture: _AlphaCapture
     real: Any = None
-    stream: Any = field(default=None)
 
     def add_shading(self, shading_type: int, domain: Any, coords: Any, extend: bool, function: Any, color_space: str | None = None) -> Any:
         reach = _reach(shading_type, [float(value) for value in coords], _corners(self.group))
@@ -456,11 +453,10 @@ class _AlphaSink:
         self.real = _ORIGINAL_SET_ALPHA_STATE(self.group, *self.box)
         return self.real.add_shading(shading_type, domain, coords, extend, function, color_space)
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        # WeasyPrint writes the operators of the alpha group into its stream
-        if name == "stream" and getattr(self, "real", None) is not None:
-            self.real.stream = value
-        object.__setattr__(self, name, value)
+    def paint_shading(self, name: str) -> None:
+        # WeasyPrint paints the alpha shading into its group: kept, the bands paint it instead
+        if self.real is not None:
+            self.real.paint_shading(name)
 
 
 def _set_alpha_state(self: Any, x: float, y: float, width: float, height: float, mode: str = "luminosity") -> Any:
