@@ -77,12 +77,6 @@ def test_css_drop_shadow_function_is_dropped() -> None:
 # ---------------- paint ----------------
 
 
-def test_gradient_stroke_is_one_unit_wide() -> None:
-    gradient = '<linearGradient id="p"><stop stop-color="red"/><stop offset="1" stop-color="red"/></linearGradient>'
-    pdf, _ = render(svg(f'<defs>{gradient}</defs><rect x="20" y="20" width="100" height="60" fill="none" stroke="url(#p)" stroke-width="20"/>'))
-    still_broken(near(pixel(pdf, 9, 37), WHITE, 3), "the width of gradient strokes", "paint.set_graphical_state")
-
-
 def test_user_space_pattern_starts_at_the_box() -> None:
     pattern = '<pattern id="p" patternUnits="userSpaceOnUse" width="100" height="100"><rect width="50" height="100" fill="red"/></pattern>'
     pdf, _ = render(svg(f'<defs>{pattern}</defs><rect x="50" width="150" height="100" fill="url(#p)"/>'))
@@ -167,10 +161,13 @@ def test_empty_fill_paints_nothing() -> None:
     still_broken(near(pixel(pdf, 30, 30), WHITE), 'fill=""', "paint.drop_empty_presentation")
 
 
-def test_an_arc_of_no_radius_runs_off() -> None:
-    # A relative line to the absolute end: the triangle runs out to (120, 80) instead of (60, 60)
-    pdf, _ = render(svg('<path d="M 20 20 L 60 20 A 0 0 0 0 1 60 60 Z" fill="black"/>'))
-    still_broken(near(pixel(pdf, 100 * 3 // 4, 64 * 3 // 4), (0, 0, 0)), "an arc of a zero radius", "paint.fix_arcs")
+def test_an_arc_of_no_radius_to_its_start_adds_a_vertex() -> None:
+    # SVG omits an arc that ends where it starts. WeasyPrint draws a line of no length: a second mid marker
+    # at the corner, along the line before it, where Chromium draws one bisecting the corner
+    marker = '<marker id="m" markerWidth="20" markerHeight="20" refX="10" refY="10" orient="auto" markerUnits="userSpaceOnUse"><rect width="20" height="6" fill="blue"/></marker>'
+    body = f'<defs>{marker}</defs><path d="M 20 50 L 60 50 A 0 0 0 0 1 60 50 L 60 90" fill="none" stroke="black" marker-mid="url(#m)"/>'
+    pdf, _ = render(svg(body))
+    still_broken(near(pixel(pdf, 52 * 3 // 4, 43 * 3 // 4), (0, 0, 255)), "an arc of a zero radius to its start", "paint.fix_arcs")
 
 
 def test_half_a_circle_bulges() -> None:
@@ -314,11 +311,12 @@ def test_translucent_stroke_knocks_out_the_fill() -> None:
 # ---------------- markers ----------------
 
 
-def test_mid_marker_at_a_cusp_points_down() -> None:
-    marker = '<marker id="m" refX="10" refY="10" markerWidth="20" markerHeight="20" orient="auto" markerUnits="userSpaceOnUse"><path d="M 20 10 L 10 16 V 4 Z" fill="blue"/></marker>'
-    body = f'<defs>{marker}</defs><path d="M 20 90 C 60 80 70 60 70 20 C 70 60 80 80 120 90" fill="none" stroke="black" marker-mid="url(#m)"/>'
-    pdf, _ = render(svg(body, height=120))
-    still_broken(pixel(pdf, 57, 15) != (0, 0, 255), "marker orientation", "markers")
+def test_start_marker_of_a_quadratic_curve_points_back() -> None:
+    # The curve leaves (20, 80) toward its control point, up and right. WeasyPrint turns the marker left
+    marker = '<marker id="m" refX="0" refY="3" markerWidth="30" markerHeight="6" orient="auto" markerUnits="userSpaceOnUse"><rect width="30" height="6" fill="blue"/></marker>'
+    body = f'<defs>{marker}</defs><path d="M 20 80 Q 50 0 80 80" fill="none" stroke="black" marker-start="url(#m)"/>'
+    pdf, _ = render(svg(body))
+    still_broken(near(pixel(pdf, 10 * 3 // 4, 80 * 3 // 4), (0, 0, 255)), "marker orientation", "markers")
 
 
 # ---------------- css ----------------

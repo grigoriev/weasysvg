@@ -316,10 +316,8 @@ def _materialized_override_iter(self: Any, iterator: Any) -> None:
 
 
 def set_graphical_state(self: Any, node: Any, font_size: float, context: Any = None) -> tuple[Any, Any]:
-    """WeasyPrint sets the line width for a plain color only: a gradient or pattern stroke drew 1 unit wide."""
+    """The graphical state of WeasyPrint, with the dashes it sets wrong set again."""
     fill, stroke = _ORIGINAL_SET_GRAPHICAL_STATE(self, node, font_size, context=context)
-    if stroke:
-        self.stream.set_line_width(self.length(node.get("stroke-width", "1px"), font_size))
     _reset_dashes(self, node, font_size)
     return fill, stroke
 

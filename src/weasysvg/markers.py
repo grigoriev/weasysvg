@@ -2,8 +2,8 @@
 
 Touches: ``svg.TAGS`` for path, line, polyline and polygon. After WeasyPrint draws the shape,
 ``node.vertices`` is rebuilt from pathdata.py. WeasyPrint averaged the angles at a vertex without
-wrapping them and took the tangents of curves and arcs from the wrong points, so orient="auto" turned
-markers the wrong way.
+wrapping them and took the tangents of quadratic curves and arcs from the wrong points, so orient="auto"
+turned markers the wrong way.
 
 Chromium (SVGMarkerData): a start marker follows the first segment out, an end marker the last one in,
 a mid marker bisects both, with 360 degrees added to the incoming angle when the two lie more than 180

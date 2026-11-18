@@ -413,8 +413,7 @@ def rewritten_arcs(data: str | None) -> str | None:
     """The path data with the arcs WeasyPrint draws wrong written out, None when it has none.
 
     - An arc of a zero radius is the line to its end, as SVG says, and is omitted where it ends at the
-      current point. WeasyPrint 70 writes it as a relative line to the absolute end point, so the line runs
-      off by the current point: Highcharts closes every slice of a pie with one.
+      current point. WeasyPrint draws a line of no length there, a vertex that turns a mid marker.
     - An arc wider than ARC_PIECE becomes curves of ARC_PIECE at most. WeasyPrint draws an arc of up to 180
       degrees as one curve, which bulges by 1.8 % of its radius: the band of the flag of Brazil.
 
