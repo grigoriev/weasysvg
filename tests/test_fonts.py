@@ -61,13 +61,13 @@ def test_foreign_object_text_uses_the_resolved_family() -> None:
     body = f'<foreignObject width="200" height="60"><div xmlns="{XHTML_NS}" style="font-family:NoSuchFont, Arial">Sans</div></foreignObject>'
     pdf = render(svg(body))
     assert "Sans" in text_of(pdf)
-    assert b"+Liberation-Sans" in pdf
+    assert b"+Liberation#20Sans" in pdf
 
 
 def test_svg_text_uses_the_resolved_family() -> None:
     pdf = render(svg('<text x="10" y="50" font-family="Helvetica">Sans</text><text x="10" y="80">Serif</text>'))
-    assert b"+Liberation-Sans" in pdf
-    assert b"+Liberation-Serif" in pdf
+    assert b"+Liberation#20Sans" in pdf
+    assert b"+Liberation#20Serif" in pdf
 
 
 def test_no_fontconfig_match(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -34,11 +34,11 @@
    "used_by": "_core, paint: svg.paths, svg.masks, svg.filters, cursor state"
   },
   "weasyprint.svg:SVG.draw_node": {
-   "fingerprint": "3e14b48840ec2684",
+   "fingerprint": "c0773f5374c46705",
    "used_by": "_core._draw_node and _draw_with_effects mirror its order of effects; text._record lays a text out through it with fill_stroke=False"
   },
   "weasyprint.svg:SVG.set_graphical_state": {
-   "fingerprint": "64e852909af7633d",
+   "fingerprint": "ecd1a9842b6b5c8a",
    "used_by": "paint.set_graphical_state"
   },
   "weasyprint.svg:SVG.draw_markers": {
@@ -82,7 +82,7 @@
    "used_by": "paint adds mix-blend-mode and isolation"
   },
   "weasyprint.svg.defs:draw_gradient": {
-   "fingerprint": "a8ca52d80fdd1c19",
+   "fingerprint": "16cae9962f4604ac",
    "used_by": "paint.draw_gradient, filters._recolored_gradient"
   },
   "weasyprint.svg.defs:draw_pattern": {
@@ -146,7 +146,7 @@
    "used_by": "glyphs.show, text._draw_run"
   },
   "weasyprint.svg.path:path": {
-   "fingerprint": "aae4c7fd39caf0e7",
+   "fingerprint": "0058856607e7eb81",
    "used_by": "markers rebuild the vertices it leaves"
   },
   "weasyprint.svg.shapes:circle": {
@@ -174,15 +174,15 @@
    "used_by": "filters, paint"
   },
   "weasyprint.layout.table:table_layout": {
-   "fingerprint": "2a3b93a2ef31dc5c",
+   "fingerprint": "0367eaec6f7086e7",
    "used_by": "foreign_object._table_layout"
   },
   "weasyprint.draw:draw_page": {
-   "fingerprint": "bb94e03fa11357ef",
+   "fingerprint": "68250cdb4c8b1736",
    "used_by": "foreign_object draws its pages into the SVG stream"
   },
   "weasyprint.formatting_structure.build:element_to_box": {
-   "fingerprint": "4a83d21e55ea983d",
+   "fingerprint": "325e952797b0dc7b",
    "used_by": "foreign_object._element_to_box drops empty inline boxes"
   },
   "weasyprint.text.line_break:strut": {
@@ -202,15 +202,15 @@
    "used_by": "foreign_object._strut sets the baseline it reads"
   },
   "weasyprint.draw.text:draw_text": {
-   "fingerprint": "74e0b88db0fe87e2",
+   "fingerprint": "910d6646dc4732e8",
    "used_by": "foreign_object._snap_baselines moves position_y, where it draws the baseline; text.font_lines places the decoration lines as it does"
   },
   "weasyprint.formatting_structure.build:marker_to_box": {
-   "fingerprint": "a657195c9f6fe508",
+   "fingerprint": "7f8d4e40d0b90413",
    "used_by": "foreign_object._marker_to_box draws symbol markers as Chromium does"
   },
   "weasyprint.draw.text:draw_first_line": {
-   "fingerprint": "7669a3733dcd8597",
+   "fingerprint": "b608c30bd322e2e6",
    "used_by": "glyphs.show, text._draw_run; text.carried_shifts moves the shifts of its TJ arrays; ink.run_glyphs places glyphs as it does; text.recorded_draw_first_line wraps it for the whole process"
   },
   "weasyprint.text.fonts:get_pango_font_key": {
@@ -250,8 +250,8 @@
    "used_by": "_core._add_group keeps the absolute matrix; _core.measure_text and text._record remove their scratch group from _resources; _core, filters, paint groups; xobject._new_form drops its Group"
   },
   "weasyprint.pdf.stream:Stream.set_alpha_state": {
-   "fingerprint": "1c570e0b507a14dd",
-   "used_by": "filters blur masks, paint clip masks; paint._set_alpha_state hands a gradient of a portable PDF an _AlphaSink, which takes add_shading and stream"
+   "fingerprint": "7b0847a7cc32da27",
+   "used_by": "filters blur masks, paint clip masks; paint._set_alpha_state hands a gradient of a portable PDF an _AlphaSink, which takes add_shading and paint_shading"
   },
   "pydyf:Stream.paint_shading": {
    "fingerprint": "c1b7b1514ae3fb55",
@@ -270,7 +270,7 @@
    "used_by": "groups start with an identity ctm"
   },
   "weasyprint.css:ComputedStyle.__missing__": {
-   "fingerprint": "25dc2c1180807ffb",
+   "fingerprint": "4da1ac9dc06aa99b",
    "used_by": "fonts._computed_families, called through COMPUTER_FUNCTIONS"
   },
   "weasyprint.css:AnonymousStyle.__missing__": {

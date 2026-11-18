@@ -371,7 +371,7 @@ def test_a_marker_with_content_stays_its_content(monkeypatch: pytest.MonkeyPatch
     style = {"content": content, "list_style_type": "disc"}
     token = IN_FOREIGN_OBJECT.set(True)
     try:
-        assert list(foreign_object._marker_to_box(None, None, style, lambda *_args: style)) == [marker]
+        assert list(foreign_object._marker_to_box(None, None, None, None, style, lambda *_args: style)) == [marker]
     finally:
         IN_FOREIGN_OBJECT.reset(token)
     assert shapes == (["disc"] if shaped else [])

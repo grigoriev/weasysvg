@@ -520,8 +520,8 @@ def test_each_use_keeps_its_own_font_family() -> None:
     # One <text> drawn through two <use>: the family the first resolves must not stick to the node
     body = '<defs><text id="t" x="10" y="30">Hi</text></defs><use href="#t" font-family="Liberation Mono"/><use href="#t" y="40" font-family="DejaVu Serif"/>'
     pdf = render(svg(body, height=100))
-    assert b"Liberation-Mono" in pdf
-    assert b"DejaVu-Serif" in pdf
+    assert b"Liberation#20Mono" in pdf
+    assert b"DejaVu#20Serif" in pdf
 
 
 # ---------------- whole runs ----------------
@@ -572,7 +572,7 @@ def test_letter_spacing_reaches_the_spaces_only() -> None:
 def test_missing_glyphs_fall_back_to_sans_serif() -> None:
     # Chromium takes a character the family lacks from the sans-serif list: DejaVu Sans, not FreeSerif
     pdf = render(svg('<text x="10" y="50" font-family="serif">a بعض</text>', width=300))
-    assert b"DejaVu-Sans" in pdf
+    assert b"DejaVu#20Sans" in pdf
 
 
 # ---------------- textPath ----------------
@@ -869,12 +869,20 @@ def test_a_chunked_text_keeps_the_box_of_all_its_chunks() -> None:
     assert all(text.CHUNK_BOX not in vars(node) for node in (chunk, middle, root))
 
 
-@pytest.mark.parametrize(("anchor", "direction", "x"), [("start", "ltr", 50), ("middle", "ltr", 40), ("end", "ltr", 30), ("start", "rtl", 30), ("end", "rtl", 50)])
-def test_the_box_of_a_text_lies_where_its_anchor_puts_it(anchor: str, direction: str, x: float) -> None:
-    # WeasyPrint keeps the box before the anchor shift: effects of the text need the box as drawn
-    node = TextNode("text", (50, 20, 20, 25), attrib={"text-anchor": anchor, "direction": direction})
+@pytest.mark.parametrize(("anchor", "direction", "x"), [("start", "ltr", 50), ("middle", "ltr", 40), ("end", "ltr", 30), ("start", "rtl", 30), ("end", "rtl", 50), ("bogus", "ltr", 50)])
+def test_the_box_of_a_chunk_lies_where_its_anchor_puts_it(anchor: str, direction: str, x: float) -> None:
+    # WeasyPrint keeps the box of a chunk before the anchor shift: effects of the text need the box as drawn.
+    # An unknown anchor moves neither the chunk nor its box.
+    node = TextNode("tspan", (50, 20, 20, 25), attrib={"x": "50", "text-anchor": anchor, "direction": direction})
     text.chunk_boxes(None, node)
-    assert node.text_bounding_box == (x, 20, 20, 25)
+    assert vars(node)[text.CHUNK_BOX] == [(node, (x, 20, 20, 25))]
+
+
+def test_the_box_of_a_text_stays_where_weasyprint_moved_it() -> None:
+    # WeasyPrint moves the box of a <text> by its anchor itself
+    node = TextNode("text", (40, 20, 20, 25), attrib={"text-anchor": "middle"})
+    text.chunk_boxes(None, node)
+    assert node.text_bounding_box == (40, 20, 20, 25)
 
 
 INK_SCALE = 4  # px per CSS px

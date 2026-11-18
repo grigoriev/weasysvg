@@ -482,8 +482,8 @@ def _symbol_marker(marker: Any, kind: str) -> None:
     marker.children = [shape]
 
 
-def _marker_to_box(element: Any, state: Any, parent_style: Any, style_for: Any, *args: Any) -> Any:
-    for marker in _ORIGINAL_MARKER_TO_BOX(element, state, parent_style, style_for, *args):
+def _marker_to_box(element: Any, quote_depth: Any, counter_values: Any, counter_scopes: Any, parent_style: Any, style_for: Any, *args: Any) -> Any:
+    for marker in _ORIGINAL_MARKER_TO_BOX(element, quote_depth, counter_values, counter_scopes, parent_style, style_for, *args):
         # The marker style decides the type, as WeasyPrint reads it when it makes the glyph
         own = style_for(element, "marker")
         kind = (own if own is not None else parent_style)["list_style_type"]

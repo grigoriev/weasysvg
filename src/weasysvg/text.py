@@ -439,9 +439,11 @@ def _holds(node: Any, target: Any) -> bool:
 
 
 def anchored(node: Any, box: Any) -> Any:
-    """The box of a text or a text chunk where its text-anchor moved it: WeasyPrint keeps the box from before."""
+    """The box of a text chunk where its text-anchor moved it: WeasyPrint moves the box of a <text> only."""
     anchor, direction = node.get("text-anchor", "start"), node.get("direction", "ltr")
-    if (anchor, direction) in (("start", "ltr"), ("end", "rtl")) or not is_valid_bounding_box(box):
+    # The anchors WeasyPrint moves a chunk by: an unknown value draws it unmoved
+    moved = anchor in ("start", "middle", "end") and (anchor, direction) not in (("start", "ltr"), ("end", "rtl"))
+    if not moved or not is_valid_bounding_box(box):
         return box
     x, y, width, height = box
     return (x - (width / 2 if anchor == "middle" else width), y, width, height)
@@ -484,7 +486,8 @@ def chunk_boxes(_svg: Any, node: Any) -> None:
         node.text_bounding_box = EMPTY_BOUNDING_BOX
     if node.tag == "text" or starts:
         # The width WeasyPrint anchored by: the chunks below are not in it, they moved on their own
-        node.text_bounding_box = anchored(node, node.text_bounding_box)
+        if starts:
+            node.text_bounding_box = anchored(node, node.text_bounding_box)
         for owner, box in hidden:
             owner.text_bounding_box = box
             x, y, width, height = box

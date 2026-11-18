@@ -30,7 +30,8 @@ requires-python = ">=3.11"
 dependencies = [
     # ink.py reads glyph outlines; WeasyPrint 70 requires it already
     "fonttools>=4.59.2",
-    "weasyprint>=70,<71",
+    # WeasyPrint main ahead of 71, pinned by commit until the release (UPGRADING.md)
+    "weasyprint @ https://github.com/Kozea/WeasyPrint/archive/69b19deb03ddf53907899ec450da03117c6a0a8c.tar.gz",
 ]
 
 [project.scripts]
@@ -59,6 +60,10 @@ visual = [
 Homepage = "https://github.com/grigoriev/weasysvg"
 Repository = "https://github.com/grigoriev/weasysvg"
 Issues = "https://github.com/grigoriev/weasysvg/issues"
+
+# Only for the commit pin of WeasyPrint main; PyPI refuses a direct reference
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/weasysvg"]

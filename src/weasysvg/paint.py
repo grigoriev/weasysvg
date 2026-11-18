@@ -37,7 +37,7 @@ import math
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
 from xml.etree import ElementTree as ET
@@ -445,7 +445,6 @@ class _AlphaSink:
     box: tuple[float, float, float, float]
     capture: _AlphaCapture
     real: Any = None
-    stream: Any = field(default=None)
 
     def add_shading(self, shading_type: int, domain: Any, coords: Any, extend: bool, function: Any, color_space: str | None = None) -> Any:
         reach = _reach(shading_type, [float(value) for value in coords], _corners(self.group))
@@ -456,11 +455,10 @@ class _AlphaSink:
         self.real = _ORIGINAL_SET_ALPHA_STATE(self.group, *self.box)
         return self.real.add_shading(shading_type, domain, coords, extend, function, color_space)
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        # WeasyPrint writes the operators of the alpha group into its stream
-        if name == "stream" and getattr(self, "real", None) is not None:
-            self.real.stream = value
-        object.__setattr__(self, name, value)
+    def paint_shading(self, name: str) -> None:
+        # WeasyPrint paints the alpha shading into its group: kept, the bands paint it instead
+        if self.real is not None:
+            self.real.paint_shading(name)
 
 
 def _set_alpha_state(self: Any, x: float, y: float, width: float, height: float, mode: str = "luminosity") -> Any:
